@@ -1,0 +1,614 @@
+<title>Трекер текущего ремонта</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: рабочий журнал прораба — шапка со сводкой, ленты фильтров, адреса раскрываются в таблицы работ; справа на широком экране — лента изменений и вопросы */
+:root{
+  --bg:#f3f4f2; --surface:#ffffff; --surface-2:#eceeea; --line:#d9ddd6; --line-strong:#b9bfb5;
+  --fg:#1d2420; --muted:#5b665f; --faint:#8a948d;
+  --accent:#1f5f8b; --accent-ink:#ffffff; --accent-soft:#dde9f2;
+  --c-attn:#c0392b; --c-attn-bg:#fbe5e1;
+  --c-cap:#7a4fb0;  --c-cap-bg:#efe6f8;
+  --c-wait:#a86a00; --c-wait-bg:#fbefd6;
+  --c-prog:#1f6fb2; --c-prog-bg:#e0edf9;
+  --c-winter:#3d7d86; --c-winter-bg:#ddeff1;
+  --c-done:#2e7d3a; --c-done-bg:#e0f1e2;
+  --c-cancel:#7c817d; --c-cancel-bg:#eceeec;
+  --ex-pto:#6f7672; --ex-pto-bg:#e7e9e6;
+  --ex-own:#d26a12; --ex-own-bg:#fcebdb;
+  --ex-none:#9a3b8e; --ex-none-bg:#f6e3f2;
+  --shadow:0 1px 2px rgba(20,30,25,.06),0 4px 14px rgba(20,30,25,.05);
+  --f-display:"Unbounded","Golos Text",system-ui,sans-serif;
+  --f-body:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141917; --surface:#1c2320; --surface-2:#242c28; --line:#313a35; --line-strong:#47524b;
+  --fg:#e5ebe7; --muted:#a3ada7; --faint:#77827b;
+  --accent:#6fb0de; --accent-ink:#0d1b25; --accent-soft:#1d3342;
+  --c-attn:#ff8a7a; --c-attn-bg:#3d1f1b; --c-cap:#c7a3f0; --c-cap-bg:#2f2440;
+  --c-wait:#f0b649; --c-wait-bg:#3a2d12; --c-prog:#79b6ec; --c-prog-bg:#1b3047;
+  --c-winter:#7cc6cf; --c-winter-bg:#173336; --c-done:#7fcf8a; --c-done-bg:#1b3520;
+  --c-cancel:#9aa19c; --c-cancel-bg:#2a302c;
+  --ex-pto:#b4bbb6; --ex-pto-bg:#2c3330; --ex-own:#f3a35e; --ex-own-bg:#3d2815; --ex-none:#e59ad9; --ex-none-bg:#3a1f36;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.2); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141917; --surface:#1c2320; --surface-2:#242c28; --line:#313a35; --line-strong:#47524b;
+  --fg:#e5ebe7; --muted:#a3ada7; --faint:#77827b;
+  --accent:#6fb0de; --accent-ink:#0d1b25; --accent-soft:#1d3342;
+  --c-attn:#ff8a7a; --c-attn-bg:#3d1f1b; --c-cap:#c7a3f0; --c-cap-bg:#2f2440;
+  --c-wait:#f0b649; --c-wait-bg:#3a2d12; --c-prog:#79b6ec; --c-prog-bg:#1b3047;
+  --c-winter:#7cc6cf; --c-winter-bg:#173336; --c-done:#7fcf8a; --c-done-bg:#1b3520;
+  --c-cancel:#9aa19c; --c-cancel-bg:#2a302c;
+  --ex-pto:#b4bbb6; --ex-pto-bg:#2c3330; --ex-own:#f3a35e; --ex-own-bg:#3d2815; --ex-none:#e59ad9; --ex-none-bg:#3a1f36;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.2); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45;margin:0}
+.wrap{max-width:1440px;margin:0 auto;padding-inline:16px;padding-block:20px 48px}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num,.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;padding-bottom:16px;border-bottom:2px solid var(--fg)}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(22px,3.2vw,34px);line-height:1.1;margin:4px 0 6px;text-wrap:balance;letter-spacing:-.01em}
+.lede{margin:0;color:var(--muted);max-width:72ch}
+.sync{display:flex;flex-direction:column;align-items:flex-end;gap:6px;font-size:13px;min-width:0}
+.sync-state{display:inline-flex;align-items:center;gap:8px;padding:5px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
+.sync-state .led{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.sync-state.live .led{background:var(--c-done)} .sync-state.ro .led{background:var(--c-wait)} .sync-state.off .led{background:var(--c-attn)}
+.me{display:inline-flex;align-items:center;gap:6px;color:var(--muted)} .me img{width:20px;height:20px;border-radius:50%}
+
+/* summary */
+.summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin-top:18px}
+.kpi{background:var(--surface);padding:14px 16px;min-width:0}
+.kpi .lbl{font-size:12px;color:var(--muted);font-weight:500}
+.kpi .val{font-family:var(--f-display);font-weight:500;font-size:26px;line-height:1.15;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi .sub{font-size:12px;color:var(--faint);margin-top:2px}
+.kpi.attn .val{color:var(--c-attn)} .kpi.done .val{color:var(--c-done)}
+@media (max-width:900px){.summary{grid-template-columns:repeat(2,minmax(0,1fr))} .kpi:first-child{grid-column:1/-1}}
+
+.exbars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:14px}
+@media (max-width:760px){.exbars{grid-template-columns:1fr}}
+.exbar{min-width:0}
+.exbar-head{display:flex;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:5px}
+.exbar-head b{font-weight:600}
+.stack{display:flex;height:10px;border-radius:3px;overflow:hidden;background:var(--surface-2)}
+.stack span{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+/* layout */
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;margin-top:22px;align-items:start}
+@media (max-width:1180px){.cols{grid-template-columns:minmax(0,1fr)}}
+.side{display:flex;flex-direction:column;gap:20px;min-width:0}
+
+/* filters */
+.filters{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);padding:12px;border-radius:6px}
+.frow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:6px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:6px 11px;cursor:pointer;font-size:13px;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.seg button .c{font-family:var(--f-mono);font-size:11px;opacity:.7;margin-left:4px}
+.search{flex:1 1 220px;min-width:0;padding:7px 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg)}
+.fsel{padding:6px 8px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);max-width:100%}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;user-select:none}
+.linkbtn{border:0;background:none;color:var(--accent);cursor:pointer;padding:4px 2px;font-size:13px;text-decoration:underline;text-underline-offset:2px}
+.btn{border:1px solid var(--line-strong);background:var(--surface);padding:7px 12px;border-radius:6px;cursor:pointer;font-weight:500}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.result-line{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin:14px 0 8px;font-size:13px;color:var(--muted)}
+
+/* groups */
+.groups{display:flex;flex-direction:column;gap:8px}
+.group{background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.group-head{display:grid;grid-template-columns:6px minmax(0,1fr) auto 18px;gap:12px;align-items:center;padding:10px 12px 10px 0;cursor:pointer}
+.group-head:hover{background:var(--surface-2)}
+.sev{align-self:stretch;width:6px}
+.gt{min-width:0}
+.gt h3{margin:0;font-size:15px;font-weight:600;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.gmeta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin-top:3px}
+.gmeta b{color:var(--fg);font-weight:600}
+.mini{display:inline-flex;align-items:center;gap:6px}
+.mini .tr{width:56px;height:5px;border-radius:3px;background:var(--surface-2);overflow:hidden;display:inline-block}
+.mini .tr i{display:block;height:100%;background:var(--c-done)}
+.chev{transition:transform .15s;color:var(--faint)}
+.group.open .chev{transform:rotate(90deg)}
+.kr{font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 6px;border-radius:3px;background:var(--accent-soft);color:var(--accent)}
+.newtag{font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 6px;border-radius:3px;background:var(--c-wait-bg);color:var(--c-wait)}
+
+.table-scroll{overflow-x:auto;border-top:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;min-width:980px}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:left;padding:8px 10px;background:var(--surface-2);border-bottom:1px solid var(--line)}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+tr.edited td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.rown{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.work{font-weight:500}
+.cat{font-size:11px;color:var(--faint);margin-top:2px}
+.basis{font-size:12px;color:var(--muted)}
+.btype{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--fg);background:var(--surface-2);padding:1px 5px;border-radius:3px;margin-bottom:2px}
+.money{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.money .f{font-size:11px;color:var(--c-done)}
+.overdue{display:inline-block;font-size:11px;color:var(--c-attn);font-weight:600;margin-top:4px}
+
+select.stsel,select.exsel{appearance:none;-webkit-appearance:none;border:1px solid transparent;border-radius:999px;padding:4px 24px 4px 10px;font-size:12px;font-weight:600;cursor:pointer;max-width:100%;
+  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-position:calc(100% - 13px) 55%,calc(100% - 9px) 55%;background-size:4px 4px;background-repeat:no-repeat}
+select.stsel:disabled,select.exsel:disabled{cursor:default;background-image:none;padding-right:10px;opacity:1}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.s-attn{color:var(--c-attn);background-color:var(--c-attn-bg)} .s-cap{color:var(--c-cap);background-color:var(--c-cap-bg)}
+.s-wait{color:var(--c-wait);background-color:var(--c-wait-bg)} .s-prog{color:var(--c-prog);background-color:var(--c-prog-bg)}
+.s-winter{color:var(--c-winter);background-color:var(--c-winter-bg)} .s-done{color:var(--c-done);background-color:var(--c-done-bg)}
+.s-cancel{color:var(--c-cancel);background-color:var(--c-cancel-bg)}
+.e-pto{color:var(--ex-pto);background-color:var(--ex-pto-bg)} .e-own{color:var(--ex-own);background-color:var(--ex-own-bg)} .e-none{color:var(--ex-none);background-color:var(--ex-none-bg)}
+select option{color:var(--fg);background:var(--surface)}
+.prog{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:5px}
+.prog .tr{width:60px;height:4px;background:var(--surface-2);border-radius:2px;overflow:hidden} .prog .tr i{display:block;height:100%;background:var(--c-prog)}
+.why{font-size:11px;color:var(--faint);margin-top:4px}
+.note{font-size:13px;white-space:pre-wrap;word-break:break-word}
+.note-src{font-size:12px;color:var(--muted)}
+.note-edit{display:block;margin-top:4px}
+.notebox{width:100%;min-height:64px;padding:6px 8px;border:1px solid var(--line-strong);border-radius:4px;background:var(--bg);resize:vertical}
+.note-actions{display:flex;gap:6px;margin-top:6px}
+.changed{font-size:11px;color:var(--accent);margin-top:4px}
+
+/* side panels */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0}
+.panel h2{font-family:var(--f-display);font-weight:500;font-size:15px;margin:0 0 10px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.panel h2 .c{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.feed{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.feed li{font-size:13px;display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px}
+.feed img{width:22px;height:22px;border-radius:50%}
+.feed .when{font-size:11px;color:var(--faint)}
+.feed .what{color:var(--muted)}
+.feed button{border:0;background:none;padding:0;color:var(--fg);font-weight:600;cursor:pointer;text-align:left}
+.issues{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.issue{padding:10px 0;border-top:1px solid var(--line);display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px}
+.issue:first-child{border-top:0;padding-top:0}
+.issue input{margin-top:3px}
+.issue .txt{font-size:13px}
+.issue.closed .txt{color:var(--faint);text-decoration:line-through}
+.issue .meta{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;color:var(--muted);margin-top:4px}
+.issue .meta b{font-weight:600;color:var(--fg)}
+.empty{padding:28px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--line-strong);border-radius:6px}
+.banner{margin-top:14px;padding:10px 12px;border-radius:6px;font-size:13px;background:var(--c-wait-bg);color:var(--fg);border:1px solid var(--line)}
+
+/* add form */
+.addform{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.addform label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:0}
+.addform .full{grid-column:1/-1}
+.addform input,.addform select{padding:6px 8px;border:1px solid var(--line-strong);border-radius:4px;background:var(--bg);min-width:0;width:100%}
+.form-msg{font-size:12px;margin-top:6px;color:var(--muted)}
+.footnote{margin-top:28px;font-size:12px;color:var(--faint);max-width:90ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div style="min-width:0">
+      <div class="eyebrow">Текущий ремонт · сентябрь–декабрь 2026</div>
+      <h1>Трекер текущего ремонта</h1>
+      <p class="lede">Все работы годового плана по адресам. Статус, исполнителя и комментарий меняйте прямо в строке — изменения сразу видят все, у кого открыт трекер. Исходный план — <span id="asof"></span>.</p>
+    </div>
+    <div class="sync">
+      <span class="sync-state" id="sync"><span class="led"></span><span id="sync-txt">Подключаемся к общей базе…</span></span>
+      <span class="me" id="me"></span>
+    </div>
+  </header>
+  <div id="banner"></div>
+
+  <section class="summary" id="kpis" aria-label="Сводка"></section>
+  <div class="exbars" id="exbars"></div>
+  <div class="legend" id="legend"></div>
+
+  <div class="cols">
+    <main style="min-width:0">
+      <div class="filters" role="search">
+        <div class="frow">
+          <input id="q" class="search" type="search" placeholder="Адрес, работа, номер строки…" aria-label="Поиск">
+          <select id="f-uk" class="fsel" aria-label="УК"></select>
+          <select id="f-cat" class="fsel" aria-label="Вид работ"></select>
+          <select id="f-st" class="fsel" aria-label="Статус"></select>
+        </div>
+        <div class="frow">
+          <div class="seg" id="f-month" aria-label="Месяц"></div>
+          <div class="seg" id="f-ex" aria-label="Исполнитель"></div>
+        </div>
+        <div class="frow">
+          <label class="chk"><input type="checkbox" id="f-open"> Только открытые</label>
+          <label class="chk"><input type="checkbox" id="f-overdue"> Просроченные</label>
+          <label class="chk"><input type="checkbox" id="f-kr"> Только объекты КР</label>
+          <label class="chk"><input type="checkbox" id="f-edited"> Изменённые командой</label>
+          <button class="linkbtn" id="reset" type="button">Сбросить фильтры</button>
+        </div>
+      </div>
+      <div class="result-line"><span id="result"></span><span><button class="linkbtn" id="expand" type="button">Раскрыть все</button> · <button class="linkbtn" id="collapse" type="button">Свернуть все</button></span></div>
+      <div class="groups" id="groups"></div>
+    </main>
+
+    <aside class="side">
+      <section class="panel" aria-labelledby="feed-h">
+        <h2 id="feed-h">Последние изменения <span class="c" id="feed-c"></span></h2>
+        <ul class="feed" id="feed"></ul>
+      </section>
+      <section class="panel" aria-labelledby="iss-h">
+        <h2 id="iss-h">Открытые вопросы <span class="c" id="iss-c"></span></h2>
+        <ul class="issues" id="issues"></ul>
+      </section>
+      <section class="panel" aria-labelledby="add-h" id="add-panel">
+        <h2 id="add-h">Добавить работу</h2>
+        <form class="addform" id="addform" autocomplete="off">
+          <label class="full">Адрес<input id="a-addr" list="addr-list" required placeholder="Например: Пушкарева ул, 20"></label>
+          <label class="full">Вид работы<input id="a-work" required placeholder="Что нужно сделать"></label>
+          <label>УК<select id="a-uk"></select></label>
+          <label>Месяц<select id="a-month"></select></label>
+          <label>Исполнитель<select id="a-ex"></select></label>
+          <label>Оценка, ₽<input id="a-sum" inputmode="decimal" placeholder="0"></label>
+          <label class="full">Основание<input id="a-basis" placeholder="Заявление, акт, протокол…"></label>
+          <div class="full"><button class="btn primary" id="a-submit" type="submit">Добавить в план</button><div class="form-msg" id="a-msg"></div></div>
+        </form>
+        <datalist id="addr-list"></datalist>
+      </section>
+    </aside>
+  </div>
+
+  <p class="footnote">Номера строк — по листу «2026» исходного файла Excel. Цвет заливки в файле переведён в статус и исполнителя: серый — подрядчики, оранжевый — СВОИ (Филимонов, электрик Рушан Алеев), жёлтый — выполнено без акта, зелёный — выполнено. Отметки команды хранятся отдельно от файла и показываются поверх него; синяя полоса слева от строки значит, что строку меняли в трекере.</p>
+</div>
+
+<script type="application/json" id="base-data">/*DATA*/</script>
+<script>
+(function(){
+"use strict";
+var DATA=JSON.parse(document.getElementById("base-data").textContent);
+
+var ST={
+  blocked:{l:"Нужно решение",g:"attn",r:10}, unclear:{l:"Требует уточнения",g:"attn",r:9}, nostatus:{l:"Нет статуса",g:"attn",r:8},
+  capital:{l:"Вопрос капремонта",g:"cap",r:7}, vote:{l:"Голосование ОСС",g:"wait",r:7}, todo:{l:"Не начато",g:"wait",r:6},
+  assigned:{l:"Передано исполнителю",g:"wait",r:5}, watch:{l:"На контроле",g:"prog",r:4}, material:{l:"Материал заказан",g:"prog",r:3},
+  work:{l:"В работе",g:"prog",r:2}, winter:{l:"Отложено на зиму",g:"winter",r:1}, done:{l:"Выполнено",g:"done",r:0}, cancel:{l:"Снято",g:"cancel",r:-1}
+};
+var ST_KEYS=Object.keys(ST);
+var SG=[["attn","Нужно решение / нет статуса"],["cap","Вопрос капремонта"],["wait","Не начато / ОСС / передано"],["prog","В работе / на контроле"],["winter","Отложено на зиму"],["done","Выполнено"],["cancel","Снято"]];
+var EX={"Подрядчики":"pto","СВОИ":"own","Не распределено":"none"};
+var EX_KEYS=Object.keys(EX);
+var MONTHS=[["2026-09","Сентябрь"],["2026-10","Октябрь"],["2026-11","Ноябрь"],["2026-12","Декабрь"]];
+var MNAME={}; MONTHS.forEach(function(m){MNAME[m[0]]=m[1];});
+var MEND={"2026-09":"2026-09-30","2026-10":"2026-10-31","2026-11":"2026-11-30","2026-12":"2026-12-31"};
+var TODAY=(function(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");})();
+
+function esc(s){return s==null?"":String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function money(n){if(n==null||n==="")return"—";return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g," ")+" ₽";}
+function moneyShort(n){if(n>=1e6)return(n/1e6).toFixed(n>=1e7?1:2).replace(".",",")+" млн ₽";if(n>=1e3)return Math.round(n/1e3)+" тыс ₽";return money(n);}
+function plural(n,a,b,c){var m=n%10,h=n%100;if(m===1&&h!==11)return a;if(m>=2&&m<=4&&(h<12||h>14))return b;return c;}
+function days(a,b){return Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/864e5);}
+function fmtD(iso){var p=iso.split("-");return p[2]+"."+p[1]+"."+p[0];}
+function ago(ms){var s=(Date.now()-ms)/1000;if(s<60)return"только что";if(s<3600)return Math.floor(s/60)+" мин назад";if(s<86400)return Math.floor(s/3600)+" ч назад";
+  var d=new Date(ms);return String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+" в "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}
+function sKey(s){return ST[s]?s:"nostatus";}
+
+/* ---------- base data ---------- */
+var BASE=[]; var KR={}; var ADDR_UK={};
+DATA.groups.forEach(function(g){
+  if(g.kr)KR[g.addr]=g.kr;
+  g.items.forEach(function(it){var o=Object.assign({},it);o.key="r"+it.row;o.src="file";BASE.push(o);ADDR_UK[g.addr]=it.uk;});
+});
+document.getElementById("asof").textContent="годовой план 2026 на "+fmtD(DATA.generated);
+
+/* ---------- shared state ---------- */
+var EDITS={}, ISS={}, EXTRA={};
+var db=null, user=null, ME={id:null,name:"",avatarUrl:""}, canWrite=false, dbState="connecting";
+var PROFILES={};
+var openSet={}; var editing=null; var pending=false;
+
+function allItems(){
+  var list=BASE.slice();
+  Object.keys(EXTRA).forEach(function(id){var x=EXTRA[id];
+    list.push({key:"x"+id,xid:id,src:"team",row:null,month:x.month,addr:x.addr,work:x.work,uk:x.uk,basis:x.basis||null,basis_type:x.basis?"Основание":null,
+      sum:x.sum||null,cat:"Добавлено командой",ex:x.ex,status:x.status||"todo",st_why:null,is_new:true,created_by:x.by,created_at:x.at});
+  });
+  return list.map(function(it){var e=EDITS[it.key];var o=Object.assign({},it);
+    o.status0=it.status;o.ex0=it.ex;
+    if(e){if(e.status)o.status=e.status;if(e.ex)o.ex=e.ex;if(e.note!=null)o.note=e.note;o.edit=e;}
+    o.status=sKey(o.status);if(!EX[o.ex])o.ex="Не распределено";
+    var closed=o.status==="done"||o.status==="cancel"||o.status==="winter";
+    o.open=!closed;
+    o.overdue=(!closed&&MEND[o.month]&&MEND[o.month]<TODAY)?days(MEND[o.month],TODAY):0;
+    return o;});
+}
+
+/* ---------- filters ---------- */
+var F={q:"",uk:"",cat:"",st:"",month:"",ex:"",open:false,overdue:false,kr:false,edited:false};
+try{var saved=JSON.parse(localStorage.getItem("trk-filters")||"null");if(saved)Object.assign(F,saved);}catch(e){}
+function saveF(){try{localStorage.setItem("trk-filters",JSON.stringify(F));}catch(e){}}
+function match(it,skip){
+  if(skip!=="month"&&F.month&&it.month!==F.month)return false;
+  if(skip!=="ex"&&F.ex&&it.ex!==F.ex)return false;
+  if(F.uk&&it.uk!==F.uk)return false;
+  if(F.cat&&it.cat!==F.cat)return false;
+  if(F.st&&ST[it.status].g!==F.st)return false;
+  if(F.open&&!it.open)return false;
+  if(F.overdue&&!it.overdue)return false;
+  if(F.kr&&!KR[it.addr])return false;
+  if(F.edited&&!it.edit&&it.src!=="team")return false;
+  if(F.q){var q=F.q.toLowerCase();var hay=(it.addr+" "+it.work+" "+(it.basis||"")+" "+(it.row||"")+" "+(it.note||"")+" "+(it.fact_txt||"")).toLowerCase();if(hay.indexOf(q)<0)return false;}
+  return true;
+}
+
+function buildStaticFilters(items){
+  var uks={},cats={};items.forEach(function(i){if(i.uk)uks[i.uk]=1;cats[i.cat]=1;});
+  fill("f-uk",[["","УК: все"]].concat(Object.keys(uks).sort().map(function(u){return[u,u];})),F.uk);
+  fill("f-cat",[["","Вид работ: все"]].concat(Object.keys(cats).sort().map(function(c){return[c,c];})),F.cat);
+  fill("f-st",[["","Статус: все"]].concat(SG.map(function(s){return[s[0],s[1]];})),F.st);
+  fill("a-uk",Object.keys(uks).sort().map(function(u){return[u,u];}),"");
+  fill("a-month",MONTHS,MONTHS[1][0]);
+  fill("a-ex",EX_KEYS.map(function(e){return[e,e];}),"Не распределено");
+  var al=document.getElementById("addr-list");al.innerHTML=Object.keys(ADDR_UK).sort().map(function(a){return'<option value="'+esc(a)+'">';}).join("");
+}
+function fill(id,opts,val){var el=document.getElementById(id);el.innerHTML=opts.map(function(o){return'<option value="'+esc(o[0])+'"'+(o[0]===val?" selected":"")+'>'+esc(o[1])+'</option>';}).join("");}
+function segs(id,opts,cur,counts,key){
+  document.getElementById(id).innerHTML=opts.map(function(o){return'<button type="button" data-k="'+key+'" data-v="'+esc(o[0])+'" aria-pressed="'+(o[0]===cur)+'">'+esc(o[1])+'<span class="c">'+(counts[o[0]]||0)+'</span></button>';}).join("");
+}
+
+/* ---------- render ---------- */
+function render(){
+  if(editing){pending=true;return;}
+  pending=false;
+  var items=allItems();
+  var vis=items.filter(function(i){return match(i);});
+
+  // segments with counts that ignore their own dimension
+  var mc={"":0},ec={"":0};
+  items.forEach(function(i){if(match(i,"month")){mc[""]++;mc[i.month]=(mc[i.month]||0)+1;}if(match(i,"ex")){ec[""]++;ec[i.ex]=(ec[i.ex]||0)+1;}});
+  segs("f-month",[["","Все месяцы"]].concat(MONTHS),F.month,mc,"month");
+  segs("f-ex",[["","Все исполнители"]].concat(EX_KEYS.map(function(e){return[e,e];})),F.ex,ec,"ex");
+
+  renderKpis(vis);
+  renderGroups(vis);
+  renderFeed(items);
+  renderIssues();
+}
+
+function renderKpis(vis){
+  var live=vis.filter(function(i){return i.status!=="cancel";});
+  var done=live.filter(function(i){return i.status==="done";}).length;
+  var open=vis.filter(function(i){return i.open;});
+  var attn=vis.filter(function(i){return ST[i.status].g==="attn"||ST[i.status].g==="cap";}).length;
+  var overdue=open.filter(function(i){return i.overdue;}).length;
+  var sum=live.reduce(function(s,i){return s+(i.sum||0);},0);
+  var fsum=live.reduce(function(s,i){return s+(i.fsum||0);},0);
+  var pct=live.length?Math.round(done*100/live.length):0;
+  document.getElementById("kpis").innerHTML=
+    kpi("","Работ в выборке",vis.length,new Set(vis.map(function(i){return i.addr;})).size+" "+plural(new Set(vis.map(function(i){return i.addr;})).size,"адрес","адреса","адресов")+(vis.length-live.length?" · снято "+(vis.length-live.length):""))+
+    kpi("done","Выполнено",pct+"%",done+" из "+live.length)+
+    kpi("","Открыто",open.length,overdue?overdue+" "+plural(overdue,"просрочена","просрочены","просрочено")+" по месяцу плана":"в сроке")+
+    kpi("attn","Нужно решение",attn,"нет статуса, уточнение, капремонт")+
+    kpi("","Оценка по плану",moneyShort(sum),fsum?"факт по строкам: "+moneyShort(fsum):"без снятых работ");
+  // executor bars
+  document.getElementById("exbars").innerHTML=EX_KEYS.map(function(e){
+    var its=vis.filter(function(i){return i.ex===e;});var n=its.length;
+    var d=its.filter(function(i){return i.status==="done";}).length;
+    var parts=SG.map(function(g){var c=its.filter(function(i){return ST[i.status].g===g[0];}).length;return c?'<span class="s-'+g[0]+'" style="width:'+(c*100/n)+'%;background:currentColor" title="'+esc(g[1])+': '+c+'"></span>':"";}).join("");
+    return'<div class="exbar"><div class="exbar-head"><span class="pill e-'+EX[e]+'">'+esc(e)+'</span><span class="muted"><b>'+n+'</b> '+plural(n,"работа","работы","работ")+' · выполнено '+d+'</span></div><div class="stack">'+(parts||"")+'</div></div>';
+  }).join("");
+  document.getElementById("legend").innerHTML=SG.map(function(g){return'<span><i class="s-'+g[0]+'" style="background:currentColor"></i>'+esc(g[1])+'</span>';}).join("");
+}
+function kpi(cls,l,v,s){return'<div class="kpi '+cls+'"><div class="lbl">'+esc(l)+'</div><div class="val">'+esc(v)+'</div><div class="sub">'+esc(s)+'</div></div>';}
+
+function worst(items){var w="cancel";items.forEach(function(i){if(ST[i.status].r>ST[w].r)w=i.status;});return w;}
+
+function renderGroups(vis){
+  var by={};vis.forEach(function(i){(by[i.addr]=by[i.addr]||[]).push(i);});
+  var groups=Object.keys(by).map(function(a){var its=by[a];its.sort(function(x,y){return ST[y.status].r-ST[x.status].r||((x.row||9999)-(y.row||9999));});
+    return{addr:a,items:its,w:worst(its),od:Math.max.apply(null,its.map(function(i){return i.overdue||0;}))};});
+  groups.sort(function(a,b){return ST[b.w].r-ST[a.w].r||b.items.filter(function(i){return i.open;}).length-a.items.filter(function(i){return i.open;}).length||a.addr.localeCompare(b.addr,"ru");});
+  document.getElementById("result").textContent=vis.length+" "+plural(vis.length,"работа","работы","работ")+" по "+groups.length+" "+plural(groups.length,"адресу","адресам","адресам");
+  var el=document.getElementById("groups");
+  if(!groups.length){el.innerHTML='<div class="empty">По этим фильтрам работ нет. Измените поиск или нажмите «Сбросить фильтры».</div>';return;}
+  var filtered=!!(F.q||F.st||F.overdue||F.edited);
+  el.innerHTML=groups.map(function(g,idx){
+    var isOpen=openSet[g.addr]!==undefined?openSet[g.addr]:(filtered||(ST[g.w].r>=7&&idx<4));
+    var live=g.items.filter(function(i){return i.status!=="cancel";});
+    var done=live.filter(function(i){return i.status==="done";}).length;
+    var sum=live.reduce(function(s,i){return s+(i.sum||0);},0);
+    var exc={};g.items.forEach(function(i){exc[i.ex]=(exc[i.ex]||0)+1;});
+    var uk=ADDR_UK[g.addr]||g.items[0].uk||"УК не указана";
+    var kr=KR[g.addr];
+    return'<div class="group'+(isOpen?" open":"")+'" data-addr="'+esc(g.addr)+'">'+
+      '<div class="group-head" tabindex="0" role="button" aria-expanded="'+isOpen+'">'+
+        '<span class="sev s-'+ST[g.w].g+'" style="background:currentColor"></span>'+
+        '<div class="gt"><h3>'+esc(g.addr)+(kr?'<span class="kr" title="Капремонт: '+esc(kr.works.join("; "))+(kr.status?" — "+esc(kr.status.replace(/^\W+\s*/,"")):"")+'">КР</span>':"")+'</h3>'+
+        '<div class="gmeta"><span class="mini"><span class="tr"><i style="width:'+(live.length?done*100/live.length:0)+'%"></i></span>выполнено <b>'+done+'/'+live.length+'</b></span>'+
+          (sum?'<span>оценка <b class="num">'+money(sum)+'</b></span>':"")+'<span>'+esc(uk)+'</span>'+
+          EX_KEYS.filter(function(e){return exc[e];}).map(function(e){return'<span>'+esc(e)+' · '+exc[e]+'</span>';}).join("")+
+          (g.od?'<span style="color:var(--c-attn)">просрочка '+g.od+' дн.</span>':"")+'</div></div>'+
+        '<span class="pill s-'+ST[g.w].g+'">'+esc(ST[g.w].l)+'</span>'+
+        '<svg class="chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>'+
+      '</div>'+
+      (isOpen?groupBody(g):"")+
+    '</div>';
+  }).join("");
+}
+
+function groupBody(g){
+  return'<div class="table-scroll"><table><colgroup><col style="width:62px"><col style="width:24%"><col style="width:19%"><col style="width:120px"><col style="width:180px"><col style="width:150px"><col></colgroup>'+
+    '<thead><tr><th>Строка</th><th>Работа</th><th>Основание</th><th style="text-align:right">Оценка</th><th>Статус</th><th>Исполнитель</th><th>Комментарий</th></tr></thead><tbody>'+
+    g.items.map(rowHtml).join("")+'</tbody></table></div>';
+}
+
+function rowHtml(it){
+  var dis=canWrite?"":" disabled";
+  var stOpts=ST_KEYS.map(function(k){return'<option value="'+k+'"'+(k===it.status?" selected":"")+'>'+esc(ST[k].l)+'</option>';}).join("");
+  var exOpts=EX_KEYS.map(function(k){return'<option value="'+esc(k)+'"'+(k===it.ex?" selected":"")+'>'+esc(k)+'</option>';}).join("");
+  var e=it.edit;
+  var srcNote=[];
+  if(it.fact_txt)srcNote.push("В файле: "+it.fact_txt);
+  if(it.upd)srcNote.push(it.upd);
+  var isEd=editing===it.key;
+  return'<tr data-key="'+esc(it.key)+'"'+(e||it.src==="team"?' class="edited"':"")+'>'+
+    '<td class="rown">'+(it.row?it.row:'<span class="newtag">НОВ.</span>')+'</td>'+
+    '<td><div class="work">'+esc(it.work)+'</div><div class="cat">'+esc(it.cat)+(it.is_new&&it.src==="file"?" · новая строка в файле":"")+'</div>'+
+      (it.src==="team"?'<div class="changed">добавил'+(PROFILES[it.created_by]?" "+esc(PROFILES[it.created_by].name||"участник"):"и в трекере")+' · '+esc(MNAME[it.month]||"")+(canWrite?' · <button class="linkbtn" data-act="del-extra" data-id="'+esc(it.xid)+'" type="button">удалить</button>':"")+'</div>':"")+'</td>'+
+    '<td class="basis">'+(it.basis?(it.basis_type?'<span class="btype">'+esc(it.basis_type)+'</span><br>':"")+esc(it.basis):'<span class="faint">не указано</span>')+'</td>'+
+    '<td class="money">'+(it.sum?money(it.sum):'<span class="faint">—</span>')+(it.fsum?'<div class="f">факт '+money(it.fsum)+'</div>':"")+'</td>'+
+    '<td><select class="stsel s-'+ST[it.status].g+'" data-act="status" aria-label="Статус"'+dis+'>'+stOpts+'</select>'+
+      (it.progress&&!e?'<div class="prog"><span class="tr"><i style="width:'+it.progress+'%"></i></span>'+it.progress+'%</div>':"")+
+      (it.overdue?'<div class="overdue">просрочено на '+it.overdue+' дн.</div>':"")+
+      (e&&e.status&&e.status!==it.status0?'<div class="why">в файле: '+esc(ST[sKey(it.status0)].l.toLowerCase())+'</div>':(it.st_why&&!e?'<div class="why">'+esc(it.st_why)+'</div>':""))+'</td>'+
+    '<td><select class="exsel e-'+EX[it.ex]+'" data-act="ex" aria-label="Исполнитель"'+dis+'>'+exOpts+'</select>'+
+      (it.ex_hint&&!(e&&e.ex)?'<div class="why">'+esc(it.ex_hint)+'</div>':"")+'</td>'+
+    '<td>'+
+      (srcNote.length?'<div class="note-src">'+esc(srcNote.join(" · "))+'</div>':"")+
+      (isEd?'<div class="note-edit"><textarea class="notebox" id="nb-'+esc(it.key)+'" aria-label="Комментарий">'+esc(it.note||"")+'</textarea><div class="note-actions"><button class="btn primary" data-act="note-save" type="button">Сохранить</button><button class="btn" data-act="note-cancel" type="button">Отмена</button></div></div>'
+        :(it.note?'<div class="note">'+esc(it.note)+'</div>':"")+
+         (canWrite?'<button class="linkbtn" data-act="note-edit" type="button">'+(it.note?"Изменить":"Добавить комментарий")+'</button>':(!it.note&&!srcNote.length?'<span class="faint">—</span>':"")))+
+      (e&&e.at?'<div class="changed">'+esc(nameOf(e.by))+' · '+esc(ago(e.at))+'</div>':"")+
+    '</td></tr>';
+}
+
+function nameOf(id){var p=PROFILES[id];return(p&&p.name)||(id&&id===ME.id?(ME.name||"вы"):"участник");}
+
+function renderFeed(items){
+  var byKey={};items.forEach(function(i){byKey[i.key]=i;});
+  var ev=[];
+  Object.keys(EDITS).forEach(function(k){(EDITS[k].hist||[]).forEach(function(h){ev.push({k:k,h:h});});});
+  Object.keys(EXTRA).forEach(function(id){var x=EXTRA[id];ev.push({k:"x"+id,h:{at:x.at,by:x.by,add:true}});});
+  Object.keys(ISS).forEach(function(k){var x=ISS[k];if(x.at)ev.push({iss:k,h:{at:x.at,by:x.by,done:x.done}});});
+  ev.sort(function(a,b){return b.h.at-a.h.at;});
+  document.getElementById("feed-c").textContent=ev.length?ev.length:"";
+  var el=document.getElementById("feed");
+  if(!ev.length){el.innerHTML='<li style="display:block" class="muted">Пока никто ничего не менял. Выберите статус или исполнителя в любой строке — изменение появится здесь и у всех коллег.</li>';return;}
+  el.innerHTML=ev.slice(0,14).map(function(x){
+    var h=x.h,p=PROFILES[h.by],av=p&&p.avatarUrl?'<img alt="" src="'+esc(p.avatarUrl)+'">':'<span></span>';
+    var what,target="";
+    if(x.iss){what=h.done?"закрыл(а) вопрос":"вернул(а) вопрос в работу";target='<span>'+esc(issueShort(x.iss))+'</span>';}
+    else{var it=byKey[x.k];
+      what=h.add?"добавил(а) работу":h.status?"статус → «"+esc(ST[sKey(h.status)].l)+"»":h.ex?"исполнитель → "+esc(h.ex):h.note!=null?"комментарий: «"+esc(h.note.slice(0,80))+(h.note.length>80?"…":"")+"»":"изменение";
+      target=it?'<button type="button" data-act="goto" data-addr="'+esc(it.addr)+'">'+esc(it.addr)+'</button> <span class="what">'+esc(it.work.slice(0,60))+(it.work.length>60?"…":"")+'</span>':'<span class="faint">строка удалена</span>';}
+    return'<li>'+av+'<div><div>'+target+'</div><div class="what">'+what+'</div><div class="when">'+esc(nameOf(h.by))+' · '+esc(ago(h.at))+'</div></div></li>';
+  }).join("");
+}
+function issueShort(k){var i=DATA.issues[+k.slice(1)];return i?i.text.slice(0,70)+"…":"вопрос";}
+
+function renderIssues(){
+  var openN=0;
+  var html=DATA.issues.map(function(is,idx){var s=ISS["i"+idx]||{};if(!s.done)openN++;
+    return'<li class="issue'+(s.done?" closed":"")+'"><input type="checkbox" data-act="issue" data-i="'+idx+'" aria-label="Вопрос решён"'+(s.done?" checked":"")+(canWrite?"":" disabled")+'>'+
+      '<div><div class="txt">'+esc(is.text)+'</div><div class="meta"><span>Ответственный: <b>'+esc(is.resp)+'</b></span><span>Срок: <b>'+esc(is.term)+'</b></span>'+(is.ref?'<span>'+esc(is.ref)+'</span>':"")+
+      (s.done&&s.at?'<span style="color:var(--c-done)">закрыт: '+esc(nameOf(s.by))+', '+esc(ago(s.at))+'</span>':"")+'</div></div></li>';});
+  document.getElementById("issues").innerHTML=html.join("");
+  document.getElementById("iss-c").textContent=openN+" из "+DATA.issues.length;
+}
+
+/* ---------- writes ---------- */
+function setSync(cls,txt){var s=document.getElementById("sync");s.className="sync-state "+cls;document.getElementById("sync-txt").textContent=txt;}
+function flash(txt){setSync(dbState==="live"?"live":"ro",txt);clearTimeout(flash.t);flash.t=setTimeout(function(){syncIdle();},2500);}
+function syncIdle(){if(dbState==="live")setSync("live",canWrite?"Общая база · изменения сохраняются":"Общая база · только просмотр");}
+function failWrite(e){
+  if(e&&e.code==="invalid_argument"){canWrite=false;showBanner("У вас доступ только на просмотр. Чтобы отмечать работы, попросите владельца трекера дать вам права участника (Contributor).");render();return;}
+  if(e&&e.code==="quota_exceeded"){showBanner("Общая база заполнена — изменение не сохранено. Сообщите владельцу трекера.");return;}
+  showBanner("Не удалось сохранить изменение. Проверьте соединение и повторите.");
+}
+function showBanner(t){document.getElementById("banner").innerHTML='<div class="banner">'+esc(t)+'</div>';}
+
+function writeEdit(key,patch){
+  if(!db||!canWrite)return;
+  var cur=EDITS[key]?JSON.parse(JSON.stringify(EDITS[key])):{};
+  var h=Object.assign({at:Date.now(),by:ME.id},patch);
+  var next=Object.assign(cur,patch,{at:h.at,by:ME.id});
+  next.hist=[h].concat(cur.hist||[]).slice(0,8);
+  EDITS[key]=next;render();
+  setSync("live","Сохраняем…");
+  db.collection("edits").doc(key).set(next).then(function(){flash("Сохранено");}).catch(function(e){
+    if(e&&e.code==="unavailable"){setTimeout(function(){db.collection("edits").doc(key).set(next).then(function(){flash("Сохранено");}).catch(failWrite);},400+Math.random()*600);}else failWrite(e);});
+}
+
+/* ---------- events ---------- */
+document.addEventListener("change",function(ev){
+  var t=ev.target;
+  if(t.dataset.act==="status"||t.dataset.act==="ex"){var key=t.closest("tr").dataset.key;var p={};p[t.dataset.act]=t.value;writeEdit(key,p);return;}
+  if(t.dataset.act==="issue"){var k="i"+t.dataset.i;var v={done:t.checked,at:Date.now(),by:ME.id};ISS[k]=v;render();
+    db.collection("issues").doc(k).set(v).then(function(){flash("Сохранено");}).catch(failWrite);return;}
+  if(t.id==="f-uk"){F.uk=t.value;} else if(t.id==="f-cat"){F.cat=t.value;} else if(t.id==="f-st"){F.st=t.value;}
+  else if(t.id==="f-open"){F.open=t.checked;} else if(t.id==="f-overdue"){F.overdue=t.checked;} else if(t.id==="f-kr"){F.kr=t.checked;} else if(t.id==="f-edited"){F.edited=t.checked;}
+  else return;
+  saveF();render();
+});
+var qt;document.getElementById("q").addEventListener("input",function(e){clearTimeout(qt);qt=setTimeout(function(){F.q=e.target.value.trim();saveF();render();},150);});
+document.addEventListener("click",function(ev){
+  var b=ev.target.closest("[data-k]");
+  if(b){F[b.dataset.k]=b.dataset.v;saveF();render();return;}
+  var a=ev.target.closest("[data-act]");
+  if(a){var act=a.dataset.act,tr=a.closest("tr");
+    if(act==="note-edit"){var key=tr.dataset.key;editing=null;render();editing=key;
+      var row=document.querySelector('tr[data-key="'+CSS.escape(key)+'"]');var it=allItems().filter(function(i){return i.key===key;})[0];
+      if(!row||!it){editing=null;return;}row.outerHTML=rowHtml(it);
+      var tb=document.getElementById("nb-"+key);if(tb){tb.focus();tb.setSelectionRange(tb.value.length,tb.value.length);}return;}
+    if(act==="note-cancel"){editing=null;render();return;}
+    if(act==="note-save"){var key=tr.dataset.key;var v=document.getElementById("nb-"+key).value.trim();editing=null;var cur=EDITS[key]&&EDITS[key].note;if((cur||"")!==v)writeEdit(key,{note:v});else render();return;}
+    if(act==="goto"){var ad=a.dataset.addr;F={q:"",uk:"",cat:"",st:"",month:"",ex:"",open:false,overdue:false,kr:false,edited:false};F.q=ad;document.getElementById("q").value=ad;syncControls();openSet[ad]=true;saveF();render();
+      var g=document.querySelector('.group[data-addr="'+CSS.escape(ad)+'"]');if(g)g.scrollIntoView({behavior:"smooth",block:"start"});return;}
+    if(act==="del-extra"){if(a.dataset.confirm){var id=a.dataset.id;delete EXTRA[id];render();db.collection("extra").doc(id).delete().then(function(){flash("Удалено");}).catch(failWrite);}else{a.dataset.confirm="1";a.textContent="точно удалить?";a.style.color="var(--c-attn)";}return;}
+    return;}
+  var h=ev.target.closest(".group-head");
+  if(h){var g=h.parentNode,ad=g.dataset.addr;openSet[ad]=!g.classList.contains("open");render();}
+});
+document.addEventListener("keydown",function(ev){var h=ev.target.closest&&ev.target.closest(".group-head");if(h&&(ev.key==="Enter"||ev.key===" ")){ev.preventDefault();h.click();}});
+document.getElementById("reset").addEventListener("click",function(){F={q:"",uk:"",cat:"",st:"",month:"",ex:"",open:false,overdue:false,kr:false,edited:false};syncControls();saveF();render();});
+document.getElementById("expand").addEventListener("click",function(){document.querySelectorAll(".group").forEach(function(g){openSet[g.dataset.addr]=true;});render();});
+document.getElementById("collapse").addEventListener("click",function(){document.querySelectorAll(".group").forEach(function(g){openSet[g.dataset.addr]=false;});render();});
+function syncControls(){document.getElementById("q").value=F.q;["uk","cat","st"].forEach(function(k){document.getElementById("f-"+k).value=F[k];});
+  ["open","overdue","kr","edited"].forEach(function(k){document.getElementById("f-"+k).checked=F[k];});}
+
+document.getElementById("a-addr").addEventListener("change",function(e){var u=ADDR_UK[e.target.value.trim()];if(u)document.getElementById("a-uk").value=u;});
+document.getElementById("addform").addEventListener("submit",function(ev){
+  ev.preventDefault();var msg=document.getElementById("a-msg");
+  if(!db||!canWrite){msg.textContent="Добавлять работы могут участники с правом редактирования.";return;}
+  var addr=document.getElementById("a-addr").value.trim(),work=document.getElementById("a-work").value.trim();
+  if(!addr||!work){msg.textContent="Укажите адрес и вид работы.";return;}
+  var sumRaw=document.getElementById("a-sum").value.replace(/\s/g,"").replace(",",".");var sum=sumRaw?Number(sumRaw):null;
+  if(sumRaw&&!(sum>=0)){msg.textContent="Оценка — это число в рублях, например 25000.";return;}
+  var doc={addr:addr,work:work,uk:document.getElementById("a-uk").value,month:document.getElementById("a-month").value,ex:document.getElementById("a-ex").value,
+    sum:sum,basis:document.getElementById("a-basis").value.trim()||null,status:"todo",by:ME.id,at:Date.now()};
+  var ref=db.collection("extra").doc();EXTRA[ref.id]=doc;openSet[addr]=true;render();
+  ref.set(doc).then(function(){msg.textContent="Добавлено: "+addr+" — "+work;["a-addr","a-work","a-sum","a-basis"].forEach(function(i){document.getElementById(i).value="";});flash("Сохранено");}).catch(failWrite);
+});
+
+/* ---------- boot ---------- */
+buildStaticFilters(BASE);syncControls();render();
+
+function loadProfiles(){
+  if(!user)return;var ids={};
+  Object.keys(EDITS).forEach(function(k){var e=EDITS[k];if(e.by)ids[e.by]=1;(e.hist||[]).forEach(function(h){if(h.by)ids[h.by]=1;});});
+  Object.keys(EXTRA).forEach(function(k){if(EXTRA[k].by)ids[EXTRA[k].by]=1;});
+  Object.keys(ISS).forEach(function(k){if(ISS[k].by)ids[ISS[k].by]=1;});
+  var need=Object.keys(ids).filter(function(i){return!PROFILES[i];});
+  if(!need.length)return;
+  user.profiles(need).then(function(ps){Object.assign(PROFILES,ps||{});render();}).catch(function(){});
+}
+
+if(window.claude&&window.claude.use){
+  Promise.all([window.claude.use("db"),window.claude.use("user")]).then(function(r){
+    db=r[0];user=r[1];
+    if(!db){dbState="off";setSync("off","Общая база недоступна — показан план из файла");showBanner("В этом просмотре общая база не подключилась: отметки команды не видны и не сохраняются. Откройте трекер на claude.ai под своей учётной записью.");document.getElementById("add-panel").hidden=true;render();return;}
+    var p=user?Promise.all([user.me(),user.can("data.write")]):Promise.resolve([ME,null]);
+    p.then(function(x){ME=x[0]||ME;canWrite=x[1]!==false;
+      if(ME.id&&ME.name)PROFILES[ME.id]={name:ME.name,avatarUrl:ME.avatarUrl};
+      document.getElementById("me").innerHTML=ME.name?'<img alt="" src="'+esc(ME.avatarUrl)+'">'+esc(ME.name):"";
+      if(!canWrite){document.getElementById("add-panel").hidden=true;}
+      dbState="live";syncIdle();
+      var onErr=function(e){if(e&&e.code==="revoked"){dbState="off";setSync("off","Доступ к общей базе закрыт");canWrite=false;render();}else{setSync("ro","Связь с базой прервалась — обновите страницу");}};
+      db.collection("edits").limit(1000).onSnapshot(function(s){var m={};s.docs.forEach(function(d){m[d.id]=d.data();});EDITS=m;render();loadProfiles();},onErr);
+      db.collection("issues").onSnapshot(function(s){var m={};s.docs.forEach(function(d){m[d.id]=d.data();});ISS=m;render();loadProfiles();},onErr);
+      db.collection("extra").limit(1000).onSnapshot(function(s){var m={};s.docs.forEach(function(d){m[d.id]=d.data();});EXTRA=m;render();loadProfiles();},onErr);
+      render();
+    });
+  });
+}else{dbState="off";setSync("off","Открыт вне claude.ai — только план из файла");document.getElementById("add-panel").hidden=true;}
+})();
+</script>
