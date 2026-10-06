@@ -18,7 +18,7 @@ var SHEET_ISSUES = 'Вопросы';
 
 var WORK_COLS = ['Ключ', 'Строка', 'Месяц', 'Адрес', 'УК', 'Работа', 'Вид работ', 'Основание', 'Оценка, ₽', 'Факт, ₽',
   'Исполнитель', 'Статус', 'Комментарий', 'Из файла', 'КР', 'Изменено', 'Кем', 'Дата выполнения', 'Акт', 'Исходный месяц'];
-var USER_COLS = ['Имя', 'Роль', 'Активен', 'Новый PIN', 'PIN-хэш'];
+var USER_COLS = ['Имя', 'Роль', 'Активен', 'Новый PIN', 'PIN-хэш', 'ID Битрикс24'];
 var LOG_COLS = ['Время', 'Пользователь', 'Ключ', 'Адрес', 'Работа', 'Что', 'Было', 'Стало'];
 var ISSUE_COLS = ['№', 'Вопрос', 'Ответственный', 'Срок', 'Ссылка', 'Решён', 'Кем', 'Когда'];
 
@@ -36,10 +36,74 @@ var MAX_FAILS = 5;
 /* ---------------- web ---------------- */
 
 function doGet() {
-  return HtmlService.createTemplateFromFile('Index').evaluate()
+  return page_(null);
+}
+
+/** Битрикс24 открывает приложение POST-запросом и передаёт AUTH_ID и DOMAIN текущего сотрудника. */
+function doPost(e) {
+  var p = (e && e.parameter) || {};
+  if (!p.AUTH_ID) return page_(null);
+  var boot;
+  try {
+    boot = { bitrix: true, session: bitrixLogin_(p) };
+  } catch (err) {
+    boot = { bitrix: true, error: err.message };
+  }
+  return page_(boot);
+}
+
+function page_(boot) {
+  var t = HtmlService.createTemplateFromFile('Index');
+  t.BOOT = JSON.stringify(boot || null).replace(/</g, '\\u003c');
+  return t.evaluate()
     .setTitle('Трекер текущего ремонта')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
+    // ALLOWALL нужен, чтобы трекер показывался внутри Битрикс24
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/* ---------------- вход через Битрикс24 ---------------- */
+
+function bitrixLogin_(p) {
+  var domain = String(PropertiesService.getScriptProperties().getProperty('BITRIX_DOMAIN') || '')
+    .replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim().toLowerCase();
+  if (!domain) throw new Error('Битрикс24 не подключён: администратору нужно задать свойство скрипта BITRIX_DOMAIN.');
+  if (String(p.DOMAIN || '').toLowerCase() !== domain) throw new Error('Трекер подключён к другому порталу Битрикс24.');
+  // спрашиваем только у своего портала: чужой AUTH_ID там не пройдёт
+  var resp = UrlFetchApp.fetch('https://' + domain + '/rest/user.current.json', {
+    method: 'post', payload: { auth: String(p.AUTH_ID) }, muteHttpExceptions: true
+  });
+  var me = null;
+  try { me = JSON.parse(resp.getContentText()).result; } catch (x) { me = null; }
+  if (resp.getResponseCode() !== 200 || !me || !me.ID) throw new Error('Битрикс24 не подтвердил вход. Закройте и снова откройте приложение.');
+  var bxId = String(me.ID);
+  var fullName = [me.NAME, me.LAST_NAME].filter(function (x) { return x; }).join(' ').trim() || ('Сотрудник ' + bxId);
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var sh = sheet_(SHEET_USERS);
+    var data = sh.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][5] || '').trim() !== bxId) continue;
+      if (!isTrue_(data[i][2])) throw new Error('Ваш доступ к трекеру отключён. Обратитесь к администратору.');
+      return newSession_(String(data[i][0]).trim(), data[i][1]);
+    }
+    // первый вход сотрудника: заводим его с ролью «Просмотр», роль назначит администратор
+    var names = data.map(function (r) { return String(r[0]).trim(); });
+    var name = names.indexOf(fullName) >= 0 ? fullName + ' (Б24 ' + bxId + ')' : fullName;
+    sh.appendRow([safe_(name), 'Просмотр', true, '', '', bxId]);
+    return newSession_(name, 'Просмотр');
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function newSession_(name, role) {
+  var token = Utilities.getUuid();
+  var user = { name: name, role: ROLES.indexOf(role) >= 0 ? role : 'Просмотр' };
+  CacheService.getScriptCache().put('s:' + token, JSON.stringify(user), SESSION_HOURS * 3600);
+  return { token: token, user: user };
 }
 
 /* ---------------- первичная настройка ---------------- */
@@ -88,7 +152,8 @@ function setup() {
     users.getRange(1, 1, 1, USER_COLS.length).setValues([USER_COLS]).setFontWeight('bold');
     users.setFrozenRows(1);
     var pin = String(Math.floor(100000 + Math.random() * 900000));
-    users.appendRow(['Администратор', 'Администратор', true, '', hashPin_(pin)]);
+    users.appendRow(['Администратор', 'Администратор', true, '', hashPin_(pin), '']);
+    users.getRange('F:F').setNumberFormat('@');
     users.getRange(2, 2, 200, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(ROLES).build());
     Logger.log('Администратор создан. Имя: «Администратор», PIN: ' + pin + ' — запишите его, он больше не показывается.');
   }
@@ -100,7 +165,7 @@ function setup() {
 /* ---------------- вход ---------------- */
 
 function getLoginNames() {
-  return readUsers_().filter(function (u) { return u.active; }).map(function (u) { return u.name; });
+  return readUsers_().filter(function (u) { return u.active && u.hasPin; }).map(function (u) { return u.name; });
 }
 
 function login(name, pin) {
@@ -130,10 +195,7 @@ function login(name, pin) {
       }
       if (!ok) break;
       cache.remove(failKey);
-      var token = Utilities.getUuid();
-      var user = { name: name, role: ROLES.indexOf(r[1]) >= 0 ? r[1] : 'Просмотр' };
-      cache.put('s:' + token, JSON.stringify(user), SESSION_HOURS * 3600);
-      return { token: token, user: user };
+      return newSession_(name, r[1]);
     }
   } finally {
     lock.releaseLock();
@@ -301,10 +363,10 @@ function setIssue(token, num, done) {
 
 function listUsers(token) {
   requireAdmin_(token);
-  return readUsers_().map(function (u) { return { name: u.name, role: u.role, active: u.active, hasPin: u.hasPin }; });
+  return readUsers_().map(function (u) { return { name: u.name, role: u.role, active: u.active, hasPin: u.hasPin, bxId: u.bxId }; });
 }
 
-/** u: {name, role, active, pin?, oldName?} */
+/** u: {name, role, active, pin?, bxId?, oldName?} */
 function saveUser(token, u) {
   var admin = requireAdmin_(token);
   var name = String(u.name || '').trim();
@@ -312,6 +374,8 @@ function saveUser(token, u) {
   if (ROLES.indexOf(u.role) < 0) throw new Error('Выберите роль.');
   var pin = String(u.pin || '').trim();
   if (pin && !/^\d{4,8}$/.test(pin)) throw new Error('PIN — от 4 до 8 цифр.');
+  var bxId = String(u.bxId || '').trim();
+  if (bxId && !/^\d+$/.test(bxId)) throw new Error('ID в Битрикс24 — число из адреса профиля сотрудника.');
   var lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
@@ -323,14 +387,15 @@ function saveUser(token, u) {
       var n = String(data[i][0]).trim();
       if (n === target) idx = i + 1;
       else if (n === name) throw new Error('Пользователь с таким именем уже есть.');
+      else if (bxId && String(data[i][5] || '').trim() === bxId) throw new Error('Этот ID Битрикс24 уже привязан к «' + n + '».');
     }
     if (idx && target === admin.name && (u.role !== 'Администратор' || !u.active)) throw new Error('Нельзя снять права администратора с себя.');
     if (!idx) {
-      if (!pin) throw new Error('Для нового пользователя задайте PIN.');
-      sh.appendRow([name, u.role, !!u.active, '', hashPin_(pin)]);
+      if (!pin && !bxId) throw new Error('Задайте PIN или ID в Битрикс24.');
+      sh.appendRow([safe_(name), u.role, !!u.active, '', pin ? hashPin_(pin) : '', bxId]);
     } else {
       var hash = pin ? hashPin_(pin) : data[idx - 1][4];
-      sh.getRange(idx, 1, 1, 5).setValues([[name, u.role, !!u.active, '', hash]]);
+      sh.getRange(idx, 1, 1, 6).setValues([[safe_(name), u.role, !!u.active, '', hash, bxId]]);
     }
     return listUsers(token);
   } finally {
@@ -371,7 +436,7 @@ function readUsers_() {
   for (var i = 1; i < data.length; i++) {
     var r = data[i];
     if (!String(r[0]).trim()) continue;
-    out.push({ name: String(r[0]).trim(), role: ROLES.indexOf(r[1]) >= 0 ? r[1] : 'Просмотр', active: isTrue_(r[2]), hasPin: !!(r[3] || r[4]) });
+    out.push({ name: String(r[0]).trim(), role: ROLES.indexOf(r[1]) >= 0 ? r[1] : 'Просмотр', active: isTrue_(r[2]), hasPin: !!(r[3] || r[4]), bxId: String(r[5] || '').trim() });
   }
   return out;
 }

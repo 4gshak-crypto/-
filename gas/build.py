@@ -27,7 +27,7 @@ blob = json.dumps(seed, ensure_ascii=False, separators=(",", ":"))
 (here / "Seed.gs").write_text("/** План текущего ремонта на 06.10.2026 — загружается в таблицу функцией setup(). Сгенерировано build.py. */\nvar SEED = " + blob + ";\n", encoding="utf-8")
 demo_items = [dict(i, src=i.pop("src_note")) for i in json.loads(blob)["items"]]
 demo = dict(seed, items=demo_items)
-html = (here / "Index.html").read_text(encoding="utf-8")
+html = (here / "Index.html").read_text(encoding="utf-8").replace("<?!= BOOT ?>", "null")
 inject = "<script>window.DEMO_SEED=" + json.dumps(demo, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/") + ";</script>\n"
 (here / "demo.html").write_text(html.replace("<script>\n(function(){", inject + "<script>\n(function(){", 1), encoding="utf-8")
 print(len(items), "работ,", len(seed["issues"]), "вопросов")

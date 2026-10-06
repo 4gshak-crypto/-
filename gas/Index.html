@@ -163,7 +163,7 @@ main{max-width:1200px;margin:0 auto;padding:20px 16px 48px}
 .utable{width:100%;border-collapse:collapse;font-size:13px}
 .utable th,.utable td{text-align:left;padding:10px 14px;border-top:1px solid var(--line)}
 .utable th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-top:0}
-.uform{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:10px;align-items:end;margin-top:12px}
+.uform{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) auto;gap:10px;align-items:end;margin-top:12px}
 @media (max-width:760px){.uform{grid-template-columns:1fr 1fr}}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:40}
 .demo{background:var(--c-wait-bg);color:var(--fg);font-size:12px;text-align:center;padding:6px 16px}
@@ -173,6 +173,7 @@ main{max-width:1200px;margin:0 auto;padding:20px 16px 48px}
 <body>
 <div id="root"></div>
 <div class="tip" id="tip" hidden></div>
+<script>window.BOOT=<?!= BOOT ?>;</script>
 <script>
 (function(){
 "use strict";
@@ -216,6 +217,7 @@ const $=id=>document.getElementById(id);
 
 /* ---------- сервер: Apps Script или демо ---------- */
 const REAL=typeof google!=="undefined"&&google.script&&google.script.run;
+const BOOT=window.BOOT||null, IN_BX=!!(BOOT&&BOOT.bitrix);
 function call(fn,...args){
   if(REAL)return new Promise((res,rej)=>google.script.run.withSuccessHandler(res).withFailureHandler(e=>rej(e&&e.message?e:new Error(String(e))))[fn](...args));
   return new Promise((res,rej)=>setTimeout(()=>{try{res(JSON.parse(JSON.stringify(DEMO[fn](...args))));}catch(e){rej(e);}},120));
@@ -251,8 +253,8 @@ const DEMO=(function(){
       const it={key:"n"+Date.now(),row:null,month:w.month,addr:w.addr,uk:w.uk||"",work:w.work,cat:"Добавлено вручную",basis:w.basis||"",sum:Number(w.sum)||null,fsum:null,ex:w.ex,status:"Не начато",note:"",src:"",kr:"",at:Date.now(),by:u.name};
       items.push(it);log.unshift({at:it.at,by:u.name,key:it.key,addr:it.addr,work:it.work,what:"Добавлена работа",from:"",to:it.ex});rev++;return it;},
     setIssue(t,num,done){const u=auth(t);if(u.role!=="Администратор")throw new Error("Только администратор.");const i=issues.find(x=>x.num===num);i.done=done;i.by=u.name;i.at=Date.now();rev++;return true;},
-    listUsers(t){auth(t);return users.map(u=>Object.assign({hasPin:true},u));},
-    saveUser(t,u){auth(t);const ex=users.find(x=>x.name===(u.oldName||u.name));if(ex)Object.assign(ex,{name:u.name,role:u.role,active:u.active});else users.push({name:u.name,role:u.role,active:u.active});return this.listUsers(t);}
+    listUsers(t){auth(t);return users.map(u=>Object.assign({hasPin:true,bxId:""},u));},
+    saveUser(t,u){auth(t);const ex=users.find(x=>x.name===(u.oldName||u.name));if(ex)Object.assign(ex,{name:u.name,role:u.role,active:u.active,bxId:u.bxId||""});else users.push({name:u.name,role:u.role,active:u.active,bxId:u.bxId||""});return this.listUsers(t);}
   };
 })();
 
@@ -279,6 +281,7 @@ function renderLogin(){
   '<label class="field">PIN-код<input id="lp" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8"></label>'+
   '<div class="err" id="le"></div><button class="btn primary" id="lb" type="submit">Войти</button>'+
   '<div class="hint">PIN выдаёт администратор трекера.</div></form></div>';
+  if(BOOT&&BOOT.error)$("le").textContent=BOOT.error;
   call("getLoginNames").then(ns=>{$("ln").innerHTML='<option value="">Выберите имя</option>'+ns.map(n=>'<option>'+esc(n)+'</option>').join("");}).catch(e=>{$("le").textContent=e.message;});
   $("lf").addEventListener("submit",ev=>{ev.preventDefault();const n=$("ln").value,p=$("lp").value;
     if(!n||!p){$("le").textContent="Выберите имя и введите PIN.";return;}
@@ -300,7 +303,7 @@ function renderShell(){
   $("root").innerHTML=(REAL?"":'<div class="demo">Демо-режим: изменения не сохраняются. Попробуйте войти под разными ролями.</div>')+
   '<header class="bar"><div class="bar-in"><div class="brand">Текущий ремонт</div><nav class="tabs" role="tablist">'+
   tabs().map(t=>'<button role="tab" data-tab="'+t[0]+'" aria-selected="'+(V.tab===t[0])+'">'+t[1]+'</button>').join("")+
-  '</nav><div class="who"><span class="nm">'+esc(S.user.name)+'</span><span class="role">'+esc(S.user.role)+'</span><button class="linkbtn" id="out" type="button">Выйти</button></div></div></header>'+
+  '</nav><div class="who"><span class="nm">'+esc(S.user.name)+'</span><span class="role">'+esc(S.user.role)+'</span><button class="linkbtn" id="out" type="button"'+(IN_BX?" hidden":"")+'>Выйти</button></div></div></header>'+
   '<main id="view"></main><div id="dr"></div>';
   $("out").onclick=()=>{call("logout",S.token).catch(()=>{});S.token=null;S.user=null;saveSess();renderLogin();};
   renderView();
@@ -473,19 +476,20 @@ function renderUsers(){
   if(!isAdmin()){V.tab="dash";return renderView();}
   $("view").innerHTML='<div class="head"><h2>Пользователи</h2></div><div class="list" id="ul"><div class="empty">Загрузка…</div></div>'+
    '<form class="uform card" id="uf"><input type="hidden" id="uo"><label class="field">Имя<input id="un" required></label><label class="field">Роль<select id="ur">'+ROLES.map(r=>opt(r,r,"СВОИ")).join("")+'</select></label>'+
-   '<label class="field">PIN (4–8 цифр)<input id="up" inputmode="numeric" maxlength="8" placeholder="оставьте пустым, чтобы не менять"></label><label class="chk"><input type="checkbox" id="ua" checked> Активен</label>'+
+   '<label class="field">PIN (4–8 цифр)<input id="up" inputmode="numeric" maxlength="8" placeholder="не менять"></label><label class="field">ID в Битрикс24<input id="ub" inputmode="numeric" maxlength="12" placeholder="для входа из портала"></label><label class="chk"><input type="checkbox" id="ua" checked> Активен</label>'+
    '<button class="btn primary" type="submit">Сохранить</button></form>'+
-   '<p class="faint" style="font-size:12px;max-width:70ch">Администратор меняет всё. СВОИ и Подрядчики отмечают статус и комментарий только в своих работах. Просмотр — без изменений. PIN хранится в таблице в виде хэша.</p>';
-  const draw=us=>{$("ul").innerHTML='<table class="utable"><thead><tr><th>Имя</th><th>Роль</th><th>Статус</th><th></th></tr></thead><tbody>'+
-    us.map(u=>'<tr><td>'+esc(u.name)+'</td><td>'+esc(u.role)+'</td><td>'+(u.active?"активен":'<span class="faint">отключён</span>')+'</td><td><button class="linkbtn" data-u="'+esc(u.name)+'" data-r="'+esc(u.role)+'" data-a="'+u.active+'" type="button">Изменить</button></td></tr>').join("")+'</tbody></table>';
-    document.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{$("uo").value=b.dataset.u;$("un").value=b.dataset.u;$("ur").value=b.dataset.r;$("ua").checked=b.dataset.a==="true";$("up").value="";$("un").focus();});};
+   '<p class="faint" style="font-size:12px;max-width:70ch">Администратор меняет всё. СВОИ и Подрядчики отмечают статус и комментарий только в своих работах. Просмотр — без изменений. PIN хранится в таблице в виде хэша. Сотрудник, впервые открывший трекер из Битрикс24, появляется здесь сам с ролью «Просмотр» — назначьте ему роль. ID в Битрикс24 — число из адреса профиля: …/company/personal/user/<b>15</b>/.</p>';
+  const draw=us=>{$("ul").innerHTML='<table class="utable"><thead><tr><th>Имя</th><th>Роль</th><th>Вход</th><th>Статус</th><th></th></tr></thead><tbody>'+
+    us.map(u=>'<tr><td>'+esc(u.name)+'</td><td>'+esc(u.role)+'</td><td class="muted">'+[u.bxId?"Битрикс24 · "+esc(u.bxId):"",u.hasPin?"PIN":""].filter(Boolean).join(" · ")+'</td><td>'+(u.active?"активен":'<span class="faint">отключён</span>')+'</td><td><button class="linkbtn" data-u="'+esc(u.name)+'" data-r="'+esc(u.role)+'" data-a="'+u.active+'" data-b="'+esc(u.bxId||"")+'" type="button">Изменить</button></td></tr>').join("")+'</tbody></table>';
+    document.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{$("uo").value=b.dataset.u;$("un").value=b.dataset.u;$("ur").value=b.dataset.r;$("ua").checked=b.dataset.a==="true";$("ub").value=b.dataset.b;$("up").value="";$("un").focus();});};
   call("listUsers",S.token).then(draw).catch(fail);
-  $("uf").onsubmit=e=>{e.preventDefault();call("saveUser",S.token,{oldName:$("uo").value,name:$("un").value.trim(),role:$("ur").value,active:$("ua").checked,pin:$("up").value.trim()})
+  $("uf").onsubmit=e=>{e.preventDefault();call("saveUser",S.token,{oldName:$("uo").value,name:$("un").value.trim(),role:$("ur").value,active:$("ua").checked,pin:$("up").value.trim(),bxId:$("ub").value.trim()})
     .then(us=>{draw(us);toast("Сохранено");$("uf").reset();$("uo").value="";}).catch(fail);};
 }
 
 /* ---------- старт ---------- */
-if(S.token)load();else renderLogin();
+if(BOOT&&BOOT.session){S.token=BOOT.session.token;S.user=BOOT.session.user;saveSess();V.scope=myEx()?"mine":"all";load();}
+else if(S.token)load();else renderLogin();
 })();
 </script>
 </body>
