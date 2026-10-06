@@ -14,7 +14,7 @@
   --accent:#1f5f8b; --accent-ink:#fff; --accent-soft:#dde9f2;
   --c-attn:#c0392b; --c-attn-bg:#fbe5e1; --c-cap:#7a4fb0; --c-cap-bg:#efe6f8;
   --c-wait:#b07400; --c-wait-bg:#fbefd6; --c-prog:#1f6fb2; --c-prog-bg:#e0edf9;
-  --c-winter:#3d7d86; --c-winter-bg:#ddeff1; --c-done:#2e7d3a; --c-done-bg:#e0f1e2;
+  --c-winter:#3d7d86; --c-winter-bg:#ddeff1; --c-done:#2e7d3a; --c-done-bg:#e0f1e2; --c-noact:#7d8f1f; --c-noact-bg:#eef2d6;
   --c-cancel:#8a8f8b; --c-cancel-bg:#eceeec;
   --ex-pto:#5f6763; --ex-pto-bg:#e7e9e6; --ex-own:#c9600a; --ex-own-bg:#fcebdb; --ex-none:#9a3b8e; --ex-none-bg:#f6e3f2;
   --shadow:0 10px 40px rgba(20,30,25,.18);
@@ -25,7 +25,7 @@
   --bg:#141917; --surface:#1c2320; --surface-2:#252d29; --line:#2f3833; --line-strong:#47524b;
   --fg:#e5ebe7; --muted:#a3ada7; --faint:#77827b; --accent:#6fb0de; --accent-ink:#0d1b25; --accent-soft:#1d3342;
   --c-attn:#ff8a7a; --c-attn-bg:#3d1f1b; --c-cap:#c7a3f0; --c-cap-bg:#2f2440; --c-wait:#f0b649; --c-wait-bg:#3a2d12;
-  --c-prog:#79b6ec; --c-prog-bg:#1b3047; --c-winter:#7cc6cf; --c-winter-bg:#173336; --c-done:#7fcf8a; --c-done-bg:#1b3520;
+  --c-prog:#79b6ec; --c-prog-bg:#1b3047; --c-winter:#7cc6cf; --c-winter-bg:#173336; --c-done:#7fcf8a; --c-done-bg:#1b3520; --c-noact:#c3d46b; --c-noact-bg:#2e3415;
   --c-cancel:#9aa19c; --c-cancel-bg:#2a302c; --ex-pto:#b4bbb6; --ex-pto-bg:#2c3330; --ex-own:#f3a35e; --ex-own-bg:#3d2815;
   --ex-none:#e59ad9; --ex-none-bg:#3a1f36; --shadow:0 10px 40px rgba(0,0,0,.5); color-scheme:dark}}
 *{box-sizing:border-box}
@@ -110,7 +110,7 @@ main{max-width:1200px;margin:0 auto;padding:20px 16px 48px}
 
 /* status colors */
 .g-attn{--c:var(--c-attn);--cb:var(--c-attn-bg)} .g-cap{--c:var(--c-cap);--cb:var(--c-cap-bg)} .g-wait{--c:var(--c-wait);--cb:var(--c-wait-bg)}
-.g-prog{--c:var(--c-prog);--cb:var(--c-prog-bg)} .g-winter{--c:var(--c-winter);--cb:var(--c-winter-bg)} .g-done{--c:var(--c-done);--cb:var(--c-done-bg)}
+.g-prog{--c:var(--c-prog);--cb:var(--c-prog-bg)} .g-winter{--c:var(--c-winter);--cb:var(--c-winter-bg)} .g-done{--c:var(--c-done);--cb:var(--c-done-bg)} .g-noact{--c:var(--c-noact);--cb:var(--c-noact-bg)}
 .g-cancel{--c:var(--c-cancel);--cb:var(--c-cancel-bg)}
 .e-pto{--c:var(--ex-pto);--cb:var(--ex-pto-bg)} .e-own{--c:var(--ex-own);--cb:var(--ex-own-bg)} .e-none{--c:var(--ex-none);--cb:var(--ex-none-bg)}
 .fill{background:var(--c)}
@@ -183,17 +183,25 @@ const GROUPS=[
   ["wait","Не начато",["Голосование ОСС","Не начато","Передано исполнителю"]],
   ["prog","В работе",["На контроле","Материал заказан","В работе"]],
   ["winter","На зиму",["Отложено на зиму"]],
-  ["done","Выполнено",["Выполнено"]],
+  ["noact","Выполнено, акта нет",["Выполнено, акта нет"]],
+  ["done","Принято с актом",["Принято, акт есть"]],
   ["cancel","Снято",["Снято"]]];
 const G_OF={}; GROUPS.forEach(g=>g[2].forEach(s=>G_OF[s]=g[0]));
 const G_NAME={}; GROUPS.forEach(g=>G_NAME[g[0]]=g[1]);
 const STATUSES=GROUPS.flatMap(g=>g[2]);
-const RANK={}; ["Снято","Выполнено","Отложено на зиму","В работе","Материал заказан","На контроле","Передано исполнителю","Не начато","Голосование ОСС","Вопрос капремонта","Нет статуса","Требует уточнения","Нужно решение"].forEach((s,i)=>RANK[s]=i);
+const ADMIN_ONLY=["Принято, акт есть","Снято"];
+const RANK={}; ["Снято","Принято, акт есть","Выполнено, акта нет","Отложено на зиму","В работе","Материал заказан","На контроле","Передано исполнителю","Не начато","Голосование ОСС","Вопрос капремонта","Нет статуса","Требует уточнения","Нужно решение"].forEach((s,i)=>RANK[s]=i);
 const EXS=["Подрядчики","СВОИ","Не распределено"];
 const EX_CLS={"Подрядчики":"e-pto","СВОИ":"e-own","Не распределено":"e-none"};
-const MONTHS=[["2026-09","Сентябрь"],["2026-10","Октябрь"],["2026-11","Ноябрь"],["2026-12","Декабрь"]];
-const MNAME=Object.fromEntries(MONTHS);
-const MEND={"2026-09":"2026-09-30","2026-10":"2026-10-31","2026-11":"2026-11-30","2026-12":"2026-12-31"};
+const MN=["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+const MNG=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+const mfrom=m=>{const p=String(m||"").split("-");return p.length===2?MNG[+p[1]-1]:m||"";};
+const mname=m=>{const p=String(m||"").split("-");return p.length===2?MN[+p[1]-1]+(p[0]!==String(new Date().getFullYear())?" "+p[0]:""):m||"—";};
+const mend=m=>{const p=m.split("-");if(p.length!==2)return"";const d=new Date(+p[0],+p[1],0);return p[0]+"-"+p[1]+"-"+String(d.getDate()).padStart(2,"0");};
+const mshift=(m,k)=>{const p=m.split("-");const d=new Date(+p[0],+p[1]-1+k,1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");};
+let MONTHS=[];
+function buildMonths(){const set=new Set(S.items.map(i=>i.month).filter(Boolean));const cur=TODAY.slice(0,7);for(let k=-1;k<=3;k++)set.add(mshift(cur,k));
+  MONTHS=[...set].sort().map(m=>[m,mname(m)]);}
 const ROLES=["Администратор","СВОИ","Подрядчики","Просмотр"];
 const pad=n=>String(n).padStart(2,"0");
 const TODAY=(d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()))(new Date());
@@ -215,23 +223,30 @@ function call(fn,...args){
 const DEMO=(function(){
   const seed=window.DEMO_SEED; if(!seed)return {};
   const users=[{name:"Администратор",role:"Администратор",active:true},{name:"Филимонов",role:"СВОИ",active:true},{name:"ПТО (подрядчики)",role:"Подрядчики",active:true},{name:"Руководитель",role:"Просмотр",active:true}];
-  const items=seed.items.map(x=>Object.assign({note:"",at:null,by:""},x));
+  const items=seed.items.map(x=>Object.assign({note:"",at:null,by:"",act:"",doneAt:null,month0:x.month},x));
   const issues=seed.issues.map((x,i)=>({num:i+1,text:x.text,resp:x.resp,term:x.term,ref:x.ref||"",done:false}));
   const log=[]; let rev=1; const sess={};
   const auth=t=>{const u=sess[t];if(!u)throw new Error("SESSION_EXPIRED");return u;};
   const can=(u,it)=>u.role==="Администратор"||(u.role==="СВОИ"&&it.ex==="СВОИ")||(u.role==="Подрядчики"&&it.ex==="Подрядчики");
+  const L=(u,it,what,from,to)=>log.unshift({at:Date.now(),by:u.name,key:it.key,addr:it.addr,work:it.work,what,from:String(from==null?"":from),to:String(to==null?"":to)});
   return{
     getLoginNames:()=>users.filter(u=>u.active).map(u=>u.name),
     login(name,pin){const u=users.find(x=>x.name===name&&x.active);if(!u||pin!=="1111")throw new Error("Неверное имя или PIN.");const t="t"+Math.random();sess[t]={name:u.name,role:u.role};return{token:t,user:sess[t]};},
     logout(t){delete sess[t];return true;},
     bootstrap(t){return{user:auth(t),rev,asof:seed.generated,items,issues,log:log.slice(0,60)};},
     getRev(t){auth(t);return rev;},
-    updateWork(t,key,p){const u=auth(t),it=items.find(x=>x.key===key);if(!can(u,it))throw new Error("У вас нет прав менять эту работу.");
-      const now=Date.now();
-      if(p.status!=null&&p.status!==it.status){log.unshift({at:now,by:u.name,key,addr:it.addr,work:it.work,what:"Статус",from:it.status,to:p.status});it.status=p.status;}
-      if(p.note!=null&&p.note.trim()!==it.note){log.unshift({at:now,by:u.name,key,addr:it.addr,work:it.work,what:"Комментарий",from:it.note,to:p.note.trim()});it.note=p.note.trim();}
-      if(p.ex!=null&&p.ex!==it.ex){if(u.role!=="Администратор")throw new Error("Исполнителя меняет только администратор.");log.unshift({at:now,by:u.name,key,addr:it.addr,work:it.work,what:"Исполнитель",from:it.ex,to:p.ex});it.ex=p.ex;}
+    updateWork(t,key,p){const u=auth(t),it=items.find(x=>x.key===key),adm=u.role==="Администратор";if(!can(u,it))throw new Error("У вас нет прав менять эту работу.");
+      const now=Date.now(),DONE=["Выполнено, акта нет","Принято, акт есть"];
+      if(["ex","month","fsum","act"].some(k=>p[k]!=null)&&!adm)throw new Error("Исполнителя, месяц, факт и акт меняет только администратор.");
+      if(p.status!=null&&p.status!==it.status){if(!adm&&(ADMIN_ONLY.includes(p.status)||ADMIN_ONLY.includes(it.status)))throw new Error("Принимает работу и снимает её с плана только администратор.");
+        L(u,it,"Статус",it.status,p.status);if(DONE.includes(p.status)&&!DONE.includes(it.status))it.doneAt=now;if(!DONE.includes(p.status))it.doneAt=null;it.status=p.status;}
+      if(p.note!=null&&p.note.trim()!==it.note){L(u,it,"Комментарий",it.note,p.note.trim());it.note=p.note.trim();}
+      if(p.ex!=null&&p.ex!==it.ex){L(u,it,"Исполнитель",it.ex,p.ex);it.ex=p.ex;}
+      if(p.month!=null&&p.month!==it.month){L(u,it,"Перенос срока",it.month,p.month);it.month0=it.month0||it.month;it.month=p.month;}
+      if(p.fsum!=null&&String(p.fsum)!==String(it.fsum||"")){L(u,it,"Факт, ₽",it.fsum,p.fsum);it.fsum=p.fsum===""?null:Number(p.fsum);}
+      if(p.act!=null&&p.act.trim()!==(it.act||"")){L(u,it,"Акт",it.act,p.act.trim());it.act=p.act.trim();}
       it.at=now;it.by=u.name;rev++;return it;},
+    getHistory(t,key){auth(t);return log.filter(l=>l.key===key);},
     addWork(t,w){const u=auth(t);if(u.role!=="Администратор")throw new Error("Только администратор.");if(!w.addr||!w.work)throw new Error("Укажите адрес и вид работы.");
       const it={key:"n"+Date.now(),row:null,month:w.month,addr:w.addr,uk:w.uk||"",work:w.work,cat:"Добавлено вручную",basis:w.basis||"",sum:Number(w.sum)||null,fsum:null,ex:w.ex,status:"Не начато",note:"",src:"",kr:"",at:Date.now(),by:u.name};
       items.push(it);log.unshift({at:it.at,by:u.name,key:it.key,addr:it.addr,work:it.work,what:"Добавлена работа",from:"",to:it.ex});rev++;return it;},
@@ -250,8 +265,8 @@ const saveSess=()=>{try{sessionStorage.setItem("trk",JSON.stringify({token:S.tok
 const isAdmin=()=>S.user&&S.user.role==="Администратор";
 const myEx=()=>S.user&&(S.user.role==="СВОИ"||S.user.role==="Подрядчики")?S.user.role:null;
 const canEdit=it=>!!S.user&&(isAdmin()||it.ex===myEx());
-function enrich(it){const g=G_OF[it.status]||"attn";const closed=g==="done"||g==="cancel"||g==="winter";
-  return Object.assign(it,{g,closed,overdue:!closed&&MEND[it.month]&&MEND[it.month]<TODAY?days(MEND[it.month],TODAY):0});}
+function enrich(it){const g=G_OF[it.status]||"attn";const closed=g==="done"||g==="noact"||g==="cancel"||g==="winter";const e=mend(it.month||"");
+  return Object.assign(it,{g,closed,moved:it.month0&&it.month0!==it.month,overdue:!closed&&e&&e<TODAY?days(e,TODAY):0});}
 
 function toast(t){const el=document.createElement("div");el.className="toast";el.textContent=t;document.body.appendChild(el);setTimeout(()=>el.remove(),2600);}
 function fail(e){const m=(e&&e.message)||String(e);if(m.indexOf("SESSION_EXPIRED")>=0){S.token=null;saveSess();toast("Сессия закончилась — войдите снова");renderLogin();return;}toast(m);}
@@ -273,7 +288,7 @@ function renderLogin(){
 
 /* ---------- загрузка ---------- */
 function load(silent){
-  return call("bootstrap",S.token).then(d=>{S.user=d.user;saveSess();S.items=d.items.map(enrich);S.issues=d.issues;S.log=d.log;S.rev=d.rev;S.asof=d.asof;
+  return call("bootstrap",S.token).then(d=>{S.user=d.user;saveSess();S.items=d.items.map(enrich);buildMonths();S.issues=d.issues;S.log=d.log;S.rev=d.rev;S.asof=d.asof;
     if(!silent||!$("view"))renderShell();else renderView();}).catch(fail);
 }
 setInterval(()=>{if(!S.token||document.hidden)return;
@@ -307,9 +322,10 @@ function stackHtml(list){
   return'<div class="stack">'+GROUPS.map(g=>{const c=list.filter(i=>i.g===g[0]).length;return c?'<span class="fill g-'+g[0]+'" style="flex:'+c+'" data-tip="'+esc(g[1])+': '+c+'"></span>':"";}).join("")+'</div>';
 }
 function renderDash(){
-  const all=scoped(),live=all.filter(i=>i.g!=="cancel"),done=live.filter(i=>i.g==="done").length;
-  const open=all.filter(i=>!i.closed),od=open.filter(i=>i.overdue).length,attn=all.filter(i=>i.g==="attn"||i.g==="cap").length;
-  const sum=live.reduce((s,i)=>s+(i.sum||0),0),fsum=live.reduce((s,i)=>s+(i.fsum||0),0);
+  const all=scoped(),live=all.filter(i=>i.g!=="cancel"),noact=live.filter(i=>i.g==="noact").length,done=live.filter(i=>i.g==="done").length+noact;
+  const open=all.filter(i=>!i.closed),od=open.filter(i=>i.overdue).length,attn=all.filter(i=>i.g==="attn").length,cap=all.filter(i=>i.g==="cap").length;
+  const sum=live.reduce((s,i)=>s+(i.sum||0),0),fsum=live.reduce((s,i)=>s+(i.fsum||0),0),nosum=live.filter(i=>!i.sum).length;
+  const isDone=i=>i.g==="done"||i.g==="noact";
   const pct=live.length?Math.round(done*100/live.length):0;
   // по видам работ — открытые
   const cats={};open.forEach(i=>{cats[i.cat||"Прочее"]=(cats[i.cat||"Прочее"]||0)+1;});
@@ -317,18 +333,18 @@ function renderDash(){
   // проблемные адреса
   const by={};open.forEach(i=>{const a=by[i.addr]=by[i.addr]||{addr:i.addr,n:0,attn:0,od:0};a.n++;if(i.g==="attn"||i.g==="cap")a.attn++;if(i.overdue)a.od++;});
   const hot=Object.values(by).sort((a,b)=>b.attn-a.attn||b.od-a.od||b.n-a.n).slice(0,6);
-  const exRows=(myEx()&&V.scope==="mine"?[myEx()]:EXS).map(e=>{const l=all.filter(i=>i.ex===e),d=l.filter(i=>i.g==="done").length;
+  const exRows=(myEx()&&V.scope==="mine"?[myEx()]:EXS).map(e=>{const l=all.filter(i=>i.ex===e),d=l.filter(isDone).length;
     return'<div class="srow" data-go="ex" data-v="'+esc(e)+'"><span class="lbl">'+esc(e)+'</span>'+stackHtml(l)+'<span class="val">'+d+'/'+l.filter(i=>i.g!=="cancel").length+'</span></div>';}).join("");
-  const mRows=MONTHS.map(m=>{const l=all.filter(i=>i.month===m[0]);if(!l.length)return"";const d=l.filter(i=>i.g==="done").length;
+  const mRows=MONTHS.map(m=>{const l=all.filter(i=>i.month===m[0]);if(!l.length)return"";const d=l.filter(isDone).length;
     return'<div class="srow" data-go="month" data-v="'+m[0]+'"><span class="lbl">'+m[1]+'</span>'+stackHtml(l)+'<span class="val">'+d+'/'+l.filter(i=>i.g!=="cancel").length+'</span></div>';}).join("");
   const legend='<div class="legend">'+GROUPS.map(g=>'<span><i class="fill g-'+g[0]+'"></i>'+g[1]+'</span>').join("")+'</div>';
   $("view").innerHTML=
    '<div class="head"><h2>Сводка</h2>'+scopeSeg()+'<span class="faint" style="font-size:12px">план от '+esc(S.asof.split("-").reverse().join("."))+'</span></div>'+
    '<div class="tiles">'+
-     '<button class="tile done" data-go="grp" data-v="done" type="button"><div class="l">Выполнено</div><div class="v">'+pct+'%</div><div class="s">'+done+' из '+live.length+' работ</div></button>'+
+     '<button class="tile done" data-go="grp" data-v="noact" type="button"><div class="l">Выполнено</div><div class="v">'+pct+'%</div><div class="s">'+done+' из '+live.length+(noact?' · '+noact+' без акта':'')+'</div></button>'+
      '<button class="tile" data-go="open" type="button"><div class="l">Открыто</div><div class="v">'+open.length+'</div><div class="s">'+(od?od+' '+plural(od,"просрочена","просрочены","просрочено"):"всё в сроке")+'</div></button>'+
-     '<button class="tile attn" data-go="grp" data-v="attn" type="button"><div class="l">Нужно решение</div><div class="v">'+attn+'</div><div class="s">нет статуса, уточнение, КР</div></button>'+
-     '<div class="tile" style="cursor:default"><div class="l">Оценка по плану</div><div class="v">'+mshort(sum)+'</div><div class="s">'+(fsum?"факт "+mshort(fsum):"без снятых работ")+'</div></div>'+
+     '<button class="tile attn" data-go="grp" data-v="attn" type="button"><div class="l">Нужно решение</div><div class="v">'+attn+'</div><div class="s">нет статуса, уточнение'+(cap?' · ещё '+cap+' по КР':'')+'</div></button>'+
+     '<div class="tile" style="cursor:default"><div class="l">Оценка по плану</div><div class="v">'+mshort(sum)+'</div><div class="s">'+(fsum?"факт "+mshort(fsum)+" · ":"")+(nosum?nosum+" без оценки":"все оценены")+'</div></div>'+
    '</div>'+
    '<div class="grid2"><section class="card"><h3>По исполнителям <span>выполнено / всего</span></h3>'+exRows+legend+'</section>'+
      '<section class="card"><h3>По месяцам плана <span>выполнено / всего</span></h3>'+mRows+legend+'</section></div>'+
@@ -369,7 +385,7 @@ function renderWorks(){
   let qt;$("fq").oninput=e=>{clearTimeout(qt);qt=setTimeout(()=>{V.q=e.target.value.trim();V.addr="";V.cat="";V.limit=40;renderWorks();const f=$("fq");f.focus();f.setSelectionRange(f.value.length,f.value.length);},200);};
   $("fm").onchange=e=>{V.month=e.target.value;renderWorks();};
   if($("fe"))$("fe").onchange=e=>{V.ex=e.target.value;renderWorks();};
-  $("fg").onchange=e=>{V.grp=e.target.value;if(V.grp==="done"||V.grp==="cancel"||V.grp==="winter")V.open=false;renderWorks();};
+  $("fg").onchange=e=>{V.grp=e.target.value;if(["done","noact","cancel","winter"].includes(V.grp))V.open=false;renderWorks();};
   $("fo").onchange=e=>{V.open=e.target.checked;renderWorks();};
   if($("fr"))$("fr").onclick=()=>{Object.assign(V,{q:"",month:"",ex:"",grp:"",open:true,addr:"",cat:"",limit:40});renderWorks();};
   if($("more"))$("more").onclick=()=>{V.limit+=40;renderWorks();};
@@ -378,7 +394,7 @@ function renderWorks(){
 function rowHtml(i){
   return'<div class="wr g-'+i.g+'" data-key="'+esc(i.key)+'" tabindex="0" role="button"><span class="sev"></span>'+
    '<div style="min-width:0"><div class="a">'+esc(i.addr)+'</div><div class="w">'+esc(i.work)+'</div></div>'+
-   '<div class="r"><span class="pill dot">'+esc(i.status)+'</span><span class="tag '+EX_CLS[i.ex]+'">'+esc(i.ex)+(canEdit(i)?"":' <span class="lock">· просмотр</span>')+'</span>'+(i.overdue?'<span class="od">просрочено '+i.overdue+' дн.</span>':"")+'</div></div>';
+   '<div class="r"><span class="pill dot">'+esc(i.status)+'</span><span class="tag '+EX_CLS[i.ex]+'">'+esc(i.ex)+(canEdit(i)?"":' <span class="lock">· просмотр</span>')+'</span>'+(i.overdue?'<span class="od">просрочено '+i.overdue+' дн.</span>':i.moved?'<span class="lock">перенесено из '+esc(mfrom(i.month0))+'</span>':"")+'</div></div>';
 }
 document.addEventListener("click",ev=>{const r=ev.target.closest(".wr");if(r){V.drawer={key:r.dataset.key};renderDrawer();}});
 document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&V.drawer){closeDrawer();}const r=ev.target.closest&&ev.target.closest(".wr");if(r&&ev.key==="Enter"){V.drawer={key:r.dataset.key};renderDrawer();}});
@@ -389,36 +405,47 @@ function renderDrawer(){
   const D=V.drawer,host=$("dr");if(!D||!host)return;
   if(D.add)return renderAdd(host);
   const it=S.items.find(i=>i.key===D.key);if(!it){closeDrawer();return;}
-  const ed=canEdit(it),hist=S.log.filter(l=>l.key===it.key).slice(0,6);
+  const ed=canEdit(it),stLocked=ed&&!isAdmin()&&ADMIN_ONLY.includes(it.status);
+  if(!D.hist){D.hist=[];call("getHistory",S.token,it.key).then(h=>{if(V.drawer===D){D.hist=h;const el=$("dhist");if(el)el.outerHTML=histHtml(h);}}).catch(()=>{});}
+  const stOpts=GROUPS.map(g=>{const ss=g[2].filter(s=>isAdmin()||!ADMIN_ONLY.includes(s)||s===it.status);return ss.length?'<optgroup label="'+g[1]+'">'+ss.map(s=>opt(s,s,it.status)).join("")+'</optgroup>':"";}).join("");
   host.innerHTML='<div class="scrim" id="scrim"></div><aside class="drawer g-'+it.g+'" role="dialog" aria-label="Работа">'+
    '<div class="dh"><div><div class="muted" style="font-size:12px">'+esc(it.addr)+(it.row?' · строка '+it.row:"")+'</div><h3>'+esc(it.work)+'</h3></div><button class="x" id="dx" type="button" aria-label="Закрыть">×</button></div>'+
    '<div class="db">'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill dot">'+esc(it.status)+'</span><span class="pill '+EX_CLS[it.ex]+'">'+esc(it.ex)+'</span>'+(it.overdue?'<span class="pill g-attn">просрочено '+it.overdue+' дн.</span>':"")+'</div>'+
-    '<dl class="dl"><dt>Месяц</dt><dd>'+esc(MNAME[it.month]||it.month)+'</dd><dt>УК</dt><dd>'+esc(it.uk||"—")+'</dd><dt>Вид работ</dt><dd>'+esc(it.cat||"—")+'</dd>'+
+    '<dl class="dl"><dt>Месяц</dt><dd>'+esc(mname(it.month))+(it.moved?' <span class="faint">(перенесено из '+esc(mfrom(it.month0))+')</span>':"")+'</dd><dt>УК</dt><dd>'+esc(it.uk||"—")+'</dd><dt>Вид работ</dt><dd>'+esc(it.cat||"—")+'</dd>'+
      '<dt>Основание</dt><dd>'+esc(it.basis||"не указано")+'</dd><dt>Оценка</dt><dd class="num">'+money(it.sum)+(it.fsum?' · факт '+money(it.fsum):"")+'</dd>'+
      (it.src?'<dt>Из файла</dt><dd>'+esc(it.src)+'</dd>':"")+(it.kr?'<dt>Капремонт</dt><dd>'+esc(it.kr)+'</dd>':"")+
+     (it.doneAt?'<dt>Выполнено</dt><dd>'+when(it.doneAt).split(" ")[0]+'</dd>':"")+(it.act?'<dt>Акт</dt><dd>'+esc(it.act)+'</dd>':"")+
      (it.at?'<dt>Изменено</dt><dd>'+esc(it.by)+', '+when(it.at)+'</dd>':"")+'</dl>'+
-    (ed?'<div class="box"><h4>Отметить</h4><label class="field">Статус<select id="ds">'+GROUPS.map(g=>'<optgroup label="'+g[1]+'">'+g[2].map(s=>opt(s,s,it.status)).join("")+'</optgroup>').join("")+'</select></label>'+
-       (isAdmin()?'<label class="field">Исполнитель<select id="de">'+EXS.map(e=>opt(e,e,it.ex)).join("")+'</select></label>':"")+
+    (ed?'<div class="box"><h4>Отметить</h4><label class="field">Статус<select id="ds"'+(stLocked?" disabled":"")+'>'+stOpts+'</select></label>'+
+       (stLocked?'<div class="lock">Работа принята или снята администратором — статус меняет только он.</div>':!isAdmin()?'<div class="lock">Когда закончите, ставьте «Выполнено, акта нет». Принимает работу администратор.</div>':"")+
+       (isAdmin()?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label class="field">Исполнитель<select id="de">'+EXS.map(e=>opt(e,e,it.ex)).join("")+'</select></label>'+
+         '<label class="field">Месяц<select id="dm">'+MONTHS.map(m=>opt(m[0],m[1],it.month)).join("")+'</select></label>'+
+         '<label class="field">Факт, ₽<input id="df" inputmode="decimal" value="'+(it.fsum||"")+'"></label>'+
+         '<label class="field">Акт (№, дата)<input id="da" maxlength="200" value="'+esc(it.act||"")+'"></label></div>':"")+
        '<label class="field">Комментарий<textarea id="dn" maxlength="2000" placeholder="Что сделано, что мешает">'+esc(it.note)+'</textarea></label></div>'
      :'<div class="box"><h4>Комментарий</h4><div style="font-size:13px;white-space:pre-wrap">'+(it.note?esc(it.note):'<span class="faint">нет</span>')+'</div><div class="lock">Эту работу отмечает '+(it.ex==="Не распределено"?"администратор":"роль «"+esc(it.ex)+"»")+'.</div></div>')+
-    (hist.length?'<div><h4 style="margin:0 0 8px;font-size:13px">История</h4><ul class="hist">'+hist.map(h=>'<li>'+when(h.at)+' · '+esc(h.by)+': '+esc(h.what.toLowerCase())+(h.to?' → '+esc(h.to.slice(0,80)):"")+'</li>').join("")+'</ul></div>':"")+
+    histHtml(D.hist)+
    '</div>'+(ed?'<div class="df"><button class="btn primary" id="dsave" type="button" disabled>Сохранить</button><button class="btn" id="dcancel" type="button">Закрыть</button><span class="msg" id="dmsg"></span></div>':"")+'</aside>';
   $("dx").onclick=closeDrawer;$("scrim").onclick=closeDrawer;
   if(!ed)return;
   $("dcancel").onclick=closeDrawer;
   const dirty=()=>{const p=patch();D.dirty=Object.keys(p).length>0;$("dsave").disabled=!D.dirty;};
-  const patch=()=>{const p={};if($("ds").value!==it.status)p.status=$("ds").value;if($("dn").value.trim()!==it.note)p.note=$("dn").value;if($("de")&&$("de").value!==it.ex)p.ex=$("de").value;return p;};
-  ["ds","dn","de"].forEach(id=>{const el=$(id);if(el){el.addEventListener("input",dirty);el.addEventListener("change",dirty);}});
+  const patch=()=>{const p={};if($("ds").value!==it.status)p.status=$("ds").value;if($("dn").value.trim()!==it.note)p.note=$("dn").value;
+    if($("de")&&$("de").value!==it.ex)p.ex=$("de").value;if($("dm")&&$("dm").value!==it.month)p.month=$("dm").value;
+    if($("df")){const f=$("df").value.replace(/\s/g,"").replace(",",".");if(f!==String(it.fsum||""))p.fsum=f;}
+    if($("da")&&$("da").value.trim()!==(it.act||""))p.act=$("da").value;return p;};
+  ["ds","dn","de","dm","df","da"].forEach(id=>{const el=$(id);if(el){el.addEventListener("input",dirty);el.addEventListener("change",dirty);}});
   $("dsave").onclick=()=>{const p=patch();$("dsave").disabled=true;$("dmsg").textContent="Сохраняем…";
     call("updateWork",S.token,it.key,p).then(n=>{Object.assign(it,n);enrich(it);toast("Сохранено");V.drawer=null;$("dr").innerHTML="";load(true);}).catch(e=>{$("dmsg").textContent="";$("dsave").disabled=false;fail(e);});};
 }
+function histHtml(h){return'<div id="dhist">'+(h&&h.length?'<h4 style="margin:0 0 8px;font-size:13px">История</h4><ul class="hist">'+h.map(x=>'<li>'+when(x.at)+' · '+esc(x.by)+': '+esc(x.what.toLowerCase())+(x.to?' → '+esc((x.what==="Перенос срока"?mname(x.to):x.to).slice(0,80)):"")+'</li>').join("")+'</ul>':"")+'</div>';}
 function renderAdd(host){
   const addrs=[...new Set(S.items.map(i=>i.addr))].sort(),uks=[...new Set(S.items.map(i=>i.uk).filter(Boolean))].sort();
   host.innerHTML='<div class="scrim" id="scrim"></div><aside class="drawer" role="dialog" aria-label="Новая работа"><div class="dh"><h3>Новая работа</h3><button class="x" id="dx" type="button" aria-label="Закрыть">×</button></div>'+
   '<form class="db" id="af"><label class="field">Адрес<input id="aa" list="al" required></label><datalist id="al">'+addrs.map(a=>'<option value="'+esc(a)+'">').join("")+'</datalist>'+
   '<label class="field">Что сделать<input id="aw" required></label>'+
-  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label class="field">Месяц<select id="am">'+MONTHS.map(m=>opt(m[0],m[1],"2026-10")).join("")+'</select></label>'+
+  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label class="field">Месяц<select id="am">'+MONTHS.filter(m=>m[0]>=TODAY.slice(0,7)).map(m=>opt(m[0],m[1],TODAY.slice(0,7))).join("")+'</select></label>'+
   '<label class="field">Исполнитель<select id="ae">'+EXS.map(e=>opt(e,e,"Не распределено")).join("")+'</select></label>'+
   '<label class="field">УК<select id="au">'+uks.map(u=>opt(u,u,"")).join("")+'</select></label><label class="field">Оценка, ₽<input id="as" inputmode="decimal"></label></div>'+
   '<label class="field">Основание<input id="ab" placeholder="Заявление, акт, протокол"></label></form>'+
@@ -440,7 +467,7 @@ function renderIssues(){
 }
 function renderLog(){
   $("view").innerHTML='<div class="head"><h2>Журнал изменений</h2><span class="muted">последние '+S.log.length+'</span></div><div class="list">'+
-  (S.log.length?'<ul class="ilist loglist">'+S.log.map(l=>'<li><div><div class="t"><b>'+esc(l.addr||"Вопрос")+'</b> · '+esc(l.work.slice(0,90))+'</div><div class="meta"><span>'+when(l.at)+'</span><span>'+esc(l.by)+'</span><span>'+esc(l.what)+(l.from?': '+esc(l.from.slice(0,60))+' →':":")+' <b>'+esc(l.to.slice(0,80))+'</b></span></div></div></li>').join("")+'</ul>':'<div class="empty">Изменений пока нет.</div>')+'</div>';
+  (S.log.length?'<ul class="ilist loglist">'+S.log.map(l=>'<li><div><div class="t"><b>'+esc(l.addr||"Вопрос")+'</b> · '+esc(l.work.slice(0,90))+'</div><div class="meta"><span>'+when(l.at)+'</span><span>'+esc(l.by)+'</span><span>'+esc(l.what)+(l.from?': '+esc((l.what==="Перенос срока"?mname(l.from):l.from).slice(0,60))+' →':":")+' <b>'+esc((l.what==="Перенос срока"?mname(l.to):l.to).slice(0,80))+'</b></span></div></div></li>').join("")+'</ul>':'<div class="empty">Изменений пока нет.</div>')+'</div>';
 }
 function renderUsers(){
   if(!isAdmin()){V.tab="dash";return renderView();}

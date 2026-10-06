@@ -4,9 +4,10 @@
  * Вход по имени и PIN-коду, права проверяются здесь, на сервере.
  *
  * Роли:
- *   Администратор — меняет всё: статус, исполнителя, комментарий, добавляет работы, закрывает вопросы, ведёт пользователей.
+ *   Администратор — меняет всё: статус, исполнителя, месяц, факт, акт, добавляет работы, закрывает вопросы, ведёт пользователей.
  *   СВОИ          — меняет статус и комментарий только в работах с исполнителем «СВОИ».
  *   Подрядчики    — меняет статус и комментарий только в работах с исполнителем «Подрядчики».
+ *   Исполнитель может отметить «Выполнено, акта нет»; «Принято, акт есть» и «Снято» ставит только администратор.
  *   Просмотр      — только смотрит.
  */
 
@@ -16,7 +17,7 @@ var SHEET_LOG = 'Журнал';
 var SHEET_ISSUES = 'Вопросы';
 
 var WORK_COLS = ['Ключ', 'Строка', 'Месяц', 'Адрес', 'УК', 'Работа', 'Вид работ', 'Основание', 'Оценка, ₽', 'Факт, ₽',
-  'Исполнитель', 'Статус', 'Комментарий', 'Из файла', 'КР', 'Изменено', 'Кем'];
+  'Исполнитель', 'Статус', 'Комментарий', 'Из файла', 'КР', 'Изменено', 'Кем', 'Дата выполнения', 'Акт', 'Исходный месяц'];
 var USER_COLS = ['Имя', 'Роль', 'Активен', 'Новый PIN', 'PIN-хэш'];
 var LOG_COLS = ['Время', 'Пользователь', 'Ключ', 'Адрес', 'Работа', 'Что', 'Было', 'Стало'];
 var ISSUE_COLS = ['№', 'Вопрос', 'Ответственный', 'Срок', 'Ссылка', 'Решён', 'Кем', 'Когда'];
@@ -24,8 +25,10 @@ var ISSUE_COLS = ['№', 'Вопрос', 'Ответственный', 'Срок
 var ROLES = ['Администратор', 'СВОИ', 'Подрядчики', 'Просмотр'];
 var EXECUTORS = ['Подрядчики', 'СВОИ', 'Не распределено'];
 var STATUSES = ['Нужно решение', 'Требует уточнения', 'Нет статуса', 'Вопрос капремонта', 'Голосование ОСС', 'Не начато',
-  'Передано исполнителю', 'На контроле', 'Материал заказан', 'В работе', 'Отложено на зиму', 'Выполнено', 'Снято'];
-var MONTHS = ['2026-09', '2026-10', '2026-11', '2026-12'];
+  'Передано исполнителю', 'На контроле', 'Материал заказан', 'В работе', 'Отложено на зиму', 'Выполнено, акта нет', 'Принято, акт есть', 'Снято'];
+var DONE_STATUSES = ['Выполнено, акта нет', 'Принято, акт есть'];
+var ADMIN_ONLY_STATUSES = ['Принято, акт есть', 'Снято'];
+var MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 var SESSION_HOURS = 6;
 var MAX_FAILS = 5;
@@ -50,9 +53,12 @@ function setup() {
   var works = ss.getSheetByName(SHEET_WORKS);
   if (!works) {
     works = ss.insertSheet(SHEET_WORKS);
+    // месяцы — текстом, иначе таблица превратит «2026-09» в дату
+    works.getRange('C:C').setNumberFormat('@');
+    works.getRange('T:T').setNumberFormat('@');
     var rows = SEED.items.map(function (it) {
       return [it.key, it.row || '', it.month, it.addr, it.uk || '', it.work, it.cat || '', it.basis || '', it.sum || '', it.fsum || '',
-        it.ex, it.status, '', it.src_note || '', it.kr || '', '', ''];
+        it.ex, it.status, '', it.src_note || '', it.kr || '', '', '', '', '', it.month];
     });
     works.getRange(1, 1, 1, WORK_COLS.length).setValues([WORK_COLS]).setFontWeight('bold');
     works.getRange(2, 1, rows.length, WORK_COLS.length).setValues(rows);
@@ -145,6 +151,7 @@ function logout(token) {
 
 function bootstrap(token) {
   var user = auth_(token);
+  ensureKeys_();
   return {
     user: user,
     rev: getRev_(),
@@ -160,9 +167,20 @@ function getRev(token) {
   return getRev_();
 }
 
+/** Полная история одной работы из журнала. */
+function getHistory(token, key) {
+  auth_(token);
+  var sh = sheet_(SHEET_LOG);
+  var last = sh.getLastRow();
+  if (last < 2) return [];
+  return sh.getRange(2, 1, last - 1, LOG_COLS.length).getValues()
+    .filter(function (r) { return String(r[2]) === key; }).reverse().slice(0, 50)
+    .map(function (r) { return { at: r[0] instanceof Date ? r[0].getTime() : null, by: String(r[1]), what: String(r[5]), from: String(r[6]), to: String(r[7]) }; });
+}
+
 /* ---------------- запись ---------------- */
 
-/** patch: {status?, note?, ex?} */
+/** patch: {status?, note?, ex?, month?, fsum?, act?} — последние четыре только администратор. */
 function updateWork(token, key, patch) {
   var user = auth_(token);
   patch = patch || {};
@@ -176,30 +194,54 @@ function updateWork(token, key, patch) {
     var item = workFromRow_(row);
     if (!canEditWork_(user, item)) throw new Error('У вас нет прав менять эту работу.');
 
+    var admin = user.role === 'Администратор';
+    var now = new Date();
     var changes = [];
     if (patch.status != null && patch.status !== item.status) {
       if (STATUSES.indexOf(patch.status) < 0) throw new Error('Неизвестный статус.');
+      if (!admin && (ADMIN_ONLY_STATUSES.indexOf(patch.status) >= 0 || ADMIN_ONLY_STATUSES.indexOf(item.status) >= 0))
+        throw new Error('Принимает работу и снимает её с плана только администратор.');
       changes.push(['Статус', item.status, patch.status]);
       row[11] = patch.status;
+      var wasDone = DONE_STATUSES.indexOf(item.status) >= 0, isDone = DONE_STATUSES.indexOf(patch.status) >= 0;
+      if (isDone && !wasDone) row[17] = now;
+      if (!isDone) row[17] = '';
     }
     if (patch.note != null && String(patch.note).trim() !== item.note) {
       var note = String(patch.note).trim().slice(0, 2000);
       changes.push(['Комментарий', item.note, note]);
-      row[12] = note;
+      row[12] = safe_(note);
     }
+    var adminFields = ['ex', 'month', 'fsum', 'act'].filter(function (k) { return patch[k] != null; });
+    if (adminFields.length && !admin) throw new Error('Исполнителя, месяц, факт и акт меняет только администратор.');
     if (patch.ex != null && patch.ex !== item.ex) {
-      if (user.role !== 'Администратор') throw new Error('Исполнителя меняет только администратор.');
       if (EXECUTORS.indexOf(patch.ex) < 0) throw new Error('Неизвестный исполнитель.');
       changes.push(['Исполнитель', item.ex, patch.ex]);
       row[10] = patch.ex;
     }
+    if (patch.month != null && patch.month !== item.month) {
+      if (!MONTH_RE.test(patch.month)) throw new Error('Неверный месяц.');
+      changes.push(['Перенос срока', item.month, patch.month]);
+      row[2] = patch.month;
+      if (!row[19]) row[19] = item.month;
+    }
+    if (patch.fsum != null && String(patch.fsum) !== String(item.fsum || '')) {
+      var f = patch.fsum === '' ? '' : Number(patch.fsum);
+      if (f !== '' && !(f >= 0)) throw new Error('Фактическая сумма — число в рублях.');
+      changes.push(['Факт, ₽', item.fsum || '', f]);
+      row[9] = f;
+    }
+    if (patch.act != null && String(patch.act).trim() !== item.act) {
+      var act = String(patch.act).trim().slice(0, 200);
+      changes.push(['Акт', item.act, act]);
+      row[18] = safe_(act);
+    }
     if (!changes.length) return workFromRow_(row);
-    var now = new Date();
     row[15] = now;
     row[16] = user.name;
     sh.getRange(rowIdx, 1, 1, WORK_COLS.length).setValues([row]);
     var log = sheet_(SHEET_LOG);
-    changes.forEach(function (c) { log.appendRow([now, user.name, key, item.addr, item.work, c[0], c[1], c[2]]); });
+    changes.forEach(function (c) { log.appendRow([now, user.name, key, item.addr, item.work, c[0], safe_(c[1]), safe_(c[2])]); });
     bumpRev_();
     return workFromRow_(row);
   } finally {
@@ -213,7 +255,7 @@ function addWork(token, w) {
   w = w || {};
   var addr = String(w.addr || '').trim(), work = String(w.work || '').trim();
   if (!addr || !work) throw new Error('Укажите адрес и вид работы.');
-  if (MONTHS.indexOf(w.month) < 0) throw new Error('Выберите месяц.');
+  if (!MONTH_RE.test(String(w.month))) throw new Error('Выберите месяц.');
   var ex = EXECUTORS.indexOf(w.ex) >= 0 ? w.ex : 'Не распределено';
   var sum = w.sum === '' || w.sum == null ? '' : Number(w.sum);
   if (sum !== '' && !(sum >= 0)) throw new Error('Оценка — число в рублях.');
@@ -222,10 +264,10 @@ function addWork(token, w) {
   try {
     var key = 'n' + Utilities.getUuid().slice(0, 8);
     var now = new Date();
-    var row = [key, '', w.month, addr, String(w.uk || ''), work, 'Добавлено вручную', String(w.basis || ''), sum, '',
-      ex, 'Не начато', '', '', '', now, user.name];
+    var row = [key, '', w.month, safe_(addr), String(w.uk || ''), safe_(work), 'Добавлено вручную', safe_(String(w.basis || '')), sum, '',
+      ex, 'Не начато', '', '', '', now, user.name, '', '', w.month];
     sheet_(SHEET_WORKS).appendRow(row);
-    sheet_(SHEET_LOG).appendRow([now, user.name, key, addr, work, 'Добавлена работа', '', ex]);
+    sheet_(SHEET_LOG).appendRow([now, user.name, key, safe_(addr), safe_(work), 'Добавлена работа', '', ex]);
     bumpRev_();
     return workFromRow_(row);
   } finally {
@@ -334,6 +376,25 @@ function readUsers_() {
   return out;
 }
 
+/** Строки, вставленные в лист «Работы» вручную без ключа, получают ключ — так план можно дополнять прямо в таблице. */
+function ensureKeys_() {
+  var sh = sheet_(SHEET_WORKS);
+  var last = sh.getLastRow();
+  if (last < 2) return;
+  var vals = sh.getRange(2, 1, last - 1, 6).getValues();
+  var missing = [];
+  vals.forEach(function (r, i) { if (!r[0] && r[3] && r[5]) missing.push(i); });
+  if (!missing.length) return;
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    missing.forEach(function (i) { sh.getRange(i + 2, 1).setValue('n' + Utilities.getUuid().slice(0, 8)); });
+    bumpRev_();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function readWorks_() {
   var data = sheet_(SHEET_WORKS).getDataRange().getValues();
   var out = [];
@@ -347,7 +408,8 @@ function workFromRow_(r) {
     cat: String(r[6] || ''), basis: String(r[7] || ''), sum: Number(r[8]) || null, fsum: Number(r[9]) || null,
     ex: EXECUTORS.indexOf(r[10]) >= 0 ? r[10] : 'Не распределено', status: STATUSES.indexOf(r[11]) >= 0 ? r[11] : 'Нет статуса',
     note: String(r[12] || ''), src: String(r[13] || ''), kr: String(r[14] || ''),
-    at: r[15] instanceof Date ? r[15].getTime() : null, by: String(r[16] || '')
+    at: r[15] instanceof Date ? r[15].getTime() : null, by: String(r[16] || ''),
+    doneAt: r[17] instanceof Date ? r[17].getTime() : null, act: String(r[18] || ''), month0: monthStr_(r[19]) || monthStr_(r[2])
   };
 }
 
@@ -381,8 +443,13 @@ function findRow_(sh, key) {
 }
 
 function monthStr_(v) {
-  if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM');
+  if (v instanceof Date) return Utilities.formatDate(v, SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone(), 'yyyy-MM');
   return String(v || '');
+}
+
+/** Текст, начинающийся с = + - @, таблица считает формулой — экранируем апострофом. */
+function safe_(v) {
+  return typeof v === 'string' && /^[=+\-@]/.test(v) ? "'" + v : v;
 }
 
 function isTrue_(v) { return v === true || String(v).toLowerCase() === 'true' || v === 'да' || v === 'Да'; }
