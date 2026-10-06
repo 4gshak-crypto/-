@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Трекер текущего ремонта</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;600&display=swap">
+<style>
+/* Layout: шапка с вкладками; «Сводка» — плитки и графики, «Работы» — короткий список, детали в боковой панели */
+:root{
+  --bg:#f3f4f2; --surface:#fff; --surface-2:#eceeea; --line:#dde1da; --line-strong:#bcc2b8;
+  --fg:#1d2420; --muted:#5b665f; --faint:#8a948d;
+  --accent:#1f5f8b; --accent-ink:#fff; --accent-soft:#dde9f2;
+  --c-attn:#c0392b; --c-attn-bg:#fbe5e1; --c-cap:#7a4fb0; --c-cap-bg:#efe6f8;
+  --c-wait:#b07400; --c-wait-bg:#fbefd6; --c-prog:#1f6fb2; --c-prog-bg:#e0edf9;
+  --c-winter:#3d7d86; --c-winter-bg:#ddeff1; --c-done:#2e7d3a; --c-done-bg:#e0f1e2;
+  --c-cancel:#8a8f8b; --c-cancel-bg:#eceeec;
+  --ex-pto:#5f6763; --ex-pto-bg:#e7e9e6; --ex-own:#c9600a; --ex-own-bg:#fcebdb; --ex-none:#9a3b8e; --ex-none-bg:#f6e3f2;
+  --shadow:0 10px 40px rgba(20,30,25,.18);
+  --f-display:"Unbounded","Golos Text",system-ui,sans-serif;
+  --f-body:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#141917; --surface:#1c2320; --surface-2:#252d29; --line:#2f3833; --line-strong:#47524b;
+  --fg:#e5ebe7; --muted:#a3ada7; --faint:#77827b; --accent:#6fb0de; --accent-ink:#0d1b25; --accent-soft:#1d3342;
+  --c-attn:#ff8a7a; --c-attn-bg:#3d1f1b; --c-cap:#c7a3f0; --c-cap-bg:#2f2440; --c-wait:#f0b649; --c-wait-bg:#3a2d12;
+  --c-prog:#79b6ec; --c-prog-bg:#1b3047; --c-winter:#7cc6cf; --c-winter-bg:#173336; --c-done:#7fcf8a; --c-done-bg:#1b3520;
+  --c-cancel:#9aa19c; --c-cancel-bg:#2a302c; --ex-pto:#b4bbb6; --ex-pto-bg:#2c3330; --ex-own:#f3a35e; --ex-own-bg:#3d2815;
+  --ex-none:#e59ad9; --ex-none-bg:#3a1f36; --shadow:0 10px 40px rgba(0,0,0,.5); color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:14px/1.45 var(--f-body)}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
+[hidden]{display:none!important}
+
+/* shell */
+.bar{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar-in{max-width:1200px;margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:16px;min-height:56px}
+.brand{font-family:var(--f-display);font-weight:600;font-size:15px;white-space:nowrap}
+.tabs{display:flex;gap:2px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none}
+.tabs button{border:0;background:none;padding:18px 12px 16px;cursor:pointer;color:var(--muted);font-weight:500;border-bottom:2px solid transparent;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--fg)}
+.who{display:flex;align-items:center;gap:10px;white-space:nowrap;font-size:13px}
+.role{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
+.linkbtn{border:0;background:none;color:var(--accent);cursor:pointer;padding:2px;font-size:13px}
+main{max-width:1200px;margin:0 auto;padding:20px 16px 48px}
+@media (max-width:720px){.brand{display:none}.who .nm,.who .role{display:none}.bar-in{gap:8px}.tabs button{padding:18px 9px 16px}}
+
+.btn{border:1px solid var(--line-strong);background:var(--surface);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:500}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.field{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);min-width:0}
+.field input,.field select,.field textarea,.ctl{padding:8px 10px;border:1px solid var(--line-strong);border-radius:8px;background:var(--bg);color:var(--fg);width:100%;min-width:0}
+.field textarea{min-height:84px;resize:vertical}
+
+/* login */
+.login{min-height:100vh;display:grid;place-items:center;padding:16px}
+.login-card{width:100%;max-width:360px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:14px}
+.login h1{font-family:var(--f-display);font-weight:600;font-size:20px;margin:0;line-height:1.2}
+.err{color:var(--c-attn);font-size:13px;min-height:18px}
+.hint{font-size:12px;color:var(--faint)}
+
+/* dashboard */
+.head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:16px}
+.head h2{font-family:var(--f-display);font-weight:500;font-size:20px;margin:0}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:6px 12px;cursor:pointer;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:820px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0;cursor:pointer;text-align:left}
+.tile:hover{border-color:var(--line-strong)}
+.tile .l{font-size:12px;color:var(--muted)}
+.tile .v{font-family:var(--f-display);font-weight:500;font-size:28px;line-height:1.2;margin-top:4px;font-variant-numeric:tabular-nums}
+.tile .s{font-size:12px;color:var(--faint);margin-top:2px}
+.tile.attn .v{color:var(--c-attn)} .tile.done .v{color:var(--c-done)}
+@media (max-width:560px){.tile{padding:12px}.tile .v{font-size:21px}.srow{grid-template-columns:92px minmax(0,1fr) 52px}.hbar{grid-template-columns:minmax(0,120px) minmax(0,1fr) 30px}.alist li{flex-direction:column;align-items:flex-start;gap:4px}.alist .a{max-width:100%}}
+.ring{display:flex;align-items:center;gap:12px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+@media (max-width:820px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.card h3{margin:0 0 12px;font-size:14px;font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.card h3 span{font-weight:400;color:var(--muted);font-size:12px}
+.srow{display:grid;grid-template-columns:110px minmax(0,1fr) 64px;gap:10px;align-items:center;padding:6px 0;cursor:pointer;border-radius:6px}
+.srow:hover .lbl{color:var(--accent)}
+.srow .lbl{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srow .val{font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.stack{display:flex;gap:2px;height:14px}
+.stack span{height:100%;min-width:3px}
+.stack span:first-child{border-radius:4px 0 0 4px} .stack span:last-child{border-radius:0 4px 4px 0} .stack span:only-child{border-radius:4px}
+.hbar{display:grid;grid-template-columns:minmax(0,170px) minmax(0,1fr) 34px;gap:10px;align-items:center;padding:5px 0;cursor:pointer}
+.hbar .lbl{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbar:hover .lbl{color:var(--accent)}
+.hbar .tr{height:10px}
+.hbar .tr i{display:block;height:100%;background:var(--accent);border-radius:0 4px 4px 0;min-width:3px}
+.hbar .val{font-size:12px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:10px;font-size:11px;color:var(--muted)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.alist{list-style:none;margin:0;padding:0}
+.alist li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);cursor:pointer;align-items:center}
+.alist li:first-child{border-top:0}
+.alist li:hover .a{color:var(--accent)}
+.alist .a{font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alist .m{font-size:12px;color:var(--muted);white-space:nowrap}
+.tip{position:fixed;z-index:30;pointer-events:none;background:var(--fg);color:var(--bg);font-size:12px;padding:5px 8px;border-radius:6px;white-space:nowrap}
+
+/* status colors */
+.g-attn{--c:var(--c-attn);--cb:var(--c-attn-bg)} .g-cap{--c:var(--c-cap);--cb:var(--c-cap-bg)} .g-wait{--c:var(--c-wait);--cb:var(--c-wait-bg)}
+.g-prog{--c:var(--c-prog);--cb:var(--c-prog-bg)} .g-winter{--c:var(--c-winter);--cb:var(--c-winter-bg)} .g-done{--c:var(--c-done);--cb:var(--c-done-bg)}
+.g-cancel{--c:var(--c-cancel);--cb:var(--c-cancel-bg)}
+.e-pto{--c:var(--ex-pto);--cb:var(--ex-pto-bg)} .e-own{--c:var(--ex-own);--cb:var(--ex-own-bg)} .e-none{--c:var(--ex-none);--cb:var(--ex-none-bg)}
+.fill{background:var(--c)}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap;color:var(--c);background:var(--cb)}
+.pill.dot::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.tag{font-size:11px;font-weight:600;color:var(--c)}
+
+/* works */
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.filters .ctl{width:auto;flex:0 1 auto}
+.filters .search{flex:1 1 220px}
+.chk{display:inline-flex;gap:6px;align-items:center;font-size:13px;cursor:pointer;user-select:none}
+.count{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:8px}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.wr{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 14px 10px 0;border-top:1px solid var(--line);cursor:pointer}
+.wr:first-child{border-top:0}
+.wr:hover{background:var(--surface-2)}
+.wr .sev{align-self:stretch;background:var(--c)}
+.wr .a{font-weight:600;font-size:13px}
+.wr .w{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wr .r{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.wr .od{font-size:11px;color:var(--c-attn);font-weight:600}
+.lock{font-size:11px;color:var(--faint)}
+.more{display:block;width:100%;padding:12px;border:0;border-top:1px solid var(--line);background:none;color:var(--accent);cursor:pointer;font-weight:500}
+.empty{padding:32px;text-align:center;color:var(--muted)}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,15,12,.35);z-index:20}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,100%);background:var(--surface);z-index:21;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.dh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line)}
+.dh h3{margin:0;font-size:16px;line-height:1.3}
+.dh .x{border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--muted);padding:0 4px}
+.db{padding:18px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;flex:1}
+.dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 12px;font-size:13px;margin:0}
+.dl dt{color:var(--muted)} .dl dd{margin:0;word-break:break-word}
+.box{border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.box h4{margin:0;font-size:13px}
+.hist{list-style:none;margin:0;padding:0;font-size:12px;display:flex;flex-direction:column;gap:6px;color:var(--muted)}
+.df{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
+.df .msg{font-size:12px;color:var(--muted);margin-left:auto}
+
+/* issues / log / users */
+.ilist{list-style:none;margin:0;padding:0}
+.ilist li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;padding:14px 16px;border-top:1px solid var(--line)}
+.ilist li:first-child{border-top:0}
+.ilist .t{font-size:13px}
+.ilist .done .t{color:var(--faint);text-decoration:line-through}
+.ilist .meta{font-size:12px;color:var(--muted);margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 12px}
+.loglist li{grid-template-columns:minmax(0,1fr)}
+.utable{width:100%;border-collapse:collapse;font-size:13px}
+.utable th,.utable td{text-align:left;padding:10px 14px;border-top:1px solid var(--line)}
+.utable th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-top:0}
+.uform{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:10px;align-items:end;margin-top:12px}
+@media (max-width:760px){.uform{grid-template-columns:1fr 1fr}}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:40}
+.demo{background:var(--c-wait-bg);color:var(--fg);font-size:12px;text-align:center;padding:6px 16px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="tip" id="tip" hidden></div>
+<script>
+(function(){
+"use strict";
+/* ---------- справочники ---------- */
+const GROUPS=[
+  ["attn","Нужно решение",["Нужно решение","Требует уточнения","Нет статуса"]],
+  ["cap","Капремонт",["Вопрос капремонта"]],
+  ["wait","Не начато",["Голосование ОСС","Не начато","Передано исполнителю"]],
+  ["prog","В работе",["На контроле","Материал заказан","В работе"]],
+  ["winter","На зиму",["Отложено на зиму"]],
+  ["done","Выполнено",["Выполнено"]],
+  ["cancel","Снято",["Снято"]]];
+const G_OF={}; GROUPS.forEach(g=>g[2].forEach(s=>G_OF[s]=g[0]));
+const G_NAME={}; GROUPS.forEach(g=>G_NAME[g[0]]=g[1]);
+const STATUSES=GROUPS.flatMap(g=>g[2]);
+const RANK={}; ["Снято","Выполнено","Отложено на зиму","В работе","Материал заказан","На контроле","Передано исполнителю","Не начато","Голосование ОСС","Вопрос капремонта","Нет статуса","Требует уточнения","Нужно решение"].forEach((s,i)=>RANK[s]=i);
+const EXS=["Подрядчики","СВОИ","Не распределено"];
+const EX_CLS={"Подрядчики":"e-pto","СВОИ":"e-own","Не распределено":"e-none"};
+const MONTHS=[["2026-09","Сентябрь"],["2026-10","Октябрь"],["2026-11","Ноябрь"],["2026-12","Декабрь"]];
+const MNAME=Object.fromEntries(MONTHS);
+const MEND={"2026-09":"2026-09-30","2026-10":"2026-10-31","2026-11":"2026-11-30","2026-12":"2026-12-31"};
+const ROLES=["Администратор","СВОИ","Подрядчики","Просмотр"];
+const pad=n=>String(n).padStart(2,"0");
+const TODAY=(d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()))(new Date());
+
+const esc=s=>s==null?"":String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money=n=>n?Math.round(n).toLocaleString("ru-RU")+" ₽":"—";
+const mshort=n=>n>=1e6?(n/1e6).toLocaleString("ru-RU",{maximumFractionDigits:1})+" млн ₽":n>=1e3?Math.round(n/1e3)+" тыс ₽":money(n);
+const plural=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&&(h<12||h>14)?b:c;};
+const days=(a,b)=>Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/864e5);
+const when=ms=>{if(!ms)return"";const d=new Date(ms);return pad(d.getDate())+"."+pad(d.getMonth()+1)+" "+pad(d.getHours())+":"+pad(d.getMinutes());};
+const $=id=>document.getElementById(id);
+
+/* ---------- сервер: Apps Script или демо ---------- */
+const REAL=typeof google!=="undefined"&&google.script&&google.script.run;
+function call(fn,...args){
+  if(REAL)return new Promise((res,rej)=>google.script.run.withSuccessHandler(res).withFailureHandler(e=>rej(e&&e.message?e:new Error(String(e))))[fn](...args));
+  return new Promise((res,rej)=>setTimeout(()=>{try{res(JSON.parse(JSON.stringify(DEMO[fn](...args))));}catch(e){rej(e);}},120));
+}
+const DEMO=(function(){
+  const seed=window.DEMO_SEED; if(!seed)return {};
+  const users=[{name:"Администратор",role:"Администратор",active:true},{name:"Филимонов",role:"СВОИ",active:true},{name:"ПТО (подрядчики)",role:"Подрядчики",active:true},{name:"Руководитель",role:"Просмотр",active:true}];
+  const items=seed.items.map(x=>Object.assign({note:"",at:null,by:""},x));
+  const issues=seed.issues.map((x,i)=>({num:i+1,text:x.text,resp:x.resp,term:x.term,ref:x.ref||"",done:false}));
+  const log=[]; let rev=1; const sess={};
+  const auth=t=>{const u=sess[t];if(!u)throw new Error("SESSION_EXPIRED");return u;};
+  const can=(u,it)=>u.role==="Администратор"||(u.role==="СВОИ"&&it.ex==="СВОИ")||(u.role==="Подрядчики"&&it.ex==="Подрядчики");
+  return{
+    getLoginNames:()=>users.filter(u=>u.active).map(u=>u.name),
+    login(name,pin){const u=users.find(x=>x.name===name&&x.active);if(!u||pin!=="1111")throw new Error("Неверное имя или PIN.");const t="t"+Math.random();sess[t]={name:u.name,role:u.role};return{token:t,user:sess[t]};},
+    logout(t){delete sess[t];return true;},
+    bootstrap(t){return{user:auth(t),rev,asof:seed.generated,items,issues,log:log.slice(0,60)};},
+    getRev(t){auth(t);return rev;},
+    updateWork(t,key,p){const u=auth(t),it=items.find(x=>x.key===key);if(!can(u,it))throw new Error("У вас нет прав менять эту работу.");
+      const now=Date.now();
+      if(p.status!=null&&p.status!==it.status){log.unshift({at:now,by:u.name,key,addr:it.addr,work:it.work,what:"Статус",from:it.status,to:p.status});it.status=p.status;}
+      if(p.note!=null&&p.note.trim()!==it.note){log.unshift({at:now,by:u.name,key,addr:it.addr,work:it.work,what:"Комментарий",from:it.note,to:p.note.trim()});it.note=p.note.trim();}
+      if(p.ex!=null&&p.ex!==it.ex){if(u.role!=="Администратор")throw new Error("Исполнителя меняет только администратор.");log.unshift({at:now,by:u.name,key,addr:it.addr,work:it.work,what:"Исполнитель",from:it.ex,to:p.ex});it.ex=p.ex;}
+      it.at=now;it.by=u.name;rev++;return it;},
+    addWork(t,w){const u=auth(t);if(u.role!=="Администратор")throw new Error("Только администратор.");if(!w.addr||!w.work)throw new Error("Укажите адрес и вид работы.");
+      const it={key:"n"+Date.now(),row:null,month:w.month,addr:w.addr,uk:w.uk||"",work:w.work,cat:"Добавлено вручную",basis:w.basis||"",sum:Number(w.sum)||null,fsum:null,ex:w.ex,status:"Не начато",note:"",src:"",kr:"",at:Date.now(),by:u.name};
+      items.push(it);log.unshift({at:it.at,by:u.name,key:it.key,addr:it.addr,work:it.work,what:"Добавлена работа",from:"",to:it.ex});rev++;return it;},
+    setIssue(t,num,done){const u=auth(t);if(u.role!=="Администратор")throw new Error("Только администратор.");const i=issues.find(x=>x.num===num);i.done=done;i.by=u.name;i.at=Date.now();rev++;return true;},
+    listUsers(t){auth(t);return users.map(u=>Object.assign({hasPin:true},u));},
+    saveUser(t,u){auth(t);const ex=users.find(x=>x.name===(u.oldName||u.name));if(ex)Object.assign(ex,{name:u.name,role:u.role,active:u.active});else users.push({name:u.name,role:u.role,active:u.active});return this.listUsers(t);}
+  };
+})();
+
+/* ---------- состояние ---------- */
+let S={token:null,user:null,items:[],issues:[],log:[],rev:0,asof:""};
+let V={tab:"dash",scope:"mine",q:"",month:"",ex:"",grp:"",open:true,addr:"",limit:40,drawer:null};
+try{const s=JSON.parse(sessionStorage.getItem("trk")||"null");if(s){S.token=s.token;S.user=s.user;}}catch(e){}
+const saveSess=()=>{try{sessionStorage.setItem("trk",JSON.stringify({token:S.token,user:S.user}));}catch(e){}};
+
+const isAdmin=()=>S.user&&S.user.role==="Администратор";
+const myEx=()=>S.user&&(S.user.role==="СВОИ"||S.user.role==="Подрядчики")?S.user.role:null;
+const canEdit=it=>!!S.user&&(isAdmin()||it.ex===myEx());
+function enrich(it){const g=G_OF[it.status]||"attn";const closed=g==="done"||g==="cancel"||g==="winter";
+  return Object.assign(it,{g,closed,overdue:!closed&&MEND[it.month]&&MEND[it.month]<TODAY?days(MEND[it.month],TODAY):0});}
+
+function toast(t){const el=document.createElement("div");el.className="toast";el.textContent=t;document.body.appendChild(el);setTimeout(()=>el.remove(),2600);}
+function fail(e){const m=(e&&e.message)||String(e);if(m.indexOf("SESSION_EXPIRED")>=0){S.token=null;saveSess();toast("Сессия закончилась — войдите снова");renderLogin();return;}toast(m);}
+
+/* ---------- вход ---------- */
+function renderLogin(){
+  $("root").innerHTML=(REAL?"":'<div class="demo">Демо-режим: данные из файла, изменения не сохраняются. PIN для всех — 1111.</div>')+
+  '<div class="login"><form class="login-card" id="lf"><div><div class="faint" style="font-size:12px">Текущий ремонт · 2026</div><h1>Трекер текущего ремонта</h1></div>'+
+  '<label class="field">Кто вы<select id="ln"><option value="">Загрузка…</option></select></label>'+
+  '<label class="field">PIN-код<input id="lp" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8"></label>'+
+  '<div class="err" id="le"></div><button class="btn primary" id="lb" type="submit">Войти</button>'+
+  '<div class="hint">PIN выдаёт администратор трекера.</div></form></div>';
+  call("getLoginNames").then(ns=>{$("ln").innerHTML='<option value="">Выберите имя</option>'+ns.map(n=>'<option>'+esc(n)+'</option>').join("");}).catch(e=>{$("le").textContent=e.message;});
+  $("lf").addEventListener("submit",ev=>{ev.preventDefault();const n=$("ln").value,p=$("lp").value;
+    if(!n||!p){$("le").textContent="Выберите имя и введите PIN.";return;}
+    $("lb").disabled=true;$("le").textContent="";
+    call("login",n,p).then(r=>{S.token=r.token;S.user=r.user;saveSess();V.scope=myEx()?"mine":"all";load();}).catch(e=>{$("le").textContent=e.message;$("lb").disabled=false;});});
+}
+
+/* ---------- загрузка ---------- */
+function load(silent){
+  return call("bootstrap",S.token).then(d=>{S.user=d.user;saveSess();S.items=d.items.map(enrich);S.issues=d.issues;S.log=d.log;S.rev=d.rev;S.asof=d.asof;
+    if(!silent||!$("view"))renderShell();else renderView();}).catch(fail);
+}
+setInterval(()=>{if(!S.token||document.hidden)return;
+  call("getRev",S.token).then(r=>{if(r!==S.rev&&!(V.drawer&&V.drawer.dirty))load(true);}).catch(()=>{});},45000);
+
+/* ---------- каркас ---------- */
+function tabs(){const t=[["dash","Сводка"],["works","Работы"],["issues","Вопросы"],["log","Журнал"]];if(isAdmin())t.push(["users","Пользователи"]);return t;}
+function renderShell(){
+  $("root").innerHTML=(REAL?"":'<div class="demo">Демо-режим: изменения не сохраняются. Попробуйте войти под разными ролями.</div>')+
+  '<header class="bar"><div class="bar-in"><div class="brand">Текущий ремонт</div><nav class="tabs" role="tablist">'+
+  tabs().map(t=>'<button role="tab" data-tab="'+t[0]+'" aria-selected="'+(V.tab===t[0])+'">'+t[1]+'</button>').join("")+
+  '</nav><div class="who"><span class="nm">'+esc(S.user.name)+'</span><span class="role">'+esc(S.user.role)+'</span><button class="linkbtn" id="out" type="button">Выйти</button></div></div></header>'+
+  '<main id="view"></main><div id="dr"></div>';
+  $("out").onclick=()=>{call("logout",S.token).catch(()=>{});S.token=null;S.user=null;saveSess();renderLogin();};
+  renderView();
+}
+function renderView(){
+  document.querySelectorAll("[data-tab]").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===V.tab));
+  ({dash:renderDash,works:renderWorks,issues:renderIssues,log:renderLog,users:renderUsers}[V.tab]||renderDash)();
+  if(V.drawer)renderDrawer();
+}
+document.addEventListener("click",ev=>{const t=ev.target.closest("[data-tab]");if(t){V.tab=t.dataset.tab;renderView();window.scrollTo(0,0);}});
+
+function scoped(){return S.items.filter(i=>V.scope!=="mine"||!myEx()||i.ex===myEx());}
+function scopeSeg(){return myEx()?'<div class="seg" id="scope"><button type="button" data-s="mine" aria-pressed="'+(V.scope==="mine")+'">Мои ('+esc(myEx())+')</button><button type="button" data-s="all" aria-pressed="'+(V.scope!=="mine")+'">Все работы</button></div>':"";}
+function bindScope(){const s=$("scope");if(s)s.onclick=e=>{const b=e.target.closest("[data-s]");if(b){V.scope=b.dataset.s;renderView();}};}
+
+/* ---------- сводка ---------- */
+function stackHtml(list){
+  const n=list.length;if(!n)return'<div class="stack"></div>';
+  return'<div class="stack">'+GROUPS.map(g=>{const c=list.filter(i=>i.g===g[0]).length;return c?'<span class="fill g-'+g[0]+'" style="flex:'+c+'" data-tip="'+esc(g[1])+': '+c+'"></span>':"";}).join("")+'</div>';
+}
+function renderDash(){
+  const all=scoped(),live=all.filter(i=>i.g!=="cancel"),done=live.filter(i=>i.g==="done").length;
+  const open=all.filter(i=>!i.closed),od=open.filter(i=>i.overdue).length,attn=all.filter(i=>i.g==="attn"||i.g==="cap").length;
+  const sum=live.reduce((s,i)=>s+(i.sum||0),0),fsum=live.reduce((s,i)=>s+(i.fsum||0),0);
+  const pct=live.length?Math.round(done*100/live.length):0;
+  // по видам работ — открытые
+  const cats={};open.forEach(i=>{cats[i.cat||"Прочее"]=(cats[i.cat||"Прочее"]||0)+1;});
+  const catList=Object.entries(cats).sort((a,b)=>b[1]-a[1]).slice(0,7),catMax=catList.length?catList[0][1]:1;
+  // проблемные адреса
+  const by={};open.forEach(i=>{const a=by[i.addr]=by[i.addr]||{addr:i.addr,n:0,attn:0,od:0};a.n++;if(i.g==="attn"||i.g==="cap")a.attn++;if(i.overdue)a.od++;});
+  const hot=Object.values(by).sort((a,b)=>b.attn-a.attn||b.od-a.od||b.n-a.n).slice(0,6);
+  const exRows=(myEx()&&V.scope==="mine"?[myEx()]:EXS).map(e=>{const l=all.filter(i=>i.ex===e),d=l.filter(i=>i.g==="done").length;
+    return'<div class="srow" data-go="ex" data-v="'+esc(e)+'"><span class="lbl">'+esc(e)+'</span>'+stackHtml(l)+'<span class="val">'+d+'/'+l.filter(i=>i.g!=="cancel").length+'</span></div>';}).join("");
+  const mRows=MONTHS.map(m=>{const l=all.filter(i=>i.month===m[0]);if(!l.length)return"";const d=l.filter(i=>i.g==="done").length;
+    return'<div class="srow" data-go="month" data-v="'+m[0]+'"><span class="lbl">'+m[1]+'</span>'+stackHtml(l)+'<span class="val">'+d+'/'+l.filter(i=>i.g!=="cancel").length+'</span></div>';}).join("");
+  const legend='<div class="legend">'+GROUPS.map(g=>'<span><i class="fill g-'+g[0]+'"></i>'+g[1]+'</span>').join("")+'</div>';
+  $("view").innerHTML=
+   '<div class="head"><h2>Сводка</h2>'+scopeSeg()+'<span class="faint" style="font-size:12px">план от '+esc(S.asof.split("-").reverse().join("."))+'</span></div>'+
+   '<div class="tiles">'+
+     '<button class="tile done" data-go="grp" data-v="done" type="button"><div class="l">Выполнено</div><div class="v">'+pct+'%</div><div class="s">'+done+' из '+live.length+' работ</div></button>'+
+     '<button class="tile" data-go="open" type="button"><div class="l">Открыто</div><div class="v">'+open.length+'</div><div class="s">'+(od?od+' '+plural(od,"просрочена","просрочены","просрочено"):"всё в сроке")+'</div></button>'+
+     '<button class="tile attn" data-go="grp" data-v="attn" type="button"><div class="l">Нужно решение</div><div class="v">'+attn+'</div><div class="s">нет статуса, уточнение, КР</div></button>'+
+     '<div class="tile" style="cursor:default"><div class="l">Оценка по плану</div><div class="v">'+mshort(sum)+'</div><div class="s">'+(fsum?"факт "+mshort(fsum):"без снятых работ")+'</div></div>'+
+   '</div>'+
+   '<div class="grid2"><section class="card"><h3>По исполнителям <span>выполнено / всего</span></h3>'+exRows+legend+'</section>'+
+     '<section class="card"><h3>По месяцам плана <span>выполнено / всего</span></h3>'+mRows+legend+'</section></div>'+
+   '<div class="grid2"><section class="card"><h3>Открытые работы по видам <span>'+open.length+'</span></h3>'+
+     (catList.length?catList.map(c=>'<div class="hbar" data-go="q" data-v="'+esc(c[0])+'" data-cat="1"><span class="lbl">'+esc(c[0])+'</span><span class="tr"><i style="width:'+(c[1]*100/catMax)+'%"></i></span><span class="val">'+c[1]+'</span></div>').join(""):'<div class="empty">Открытых работ нет</div>')+'</section>'+
+     '<section class="card"><h3>Требуют внимания <span>адреса</span></h3>'+
+     (hot.length?'<ul class="alist">'+hot.map(a=>'<li data-go="addr" data-v="'+esc(a.addr)+'"><span class="a">'+esc(a.addr)+'</span><span class="m">'+(a.attn?'<span class="pill g-attn">'+a.attn+' без решения</span> ':"")+a.n+' откр.'+(a.od?' · просрочено '+a.od:"")+'</span></li>').join("")+'</ul>':'<div class="empty">Всё спокойно</div>')+'</section></div>';
+  bindScope();
+}
+document.addEventListener("click",ev=>{const g=ev.target.closest("[data-go]");if(!g||!$("view"))return;
+  const k=g.dataset.go,v=g.dataset.v;Object.assign(V,{q:"",month:"",ex:"",grp:"",open:false,addr:"",cat:"",limit:40});
+  if(k==="ex")V.ex=v;else if(k==="month")V.month=v;else if(k==="grp")V.grp=v;else if(k==="open")V.open=true;else if(k==="addr")V.addr=v;else if(k==="q"&&g.dataset.cat)V.cat=v;
+  if(k!=="grp")V.open=true; if(k==="ex"&&myEx()&&v!==myEx())V.scope="all";
+  V.tab="works";renderView();window.scrollTo(0,0);});
+// подсказки на графиках
+document.addEventListener("mousemove",ev=>{const t=ev.target.closest&&ev.target.closest("[data-tip]"),tip=$("tip");
+  if(!t){tip.hidden=true;return;}tip.textContent=t.dataset.tip;tip.hidden=false;tip.style.left=Math.min(ev.clientX+12,innerWidth-tip.offsetWidth-8)+"px";tip.style.top=(ev.clientY-34)+"px";});
+
+/* ---------- работы ---------- */
+function filtered(){
+  const q=V.q.toLowerCase();
+  return scoped().filter(i=>(!V.month||i.month===V.month)&&(!V.ex||i.ex===V.ex)&&(!V.grp||i.g===V.grp)&&(!V.open||!i.closed)&&(!V.addr||i.addr===V.addr)&&(!V.cat||i.cat===V.cat)&&
+    (!q||(i.addr+" "+i.work+" "+(i.row||"")+" "+i.note).toLowerCase().indexOf(q)>=0))
+   .sort((a,b)=>(RANK[b.status]-RANK[a.status])||(b.overdue-a.overdue)||a.addr.localeCompare(b.addr,"ru"));
+}
+const opt=(v,l,cur)=>'<option value="'+esc(v)+'"'+(v===cur?" selected":"")+'>'+esc(l)+'</option>';
+function renderWorks(){
+  const list=filtered();
+  $("view").innerHTML='<div class="head"><h2>Работы</h2>'+scopeSeg()+(isAdmin()?'<button class="btn" id="addw" type="button">+ Добавить работу</button>':"")+'</div>'+
+  '<div class="filters"><input class="ctl search" id="fq" type="search" placeholder="Адрес, работа, № строки" value="'+esc(V.q||V.addr||V.cat)+'" aria-label="Поиск">'+
+  '<select class="ctl" id="fm" aria-label="Месяц">'+opt("","Все месяцы",V.month)+MONTHS.map(m=>opt(m[0],m[1],V.month)).join("")+'</select>'+
+  (myEx()&&V.scope==="mine"?"":'<select class="ctl" id="fe" aria-label="Исполнитель">'+opt("","Все исполнители",V.ex)+EXS.map(e=>opt(e,e,V.ex)).join("")+'</select>')+
+  '<select class="ctl" id="fg" aria-label="Статус">'+opt("","Все статусы",V.grp)+GROUPS.map(g=>opt(g[0],g[1],V.grp)).join("")+'</select>'+
+  '<label class="chk"><input type="checkbox" id="fo"'+(V.open?" checked":"")+'> Только открытые</label></div>'+
+  '<div class="count"><span>'+list.length+' '+plural(list.length,"работа","работы","работ")+'</span>'+((V.q||V.month||V.ex||V.grp||V.addr||V.cat||!V.open)?'<button class="linkbtn" id="fr" type="button">Сбросить</button>':"")+'</div>'+
+  '<div class="list">'+(list.length?list.slice(0,V.limit).map(rowHtml).join("")+(list.length>V.limit?'<button class="more" id="more" type="button">Показать ещё '+Math.min(40,list.length-V.limit)+'</button>':""):'<div class="empty">Ничего не найдено. Измените фильтры.</div>')+'</div>';
+  bindScope();
+  let qt;$("fq").oninput=e=>{clearTimeout(qt);qt=setTimeout(()=>{V.q=e.target.value.trim();V.addr="";V.cat="";V.limit=40;renderWorks();const f=$("fq");f.focus();f.setSelectionRange(f.value.length,f.value.length);},200);};
+  $("fm").onchange=e=>{V.month=e.target.value;renderWorks();};
+  if($("fe"))$("fe").onchange=e=>{V.ex=e.target.value;renderWorks();};
+  $("fg").onchange=e=>{V.grp=e.target.value;if(V.grp==="done"||V.grp==="cancel"||V.grp==="winter")V.open=false;renderWorks();};
+  $("fo").onchange=e=>{V.open=e.target.checked;renderWorks();};
+  if($("fr"))$("fr").onclick=()=>{Object.assign(V,{q:"",month:"",ex:"",grp:"",open:true,addr:"",cat:"",limit:40});renderWorks();};
+  if($("more"))$("more").onclick=()=>{V.limit+=40;renderWorks();};
+  if($("addw"))$("addw").onclick=()=>{V.drawer={add:true};renderDrawer();};
+}
+function rowHtml(i){
+  return'<div class="wr g-'+i.g+'" data-key="'+esc(i.key)+'" tabindex="0" role="button"><span class="sev"></span>'+
+   '<div style="min-width:0"><div class="a">'+esc(i.addr)+'</div><div class="w">'+esc(i.work)+'</div></div>'+
+   '<div class="r"><span class="pill dot">'+esc(i.status)+'</span><span class="tag '+EX_CLS[i.ex]+'">'+esc(i.ex)+(canEdit(i)?"":' <span class="lock">· просмотр</span>')+'</span>'+(i.overdue?'<span class="od">просрочено '+i.overdue+' дн.</span>':"")+'</div></div>';
+}
+document.addEventListener("click",ev=>{const r=ev.target.closest(".wr");if(r){V.drawer={key:r.dataset.key};renderDrawer();}});
+document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&V.drawer){closeDrawer();}const r=ev.target.closest&&ev.target.closest(".wr");if(r&&ev.key==="Enter"){V.drawer={key:r.dataset.key};renderDrawer();}});
+
+/* ---------- панель работы ---------- */
+function closeDrawer(){V.drawer=null;$("dr").innerHTML="";}
+function renderDrawer(){
+  const D=V.drawer,host=$("dr");if(!D||!host)return;
+  if(D.add)return renderAdd(host);
+  const it=S.items.find(i=>i.key===D.key);if(!it){closeDrawer();return;}
+  const ed=canEdit(it),hist=S.log.filter(l=>l.key===it.key).slice(0,6);
+  host.innerHTML='<div class="scrim" id="scrim"></div><aside class="drawer g-'+it.g+'" role="dialog" aria-label="Работа">'+
+   '<div class="dh"><div><div class="muted" style="font-size:12px">'+esc(it.addr)+(it.row?' · строка '+it.row:"")+'</div><h3>'+esc(it.work)+'</h3></div><button class="x" id="dx" type="button" aria-label="Закрыть">×</button></div>'+
+   '<div class="db">'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill dot">'+esc(it.status)+'</span><span class="pill '+EX_CLS[it.ex]+'">'+esc(it.ex)+'</span>'+(it.overdue?'<span class="pill g-attn">просрочено '+it.overdue+' дн.</span>':"")+'</div>'+
+    '<dl class="dl"><dt>Месяц</dt><dd>'+esc(MNAME[it.month]||it.month)+'</dd><dt>УК</dt><dd>'+esc(it.uk||"—")+'</dd><dt>Вид работ</dt><dd>'+esc(it.cat||"—")+'</dd>'+
+     '<dt>Основание</dt><dd>'+esc(it.basis||"не указано")+'</dd><dt>Оценка</dt><dd class="num">'+money(it.sum)+(it.fsum?' · факт '+money(it.fsum):"")+'</dd>'+
+     (it.src?'<dt>Из файла</dt><dd>'+esc(it.src)+'</dd>':"")+(it.kr?'<dt>Капремонт</dt><dd>'+esc(it.kr)+'</dd>':"")+
+     (it.at?'<dt>Изменено</dt><dd>'+esc(it.by)+', '+when(it.at)+'</dd>':"")+'</dl>'+
+    (ed?'<div class="box"><h4>Отметить</h4><label class="field">Статус<select id="ds">'+GROUPS.map(g=>'<optgroup label="'+g[1]+'">'+g[2].map(s=>opt(s,s,it.status)).join("")+'</optgroup>').join("")+'</select></label>'+
+       (isAdmin()?'<label class="field">Исполнитель<select id="de">'+EXS.map(e=>opt(e,e,it.ex)).join("")+'</select></label>':"")+
+       '<label class="field">Комментарий<textarea id="dn" maxlength="2000" placeholder="Что сделано, что мешает">'+esc(it.note)+'</textarea></label></div>'
+     :'<div class="box"><h4>Комментарий</h4><div style="font-size:13px;white-space:pre-wrap">'+(it.note?esc(it.note):'<span class="faint">нет</span>')+'</div><div class="lock">Эту работу отмечает '+(it.ex==="Не распределено"?"администратор":"роль «"+esc(it.ex)+"»")+'.</div></div>')+
+    (hist.length?'<div><h4 style="margin:0 0 8px;font-size:13px">История</h4><ul class="hist">'+hist.map(h=>'<li>'+when(h.at)+' · '+esc(h.by)+': '+esc(h.what.toLowerCase())+(h.to?' → '+esc(h.to.slice(0,80)):"")+'</li>').join("")+'</ul></div>':"")+
+   '</div>'+(ed?'<div class="df"><button class="btn primary" id="dsave" type="button" disabled>Сохранить</button><button class="btn" id="dcancel" type="button">Закрыть</button><span class="msg" id="dmsg"></span></div>':"")+'</aside>';
+  $("dx").onclick=closeDrawer;$("scrim").onclick=closeDrawer;
+  if(!ed)return;
+  $("dcancel").onclick=closeDrawer;
+  const dirty=()=>{const p=patch();D.dirty=Object.keys(p).length>0;$("dsave").disabled=!D.dirty;};
+  const patch=()=>{const p={};if($("ds").value!==it.status)p.status=$("ds").value;if($("dn").value.trim()!==it.note)p.note=$("dn").value;if($("de")&&$("de").value!==it.ex)p.ex=$("de").value;return p;};
+  ["ds","dn","de"].forEach(id=>{const el=$(id);if(el){el.addEventListener("input",dirty);el.addEventListener("change",dirty);}});
+  $("dsave").onclick=()=>{const p=patch();$("dsave").disabled=true;$("dmsg").textContent="Сохраняем…";
+    call("updateWork",S.token,it.key,p).then(n=>{Object.assign(it,n);enrich(it);toast("Сохранено");V.drawer=null;$("dr").innerHTML="";load(true);}).catch(e=>{$("dmsg").textContent="";$("dsave").disabled=false;fail(e);});};
+}
+function renderAdd(host){
+  const addrs=[...new Set(S.items.map(i=>i.addr))].sort(),uks=[...new Set(S.items.map(i=>i.uk).filter(Boolean))].sort();
+  host.innerHTML='<div class="scrim" id="scrim"></div><aside class="drawer" role="dialog" aria-label="Новая работа"><div class="dh"><h3>Новая работа</h3><button class="x" id="dx" type="button" aria-label="Закрыть">×</button></div>'+
+  '<form class="db" id="af"><label class="field">Адрес<input id="aa" list="al" required></label><datalist id="al">'+addrs.map(a=>'<option value="'+esc(a)+'">').join("")+'</datalist>'+
+  '<label class="field">Что сделать<input id="aw" required></label>'+
+  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label class="field">Месяц<select id="am">'+MONTHS.map(m=>opt(m[0],m[1],"2026-10")).join("")+'</select></label>'+
+  '<label class="field">Исполнитель<select id="ae">'+EXS.map(e=>opt(e,e,"Не распределено")).join("")+'</select></label>'+
+  '<label class="field">УК<select id="au">'+uks.map(u=>opt(u,u,"")).join("")+'</select></label><label class="field">Оценка, ₽<input id="as" inputmode="decimal"></label></div>'+
+  '<label class="field">Основание<input id="ab" placeholder="Заявление, акт, протокол"></label></form>'+
+  '<div class="df"><button class="btn primary" id="asave" type="button">Добавить</button><button class="btn" id="acancel" type="button">Отмена</button></div></aside>';
+  $("dx").onclick=closeDrawer;$("scrim").onclick=closeDrawer;$("acancel").onclick=closeDrawer;
+  $("aa").onchange=()=>{const x=S.items.find(i=>i.addr===$("aa").value.trim());if(x&&x.uk)$("au").value=x.uk;};
+  $("asave").onclick=()=>{const w={addr:$("aa").value.trim(),work:$("aw").value.trim(),month:$("am").value,ex:$("ae").value,uk:$("au").value,sum:$("as").value.replace(/\s/g,"").replace(",","."),basis:$("ab").value.trim()};
+    if(!w.addr||!w.work){toast("Укажите адрес и что сделать");return;}
+    $("asave").disabled=true;call("addWork",S.token,w).then(()=>{toast("Работа добавлена");closeDrawer();load(true);}).catch(e=>{$("asave").disabled=false;fail(e);});};
+}
+
+/* ---------- вопросы, журнал, пользователи ---------- */
+function renderIssues(){
+  const open=S.issues.filter(i=>!i.done).length;
+  $("view").innerHTML='<div class="head"><h2>Открытые вопросы</h2><span class="muted">'+open+' из '+S.issues.length+' открыто</span></div><div class="list"><ul class="ilist">'+
+  S.issues.slice().sort((a,b)=>a.done-b.done).map(i=>'<li class="'+(i.done?"done":"")+'"><input type="checkbox" data-iss="'+i.num+'"'+(i.done?" checked":"")+(isAdmin()?"":" disabled")+' aria-label="Вопрос решён">'+
+   '<div><div class="t">'+esc(i.text)+'</div><div class="meta"><span>'+esc(i.resp)+'</span><span>срок: '+esc(i.term)+'</span>'+(i.done&&i.by?'<span>закрыл '+esc(i.by)+' '+when(i.at)+'</span>':"")+'</div></div></li>').join("")+'</ul></div>';
+  document.querySelectorAll("[data-iss]").forEach(c=>c.onchange=()=>{c.disabled=true;call("setIssue",S.token,+c.dataset.iss,c.checked).then(()=>load(true)).catch(e=>{c.checked=!c.checked;c.disabled=false;fail(e);});});
+}
+function renderLog(){
+  $("view").innerHTML='<div class="head"><h2>Журнал изменений</h2><span class="muted">последние '+S.log.length+'</span></div><div class="list">'+
+  (S.log.length?'<ul class="ilist loglist">'+S.log.map(l=>'<li><div><div class="t"><b>'+esc(l.addr||"Вопрос")+'</b> · '+esc(l.work.slice(0,90))+'</div><div class="meta"><span>'+when(l.at)+'</span><span>'+esc(l.by)+'</span><span>'+esc(l.what)+(l.from?': '+esc(l.from.slice(0,60))+' →':":")+' <b>'+esc(l.to.slice(0,80))+'</b></span></div></div></li>').join("")+'</ul>':'<div class="empty">Изменений пока нет.</div>')+'</div>';
+}
+function renderUsers(){
+  if(!isAdmin()){V.tab="dash";return renderView();}
+  $("view").innerHTML='<div class="head"><h2>Пользователи</h2></div><div class="list" id="ul"><div class="empty">Загрузка…</div></div>'+
+   '<form class="uform card" id="uf"><input type="hidden" id="uo"><label class="field">Имя<input id="un" required></label><label class="field">Роль<select id="ur">'+ROLES.map(r=>opt(r,r,"СВОИ")).join("")+'</select></label>'+
+   '<label class="field">PIN (4–8 цифр)<input id="up" inputmode="numeric" maxlength="8" placeholder="оставьте пустым, чтобы не менять"></label><label class="chk"><input type="checkbox" id="ua" checked> Активен</label>'+
+   '<button class="btn primary" type="submit">Сохранить</button></form>'+
+   '<p class="faint" style="font-size:12px;max-width:70ch">Администратор меняет всё. СВОИ и Подрядчики отмечают статус и комментарий только в своих работах. Просмотр — без изменений. PIN хранится в таблице в виде хэша.</p>';
+  const draw=us=>{$("ul").innerHTML='<table class="utable"><thead><tr><th>Имя</th><th>Роль</th><th>Статус</th><th></th></tr></thead><tbody>'+
+    us.map(u=>'<tr><td>'+esc(u.name)+'</td><td>'+esc(u.role)+'</td><td>'+(u.active?"активен":'<span class="faint">отключён</span>')+'</td><td><button class="linkbtn" data-u="'+esc(u.name)+'" data-r="'+esc(u.role)+'" data-a="'+u.active+'" type="button">Изменить</button></td></tr>').join("")+'</tbody></table>';
+    document.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{$("uo").value=b.dataset.u;$("un").value=b.dataset.u;$("ur").value=b.dataset.r;$("ua").checked=b.dataset.a==="true";$("up").value="";$("un").focus();});};
+  call("listUsers",S.token).then(draw).catch(fail);
+  $("uf").onsubmit=e=>{e.preventDefault();call("saveUser",S.token,{oldName:$("uo").value,name:$("un").value.trim(),role:$("ur").value,active:$("ua").checked,pin:$("up").value.trim()})
+    .then(us=>{draw(us);toast("Сохранено");$("uf").reset();$("uo").value="";}).catch(fail);};
+}
+
+/* ---------- старт ---------- */
+if(S.token)load();else renderLogin();
+})();
+</script>
+</body>
+</html>
