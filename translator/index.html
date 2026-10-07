@@ -8,12 +8,12 @@
 <title>Татарча тәрҗемәче</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400&family=PT+Sans:wght@400;700&display=swap">
 <style>
-/* Макет: одна колонка до 960px; наверху направление перевода, затем две панели (исходник / перевод),
-   ниже разбор по словам, разговорник и история. Цвета от флага Татарстана: зелёный и красный на белом поле. */
+/* Макет: одна колонка до 960px. Две вкладки: «Текст» (направление, две панели исходник/перевод, разбор по словам,
+   разговорник, история) и «Голосом» (две кнопки-микрофона, лента реплик). Цвета от флага Татарстана: зелёный и красный на белом. */
 :root{
   --bg:#f7f8f5; --panel:#ffffff; --fg:#1d2420; --muted:#5e6a62; --line:#d8ded9;
   --accent:#0f8a4b; --accent-fg:#ffffff; --accent-soft:#e3f3ea; --red:#c8313b; --red-soft:#fbe9ea;
-  --key:#eef2ee; --key-fg:#1d2420; --shadow:0 1px 2px rgba(20,40,30,.08);
+  --key:#eef2ee; --key-fg:#1d2420; --shadow:0 1px 2px rgba(20,40,30,.08); --bubble-me:#e3f3ea; --bubble-you:#f0f1ee;
   --display:"PT Serif",Georgia,"Times New Roman",serif;
   --body:"PT Sans","Segoe UI",Arial,sans-serif;
 }
@@ -21,15 +21,16 @@
   :root:not([data-theme="light"]){
     --bg:#141a16; --panel:#1c2420; --fg:#e8ede9; --muted:#9aa69e; --line:#30403a;
     --accent:#3dbb7a; --accent-fg:#0d1a12; --accent-soft:#1f3a2b; --red:#ef6b73; --red-soft:#3a2224;
-    --key:#263129; --key-fg:#e8ede9; --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark;
+    --key:#263129; --key-fg:#e8ede9; --shadow:0 1px 2px rgba(0,0,0,.4); --bubble-me:#1f3a2b; --bubble-you:#263129; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#141a16; --panel:#1c2420; --fg:#e8ede9; --muted:#9aa69e; --line:#30403a;
   --accent:#3dbb7a; --accent-fg:#0d1a12; --accent-soft:#1f3a2b; --red:#ef6b73; --red-soft:#3a2224;
-  --key:#263129; --key-fg:#e8ede9; --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark;
+  --key:#263129; --key-fg:#e8ede9; --shadow:0 1px 2px rgba(0,0,0,.4); --bubble-me:#1f3a2b; --bubble-you:#263129; color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0;background:var(--bg);color:var(--fg)}
 body{font:16px/1.5 var(--body);padding-block:0 32px;padding-inline:16px}
 .wrap{max-width:960px;margin:0 auto;display:grid;gap:20px}
@@ -41,6 +42,12 @@ header p{margin:0;color:var(--muted);font-size:15px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
 .dot.ok{background:var(--accent)}
 .dot.off{background:var(--red)}
+
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line)}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-1px;padding:8px 14px;font:700 16px var(--body);color:var(--muted);cursor:pointer}
+.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.tabs button:hover{color:var(--fg)}
+.tab{display:grid;gap:20px}
 
 .dir{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 select,button,textarea,input{font:inherit;color:inherit}
@@ -56,6 +63,7 @@ select{background:var(--panel);border:1px solid var(--line);border-radius:6px;pa
 .pane-head .sp{flex:1}
 .pane-head button{background:none;border:1px solid var(--line);border-radius:6px;padding:3px 9px;font-size:13px;letter-spacing:0;text-transform:none;cursor:pointer;color:var(--fg)}
 .pane-head button:hover{background:var(--key)}
+.pane-head button[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
 textarea{width:100%;min-height:170px;border:0;background:transparent;resize:vertical;padding:14px;font:18px/1.45 var(--body);outline:none}
 textarea:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
 .out{padding:14px;min-height:170px;font:18px/1.45 var(--body);white-space:pre-wrap;word-wrap:break-word;flex:1}
@@ -79,8 +87,7 @@ section h2{font:700 20px/1.2 var(--display);margin:0 0 10px}
 .gloss div{display:flex;gap:8px;padding:4px 0;border-bottom:1px dotted var(--line)}
 .gloss b{font-weight:700;min-width:0}
 .gloss span{color:var(--muted);min-width:0}
-.gloss .unk span{color:var(--red)}
-.empty{color:var(--muted);font-size:15px}
+.empty{color:var(--muted);font-size:15px;margin:0}
 
 .phr{display:flex;flex-wrap:wrap;gap:8px}
 .phr button{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer;text-align:left}
@@ -92,8 +99,44 @@ section h2{font:700 20px/1.2 var(--display);margin:0 0 10px}
 .hist button:hover{border-color:var(--accent)}
 .hist button span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hist button span+span{color:var(--muted)}
-.hist-head{display:flex;align-items:baseline;gap:12px}
-.hist-head button{margin-left:auto;background:none;border:0;color:var(--muted);cursor:pointer;font-size:13px;text-decoration:underline}
+.sec-head{display:flex;align-items:baseline;gap:12px}
+.sec-head button{margin-left:auto;background:none;border:0;color:var(--muted);cursor:pointer;font-size:13px;text-decoration:underline}
+
+/* Голос */
+.lead{margin:0;color:var(--muted);max-width:65ch}
+.talk{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:600px){.talk{grid-template-columns:1fr}}
+.mic{position:relative;display:grid;justify-items:center;gap:4px;padding:22px 16px 18px;background:var(--panel);border:2px solid var(--line);border-radius:14px;cursor:pointer;box-shadow:var(--shadow);min-width:0}
+.mic:hover{border-color:var(--accent)}
+.mic:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.mic .ico{width:64px;height:64px;border-radius:50%;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-size:28px}
+.mic .l1{font:700 20px/1.2 var(--display)}
+.mic .l2{font-size:13px;color:var(--muted)}
+.mic[aria-pressed="true"]{border-color:var(--red);background:var(--red-soft)}
+.mic[aria-pressed="true"] .ico{background:var(--red);color:#fff;animation:pulse 1.2s ease-in-out infinite}
+.mic:disabled{opacity:.5;cursor:default}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(200,49,59,.45)}50%{box-shadow:0 0 0 14px rgba(200,49,59,0)}}
+@media (prefers-reduced-motion:reduce){.mic[aria-pressed="true"] .ico{animation:none}}
+.vstatus{min-height:1.5em;font-size:15px;color:var(--muted)}
+.vstatus.err{color:var(--red)}
+.vstatus.live{color:var(--fg);font-style:italic}
+.vopts{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:14px;color:var(--muted);align-items:center}
+.vopts label{display:flex;align-items:center;gap:6px}
+.vopts input[type=range]{width:120px}
+.typed{display:flex;gap:8px}
+.typed input{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:16px}
+.typed button{background:var(--key);border:1px solid var(--line);border-radius:8px;padding:8px 14px;cursor:pointer}
+.typed button:hover{background:var(--accent-soft)}
+.chat{display:grid;gap:10px}
+.msg{max-width:min(78%,640px);padding:10px 14px;border-radius:14px;background:var(--bubble-you);display:grid;gap:4px;min-width:0}
+.msg.tt{justify-self:start;border-bottom-left-radius:4px;background:var(--bubble-me)}
+.msg.other{justify-self:end;border-bottom-right-radius:4px}
+.msg .orig{color:var(--muted);font-size:14px;word-wrap:break-word}
+.msg .tr{font-size:18px;font-weight:700;word-wrap:break-word}
+.msg .tr.wait{font-weight:400;color:var(--muted)}
+.msg .row{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.msg .row button{margin-left:auto;background:none;border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:13px;letter-spacing:0;text-transform:none;cursor:pointer;color:var(--fg)}
+.msg .row button:hover{background:var(--key)}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
@@ -102,61 +145,92 @@ section h2{font:700 20px/1.2 var(--display);margin:0 0 10px}
 <div class="wrap">
   <header>
     <h1>Татарча тәрҗемәче</h1>
-    <p>Переводчик с татарского языка на русский и обратно</p>
+    <p>Переводчик с татарского языка на русский и обратно, текстом и голосом</p>
     <div class="engine"><span class="dot" id="dot"></span><span id="engineName">Проверяю перевод…</span></div>
   </header>
 
-  <div class="dir">
-    <select id="from" aria-label="С какого языка">
-      <option value="auto">Определить язык</option>
-      <option value="tt" selected>Татарский</option>
-      <option value="ru">Русский</option>
-      <option value="en">Английский</option>
-    </select>
-    <button class="swap" id="swap" type="button" title="Поменять языки местами">⇄</button>
-    <select id="to" aria-label="На какой язык">
-      <option value="ru" selected>Русский</option>
-      <option value="tt">Татарский</option>
-      <option value="en">Английский</option>
-    </select>
-    <label><input type="checkbox" id="live" checked> переводить по мере ввода</label>
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" id="tabBtnText" aria-selected="true" aria-controls="tabText">Текст</button>
+    <button type="button" role="tab" id="tabBtnVoice" aria-selected="false" aria-controls="tabVoice">🎤 Голосом</button>
   </div>
 
-  <div class="panes">
-    <div class="pane">
-      <div class="pane-head"><span id="srcLabel">Татарский</span><span class="sp"></span><button type="button" id="paste" hidden>Вставить</button><button type="button" id="clear">Очистить</button></div>
-      <textarea id="src" placeholder="Исәнмесез! Текстны монда языгыз…" spellcheck="false">Исәнмесез! Минем исемем Айдар. Мин Казанда яшим һәм татар телен өйрәнәм.</textarea>
-      <div class="keys" id="keys">
-        <button type="button" class="shift" id="shift" aria-pressed="false">Aa</button>
-        <button type="button" data-k="ә">ә</button><button type="button" data-k="ө">ө</button><button type="button" data-k="ү">ү</button>
-        <button type="button" data-k="җ">җ</button><button type="button" data-k="ң">ң</button><button type="button" data-k="һ">һ</button>
+  <div class="tab" id="tabText" role="tabpanel">
+    <div class="dir">
+      <select id="from" aria-label="С какого языка">
+        <option value="auto">Определить язык</option>
+        <option value="tt" selected>Татарский</option>
+        <option value="ru">Русский</option>
+        <option value="en">Английский</option>
+      </select>
+      <button class="swap" id="swap" type="button" title="Поменять языки местами">⇄</button>
+      <select id="to" aria-label="На какой язык">
+        <option value="ru" selected>Русский</option>
+        <option value="tt">Татарский</option>
+        <option value="en">Английский</option>
+      </select>
+      <label><input type="checkbox" id="live" checked> переводить по мере ввода</label>
+    </div>
+
+    <div class="panes">
+      <div class="pane">
+        <div class="pane-head"><span id="srcLabel">Татарский</span><span class="sp"></span><button type="button" id="dictate" aria-pressed="false" hidden>🎤 Диктовать</button><button type="button" id="paste" hidden>Вставить</button><button type="button" id="clear">Очистить</button></div>
+        <textarea id="src" placeholder="Исәнмесез! Текстны монда языгыз…" spellcheck="false">Исәнмесез! Минем исемем Айдар. Мин Казанда яшим һәм татар телен өйрәнәм.</textarea>
+        <div class="keys" id="keys">
+          <button type="button" class="shift" id="shift" aria-pressed="false">Aa</button>
+          <button type="button" data-k="ә">ә</button><button type="button" data-k="ө">ө</button><button type="button" data-k="ү">ү</button>
+          <button type="button" data-k="җ">җ</button><button type="button" data-k="ң">ң</button><button type="button" data-k="һ">һ</button>
+        </div>
+        <div class="foot"><span id="count">0 символов</span><span class="sp"></span><button class="go" id="go" type="button">Перевести</button></div>
       </div>
-      <div class="foot"><span id="count">0 символов</span><span class="sp"></span><button class="go" id="go" type="button">Перевести</button></div>
+      <div class="pane">
+        <div class="pane-head"><span id="dstLabel">Русский</span><span class="sp"></span><button type="button" id="speak" hidden>🔊 Озвучить</button><button type="button" id="copy">Копировать</button></div>
+        <div class="out placeholder" id="out">Перевод появится здесь.</div>
+        <div class="latin" id="latin" hidden></div>
+        <div class="note" id="note"></div>
+      </div>
     </div>
-    <div class="pane">
-      <div class="pane-head"><span id="dstLabel">Русский</span><span class="sp"></span><button type="button" id="speak" hidden>▶ Озвучить</button><button type="button" id="copy">Копировать</button></div>
-      <div class="out placeholder" id="out">Перевод появится здесь.</div>
-      <div class="latin" id="latin" hidden></div>
-      <div class="note" id="note"></div>
-    </div>
+
+    <section>
+      <h2>Разбор по словам</h2>
+      <div class="gloss" id="gloss"></div>
+      <p class="empty" id="glossEmpty" hidden>Слов из встроенного словаря в тексте нет.</p>
+    </section>
+
+    <section>
+      <h2>Разговорник</h2>
+      <div class="phr" id="phr"></div>
+    </section>
+
+    <section>
+      <div class="sec-head"><h2>История</h2><button type="button" id="histClear" hidden>очистить</button></div>
+      <div class="hist" id="hist"></div>
+      <p class="empty" id="histEmpty">Переводы этого браузера будут сохраняться здесь.</p>
+    </section>
   </div>
 
-  <section>
-    <h2>Разбор по словам</h2>
-    <div class="gloss" id="gloss"></div>
-    <p class="empty" id="glossEmpty" hidden>Слов из встроенного словаря в тексте нет.</p>
-  </section>
-
-  <section>
-    <h2>Разговорник</h2>
-    <div class="phr" id="phr"></div>
-  </section>
-
-  <section>
-    <div class="hist-head"><h2>История</h2><button type="button" id="histClear" hidden>очистить</button></div>
-    <div class="hist" id="hist"></div>
-    <p class="empty" id="histEmpty">Переводы этого браузера будут сохраняться здесь.</p>
-  </section>
+  <div class="tab" id="tabVoice" role="tabpanel" hidden>
+    <p class="lead">Нажмите кнопку своего языка и скажите фразу. Перевод появится в ленте и прозвучит на другом языке. Собеседник отвечает своей кнопкой.</p>
+    <div class="talk">
+      <button type="button" class="mic" id="micTT" data-lang="tt" aria-pressed="false"><span class="ico">🎤</span><span class="l1">Татарча сөйлим</span><span class="l2">говорю по-татарски</span></button>
+      <button type="button" class="mic" id="micOther" data-lang="ru" aria-pressed="false"><span class="ico">🎤</span><span class="l1" id="micOtherL1">Говорю по-русски</span><span class="l2" id="micOtherL2">русча сөйлим</span></button>
+    </div>
+    <div class="vstatus" id="vstatus">Проверяю микрофон и голоса…</div>
+    <div class="vopts">
+      <label><input type="checkbox" id="autoSpeak" checked> озвучивать перевод</label>
+      <label>Скорость речи <input type="range" id="rate" min="0.6" max="1.4" step="0.1" value="1"></label>
+      <label>Второй язык <select id="dlgOther"><option value="ru">русский</option><option value="en">английский</option></select></label>
+      <span id="voiceInfo"></span>
+    </div>
+    <form class="typed" id="typedForm">
+      <input id="typed" placeholder="Или напишите реплику: язык определится сам" autocomplete="off">
+      <button type="submit">Отправить</button>
+    </form>
+    <section>
+      <div class="sec-head"><h2>Разговор</h2><button type="button" id="chatClear" hidden>очистить</button></div>
+      <div class="chat" id="chat"></div>
+      <p class="empty" id="chatEmpty">Здесь появятся реплики разговора: оригинал и перевод.</p>
+    </section>
+  </div>
 </div>
 <div class="toast" id="toast" role="status"></div>
 
@@ -316,14 +390,97 @@ async function pickEngine(){
   }};
 }
 
-/* ---------- Интерфейс ---------- */
 const $=id=>document.getElementById(id);
+
+/* ---------- Общий перевод: движок, при сбое встроенный словарь ---------- */
+async function runTranslate(text, from, to, onText, signal){
+  await enginePromise;
+  try{
+    const res=await engine.run(text,from,to,onText||(()=>{}),signal);
+    return {text:res, fallback:false};
+  }catch(e){
+    if(e.name==="AbortError"||e.code==="cancelled") throw e;
+    const off=offlineTranslate(text,from,to);
+    if(off) return {text:off, fallback:true, error:e};
+    throw e;
+  }
+}
+function errorText(e){
+  const code=e.code||"";
+  if(code==="rate_limited") return "Слишком много запросов, подождите немного.";
+  if(code==="not_granted"||code==="sampling_disabled") return "Перевод через Claude не разрешён на этой странице.";
+  return "Онлайн-перевод недоступен: "+(e.message||code||"ошибка");
+}
+
+/* ---------- Голос: распознавание и озвучивание ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition||null;
+const TTS=window.speechSynthesis||null;
+const SR_LANG={tt:"tt-RU",ru:"ru-RU",en:"en-US"};
+let voices=[];
+function loadVoices(){ if(!TTS) return; voices=TTS.getVoices()||[]; updateVoiceInfo(); }
+if(TTS){ loadVoices(); TTS.onvoiceschanged=loadVoices; }
+function pickVoice(lang){
+  const pref=lang==="tt"?["tt","ru"]:[lang];
+  for(const p of pref){
+    const list=voices.filter(v=>v.lang.toLowerCase().replace("_","-").startsWith(p));
+    if(list.length){ return list.find(v=>/google|yandex|milena|irina|svetlana|natural|neural/i.test(v.name))||list.find(v=>v.default)||list[0]; }
+  }
+  return null;
+}
+// Русский голос читает татарский текст приближённо: буквы без аналога заменяем на ближайшие по звучанию.
+const APPROX={ә:"э",ө:"ё",ү:"ю",җ:"дж",ң:"н",һ:"х",Ә:"Э",Ө:"Ё",Ү:"Ю",Җ:"Дж",Ң:"Н",Һ:"Х"};
+function approxTatar(s){ return s.replace(/[әөүҗңһӘӨҮҖҢҺ]/g,ch=>APPROX[ch]); }
+function speak(text, lang){
+  if(!TTS||!text) return false;
+  const v=pickVoice(lang); const tatarVoice=v&&v.lang.toLowerCase().startsWith("tt");
+  const u=new SpeechSynthesisUtterance(lang==="tt"&&!tatarVoice?approxTatar(text):text);
+  u.lang=v?v.lang:SR_LANG[lang]; if(v) u.voice=v; u.rate=parseFloat($("rate").value)||1;
+  TTS.cancel(); TTS.speak(u); return true;
+}
+function updateVoiceInfo(){
+  const el=$("voiceInfo"); if(!el) return;
+  if(!TTS){ el.textContent="Озвучивание в этом браузере недоступно."; return; }
+  const v=pickVoice("tt");
+  if(!v) el.textContent=voices.length?"Русского голоса в браузере нет.":"";
+  else el.textContent=v.lang.toLowerCase().startsWith("tt")?"Татарский голос: "+v.name:"Татарского голоса в браузере нет: татарский читает «"+v.name+"», приближённо.";
+}
+
+let rec=null, recOwner=null;
+function stopListening(){ if(rec){ try{ rec.onend=null; rec.stop(); }catch(e){} } rec=null; const o=recOwner; recOwner=null; if(o&&o.onStop) o.onStop(); }
+function startListening(lang, h){
+  if(!SR) { h.onError("Этот браузер не распознаёт речь. Откройте страницу в Chrome, Edge или Safari."); return false; }
+  stopListening();
+  const r=new SR(); r.lang=SR_LANG[lang]||lang; r.interimResults=true; r.continuous=!!h.continuous; r.maxAlternatives=1;
+  let finalText="";
+  r.onresult=ev=>{
+    let interim="";
+    for(let i=ev.resultIndex;i<ev.results.length;i++){
+      const t=ev.results[i][0].transcript;
+      if(ev.results[i].isFinal){ finalText+=t; if(h.onFinal) h.onFinal(t.trim()); } else interim+=t;
+    }
+    if(h.onInterim) h.onInterim(interim.trim());
+  };
+  r.onerror=ev=>{
+    const m={"not-allowed":"Доступ к микрофону запрещён. Разрешите микрофон для этой страницы; внутри другого сайта или приложения микрофон может быть недоступен, тогда откройте файл index.html прямо в Chrome.",
+      "service-not-allowed":"Сервис распознавания недоступен в этом браузере.",
+      "language-not-supported":lang==="tt"?"Этот браузер не распознаёт татарскую речь. Напишите реплику текстом: перевод всё равно будет озвучен.":"Браузер не поддерживает этот язык распознавания.",
+      "no-speech":"Ничего не услышал. Нажмите кнопку и говорите сразу.",
+      "audio-capture":"Микрофон не найден.",
+      "network":"Распознавание речи недоступно без сети или в этом браузере (нужен Chrome или Edge).",
+      "aborted":""}[ev.error];
+    if(m!==undefined){ if(m) h.onError(m); } else h.onError("Ошибка распознавания: "+ev.error);
+  };
+  r.onend=()=>{ if(rec===r){ rec=null; recOwner=null; if(h.onStop) h.onStop(); if(h.onDone) h.onDone(finalText.trim()); } };
+  try{ r.start(); }catch(e){ h.onError("Не удалось включить микрофон: "+e.message); return false; }
+  rec=r; recOwner=h; return true;
+}
+
+/* ---------- Интерфейс: вкладка «Текст» ---------- */
 const src=$("src"), out=$("out"), note=$("note"), latin=$("latin"), fromSel=$("from"), toSel=$("to");
-let timer=null, ctl=null, lastKey="", shiftOn=false, lastResult="";
+let timer=null, ctl=null, lastKey="", shiftOn=false, lastResult="", detected="";
 
 function setEngineLabel(ok,text){ $("dot").className="dot "+(ok?"ok":"off"); $("engineName").textContent=text; }
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),1600); }
-let detected="";
 function updateLabels(){
   const f=fromSel.value, t=toSel.value;
   $("srcLabel").textContent=f==="auto"?(detected?NAMES[detected]+" (определён)":"Определяю язык"):NAMES[f];
@@ -336,7 +493,7 @@ function showResult(text, from, to){
   out.textContent=text; out.classList.remove("placeholder");
   const ttText = to==="tt" ? text : (from==="tt" ? src.value : "");
   if(ttText.trim()){ latin.hidden=false; latin.textContent="Латиницей: "+toLatin(ttText); } else latin.hidden=true;
-  $("speak").hidden = !(to==="ru" && window.speechSynthesis);
+  $("speak").hidden=!TTS;
 }
 
 function renderGloss(text, from){
@@ -359,24 +516,21 @@ async function translate(){
   const from=resolveFrom(text), to=toSel.value; updateLabels();
   renderGloss(text, from);
   const key=from+"|"+to+"|"+text; if(key===lastKey) return; lastKey=key;
-  const offline=offlineTranslate(text,from,to);
-  if(!engine){ await enginePromise; }
+  await enginePromise;
   note.className="note"; note.textContent="";
   $("go").disabled=true;
   if(engine.kind==="claude") { out.textContent="Думаю…"; out.classList.add("placeholder"); }
   const my=ctl=new AbortController();
   try{
-    const res=await engine.run(text,from,to,t=>{ if(ctl===my) showResult(t,from,to); },my.signal);
+    const r=await runTranslate(text,from,to,t=>{ if(ctl===my) showResult(t,from,to); },my.signal);
     if(ctl!==my) return;
-    lastResult=res; showResult(res,from,to);
-    note.textContent= engine.kind==="claude" ? "Перевод сделал Claude. Проверьте важные формулировки." : "";
-    saveHistory(text,res,from,to);
+    lastResult=r.text; showResult(r.text,from,to);
+    if(r.fallback){ note.className="note err"; note.textContent=errorText(r.error)+". Показан пословный перевод по встроенному словарю."; }
+    else note.textContent= engine.kind==="claude" ? "Перевод сделал Claude. Проверьте важные формулировки." : "";
+    saveHistory(text,r.text,from,to);
   }catch(e){
     if(ctl!==my || e.name==="AbortError" || e.code==="cancelled") return;
-    const code=e.code||"";
-    if(code==="not_granted"||code==="sampling_disabled"||code==="refused"){ /* Claude недоступен: далее словарь */ }
-    if(offline){ lastResult=offline; showResult(offline,from,to); note.className="note err"; note.textContent="Онлайн-перевод недоступен ("+(e.message||code||"ошибка")+"). Показан пословный перевод по встроенному словарю."; }
-    else { out.textContent="Не удалось перевести."; out.classList.add("placeholder"); note.className="note err"; note.textContent=(code==="rate_limited"?"Слишком много запросов, подождите немного.":"Онлайн-перевод недоступен: "+(e.message||code||"ошибка"))+" Встроенный словарь этих слов не знает."; }
+    out.textContent="Не удалось перевести."; out.classList.add("placeholder"); note.className="note err"; note.textContent=errorText(e)+". Встроенный словарь этих слов не знает.";
   }finally{ if(ctl===my){ ctl=null; $("go").disabled=false; } }
 }
 
@@ -398,11 +552,24 @@ $("copy").addEventListener("click",()=>{
   const sel=()=>{ const r=document.createRange(); r.selectNodeContents(out); const s=getSelection(); s.removeAllRanges(); s.addRange(r); toast("Выделено: нажмите Ctrl+C"); };
   if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(()=>toast("Скопировано"),sel); else sel();
 });
-$("speak").addEventListener("click",()=>{
-  if(!window.speechSynthesis) return;
-  const u=new SpeechSynthesisUtterance(out.textContent); u.lang="ru-RU"; speechSynthesis.cancel(); speechSynthesis.speak(u);
-});
+$("speak").addEventListener("click",()=>{ if(!out.classList.contains("placeholder")) speak(out.textContent, toSel.value); });
 if(navigator.clipboard&&navigator.clipboard.readText){ $("paste").hidden=false; $("paste").addEventListener("click",()=>navigator.clipboard.readText().then(t=>{ insertAtCursor(t); },()=>toast("Вставьте текст вручную: Ctrl+V"))); }
+
+// Диктовка в поле ввода
+if(SR){
+  const btn=$("dictate"); btn.hidden=false; let base="";
+  btn.addEventListener("click",()=>{
+    if(btn.getAttribute("aria-pressed")==="true"){ stopListening(); return; }
+    let lang=fromSel.value; if(lang==="auto") lang=toSel.value==="ru"?"tt":"ru";
+    base=src.value.trim(); if(base) base+=" ";
+    const ok=startListening(lang,{continuous:true,
+      onInterim:t=>{ src.value=base+t; updateLabels(); },
+      onFinal:t=>{ base=(base+t+" "); src.value=base; src.dispatchEvent(new Event("input")); },
+      onError:m=>{ note.className="note err"; note.textContent=m; },
+      onStop:()=>{ btn.setAttribute("aria-pressed","false"); btn.textContent="🎤 Диктовать"; }});
+    if(ok){ btn.setAttribute("aria-pressed","true"); btn.textContent="■ Стоп"; note.className="note"; note.textContent="Слушаю ("+NAMES[lang]+")…"; }
+  });
+}
 
 function insertAtCursor(ch){
   const s=src.selectionStart, e=src.selectionEnd; src.setRangeText(ch,s,e,"end"); src.focus(); src.dispatchEvent(new Event("input"));
@@ -452,11 +619,72 @@ function renderHistory(){
 }
 $("histClear").addEventListener("click",()=>{ try{ localStorage.removeItem(HKEY); }catch(e){} renderHistory(); });
 
+/* ---------- Вкладка «Голосом»: разговор ---------- */
+const vstatus=$("vstatus"), chat=$("chat");
+const OTHER_LABELS={ru:["Говорю по-русски","русча сөйлим"],en:["I speak English","инглизчә сөйлим"]};
+function otherLang(){ return $("dlgOther").value; }
+function setVStatus(text,cls){ vstatus.textContent=text; vstatus.className="vstatus"+(cls?" "+cls:""); }
+$("dlgOther").addEventListener("change",()=>{ const [a,b]=OTHER_LABELS[otherLang()]; $("micOtherL1").textContent=a; $("micOtherL2").textContent=b; $("micOther").dataset.lang=otherLang(); });
+
+function addMsg(text, lang){
+  const to= lang==="tt" ? otherLang() : "tt";
+  const m=document.createElement("div"); m.className="msg "+(lang==="tt"?"tt":"other");
+  const row=document.createElement("div"); row.className="row"; row.textContent=NAMES[lang]+" → "+NAMES[to];
+  const rep=document.createElement("button"); rep.type="button"; rep.textContent="🔊"; rep.title="Озвучить перевод ещё раз"; rep.hidden=!TTS; row.append(rep);
+  const o=document.createElement("div"); o.className="orig"; o.textContent=text;
+  const tr=document.createElement("div"); tr.className="tr wait"; tr.textContent="Перевожу…";
+  m.append(row,o,tr); chat.append(m); $("chatEmpty").hidden=true; $("chatClear").hidden=false;
+  m.scrollIntoView({block:"nearest"});
+  runTranslate(text,lang,to,t=>{ tr.textContent=t; }).then(r=>{
+    tr.textContent=r.text; tr.classList.remove("wait");
+    if(r.fallback) tr.title="Пословный перевод по встроенному словарю";
+    rep.addEventListener("click",()=>speak(r.text,to));
+    if($("autoSpeak").checked) speak(r.text,to);
+    saveHistory(text,r.text,lang,to);
+  }).catch(e=>{ tr.textContent="Не удалось перевести: "+errorText(e); tr.classList.remove("wait"); rep.hidden=true; });
+}
+
+for(const id of ["micTT","micOther"]){
+  const btn=$(id);
+  btn.addEventListener("click",()=>{
+    if(btn.getAttribute("aria-pressed")==="true"){ stopListening(); return; }
+    if(TTS) TTS.cancel();
+    const lang=btn.dataset.lang; let got=false;
+    const ok=startListening(lang,{continuous:false,
+      onInterim:t=>{ if(t) setVStatus(t,"live"); },
+      onFinal:t=>{ if(t){ got=true; addMsg(t,lang); } },
+      onError:m=>setVStatus(m,"err"),
+      onStop:()=>{ btn.setAttribute("aria-pressed","false"); if(vstatus.classList.contains("live")||(!got&&!vstatus.classList.contains("err"))) setVStatus(got?"Готово. Нажмите кнопку, чтобы сказать ещё.":"Ничего не распознано. Нажмите кнопку и говорите сразу.",""); }});
+    if(ok){ btn.setAttribute("aria-pressed","true"); setVStatus("Слушаю… говорите "+(lang==="tt"?"по-татарски":lang==="ru"?"по-русски":"по-английски"),""); }
+  });
+}
+$("typedForm").addEventListener("submit",ev=>{
+  ev.preventDefault(); const t=$("typed").value.trim(); if(!t) return;
+  let lang=detect(t); if(lang!=="tt"&&lang!==otherLang()) lang= lang==="en"&&otherLang()==="en" ? "en" : (TT_LETTERS.test(t)?"tt":otherLang());
+  $("typed").value=""; addMsg(t,lang);
+});
+$("chatClear").addEventListener("click",()=>{ chat.innerHTML=""; $("chatEmpty").hidden=false; $("chatClear").hidden=true; });
+
+/* Вкладки */
+function showTab(name){
+  const voice=name==="voice";
+  $("tabText").hidden=voice; $("tabVoice").hidden=!voice;
+  $("tabBtnText").setAttribute("aria-selected",String(!voice)); $("tabBtnVoice").setAttribute("aria-selected",String(voice));
+  try{ localStorage.setItem("tt-translator-tab",name); }catch(e){}
+  if(!voice) stopListening();
+}
+$("tabBtnText").addEventListener("click",()=>showTab("text"));
+$("tabBtnVoice").addEventListener("click",()=>showTab("voice"));
+
 /* Запуск */
 const enginePromise=pickEngine().then(()=>{
   setEngineLabel(true,engine.name);
 }).catch(()=>{ engine={name:"Встроенный словарь",kind:"dict",run:async(t,f,to)=>{ const r=offlineTranslate(t,f,to); if(!r) throw new Error("нет слов в словаре"); return r; }}; setEngineLabel(false,engine.name); });
 renderHistory(); updateLabels(); renderGloss(src.value,"tt");
+if(!SR){ setVStatus("Этот браузер не распознаёт речь: нужен Chrome, Edge или Safari. Реплики можно писать текстом, перевод будет озвучен.","err"); $("micTT").disabled=true; $("micOther").disabled=true; }
+else setVStatus("Нажмите кнопку и говорите. При первом запуске браузер спросит разрешение на микрофон.","");
+updateVoiceInfo();
+{ let tab="text"; try{ tab=localStorage.getItem("tt-translator-tab")||"text"; }catch(e){} if(location.hash==="#voice") tab="voice"; if(tab==="voice") showTab("voice"); }
 enginePromise.then(()=>{
   if(engine.kind==="claude"){
     // Claude тратит лимит того, кто открыл страницу: переводим только по кнопке или после паузы в вводе.
