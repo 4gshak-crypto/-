@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>Татарча тәрҗемәче</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400&family=PT+Sans:wght@400;700&display=swap">
+<style>
+/* Макет: одна колонка до 960px; наверху направление перевода, затем две панели (исходник / перевод),
+   ниже разбор по словам, разговорник и история. Цвета от флага Татарстана: зелёный и красный на белом поле. */
+:root{
+  --bg:#f7f8f5; --panel:#ffffff; --fg:#1d2420; --muted:#5e6a62; --line:#d8ded9;
+  --accent:#0f8a4b; --accent-fg:#ffffff; --accent-soft:#e3f3ea; --red:#c8313b; --red-soft:#fbe9ea;
+  --key:#eef2ee; --key-fg:#1d2420; --shadow:0 1px 2px rgba(20,40,30,.08);
+  --display:"PT Serif",Georgia,"Times New Roman",serif;
+  --body:"PT Sans","Segoe UI",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141a16; --panel:#1c2420; --fg:#e8ede9; --muted:#9aa69e; --line:#30403a;
+    --accent:#3dbb7a; --accent-fg:#0d1a12; --accent-soft:#1f3a2b; --red:#ef6b73; --red-soft:#3a2224;
+    --key:#263129; --key-fg:#e8ede9; --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141a16; --panel:#1c2420; --fg:#e8ede9; --muted:#9aa69e; --line:#30403a;
+  --accent:#3dbb7a; --accent-fg:#0d1a12; --accent-soft:#1f3a2b; --red:#ef6b73; --red-soft:#3a2224;
+  --key:#263129; --key-fg:#e8ede9; --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg)}
+body{font:16px/1.5 var(--body);padding-block:0 32px;padding-inline:16px}
+.wrap{max-width:960px;margin:0 auto;display:grid;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;padding-block:22px 4px;border-bottom:3px solid var(--accent);position:relative}
+header::after{content:"";position:absolute;left:0;right:0;bottom:-7px;height:2px;background:var(--red)}
+h1{font:700 30px/1.1 var(--display);margin:0;text-wrap:balance}
+header p{margin:0;color:var(--muted);font-size:15px}
+.engine{margin-left:auto;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+.dot.ok{background:var(--accent)}
+.dot.off{background:var(--red)}
+
+.dir{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+select,button,textarea,input{font:inherit;color:inherit}
+select{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 10px;min-width:0}
+.swap{background:var(--key);border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer}
+.swap:hover{background:var(--accent-soft)}
+.dir label{display:flex;align-items:center;gap:6px;margin-left:auto;font-size:14px;color:var(--muted)}
+
+.panes{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:700px){.panes{grid-template-columns:1fr}}
+.pane{background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-width:0}
+.pane-head{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.pane-head .sp{flex:1}
+.pane-head button{background:none;border:1px solid var(--line);border-radius:6px;padding:3px 9px;font-size:13px;letter-spacing:0;text-transform:none;cursor:pointer;color:var(--fg)}
+.pane-head button:hover{background:var(--key)}
+textarea{width:100%;min-height:170px;border:0;background:transparent;resize:vertical;padding:14px;font:18px/1.45 var(--body);outline:none}
+textarea:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
+.out{padding:14px;min-height:170px;font:18px/1.45 var(--body);white-space:pre-wrap;word-wrap:break-word;flex:1}
+.out.placeholder{color:var(--muted)}
+.latin{padding:0 14px 12px;color:var(--muted);font-size:15px;white-space:pre-wrap;word-wrap:break-word}
+.keys{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-top:1px solid var(--line)}
+.keys button{background:var(--key);color:var(--key-fg);border:1px solid var(--line);border-radius:6px;min-width:38px;padding:6px 8px;font:18px/1 var(--body);cursor:pointer}
+.keys button:hover,.keys button:focus-visible{background:var(--accent-soft);border-color:var(--accent);outline:none}
+.keys .shift{font-size:14px;min-width:46px}
+.keys .shift[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.foot .sp{flex:1}
+.go{background:var(--accent);color:var(--accent-fg);border:0;border-radius:6px;padding:8px 18px;font-weight:700;cursor:pointer}
+.go:hover{filter:brightness(1.08)}
+.go:disabled{opacity:.6;cursor:default}
+.note{font-size:13px;color:var(--muted);padding:0 14px 10px}
+.note.err{color:var(--red)}
+
+section h2{font:700 20px/1.2 var(--display);margin:0 0 10px}
+.gloss{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 18px;font-size:15px}
+.gloss div{display:flex;gap:8px;padding:4px 0;border-bottom:1px dotted var(--line)}
+.gloss b{font-weight:700;min-width:0}
+.gloss span{color:var(--muted);min-width:0}
+.gloss .unk span{color:var(--red)}
+.empty{color:var(--muted);font-size:15px}
+
+.phr{display:flex;flex-wrap:wrap;gap:8px}
+.phr button{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer;text-align:left}
+.phr button:hover{border-color:var(--accent);background:var(--accent-soft)}
+.phr button small{display:block;color:var(--muted);font-size:12px}
+
+.hist{display:grid;gap:6px}
+.hist button{display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:14px}
+.hist button:hover{border-color:var(--accent)}
+.hist button span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist button span+span{color:var(--muted)}
+.hist-head{display:flex;align-items:baseline;gap:12px}
+.hist-head button{margin-left:auto;background:none;border:0;color:var(--muted);cursor:pointer;font-size:13px;text-decoration:underline}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Татарча тәрҗемәче</h1>
+    <p>Переводчик с татарского языка на русский и обратно</p>
+    <div class="engine"><span class="dot" id="dot"></span><span id="engineName">Проверяю перевод…</span></div>
+  </header>
+
+  <div class="dir">
+    <select id="from" aria-label="С какого языка">
+      <option value="auto">Определить язык</option>
+      <option value="tt" selected>Татарский</option>
+      <option value="ru">Русский</option>
+      <option value="en">Английский</option>
+    </select>
+    <button class="swap" id="swap" type="button" title="Поменять языки местами">⇄</button>
+    <select id="to" aria-label="На какой язык">
+      <option value="ru" selected>Русский</option>
+      <option value="tt">Татарский</option>
+      <option value="en">Английский</option>
+    </select>
+    <label><input type="checkbox" id="live" checked> переводить по мере ввода</label>
+  </div>
+
+  <div class="panes">
+    <div class="pane">
+      <div class="pane-head"><span id="srcLabel">Татарский</span><span class="sp"></span><button type="button" id="paste" hidden>Вставить</button><button type="button" id="clear">Очистить</button></div>
+      <textarea id="src" placeholder="Исәнмесез! Текстны монда языгыз…" spellcheck="false">Исәнмесез! Минем исемем Айдар. Мин Казанда яшим һәм татар телен өйрәнәм.</textarea>
+      <div class="keys" id="keys">
+        <button type="button" class="shift" id="shift" aria-pressed="false">Aa</button>
+        <button type="button" data-k="ә">ә</button><button type="button" data-k="ө">ө</button><button type="button" data-k="ү">ү</button>
+        <button type="button" data-k="җ">җ</button><button type="button" data-k="ң">ң</button><button type="button" data-k="һ">һ</button>
+      </div>
+      <div class="foot"><span id="count">0 символов</span><span class="sp"></span><button class="go" id="go" type="button">Перевести</button></div>
+    </div>
+    <div class="pane">
+      <div class="pane-head"><span id="dstLabel">Русский</span><span class="sp"></span><button type="button" id="speak" hidden>▶ Озвучить</button><button type="button" id="copy">Копировать</button></div>
+      <div class="out placeholder" id="out">Перевод появится здесь.</div>
+      <div class="latin" id="latin" hidden></div>
+      <div class="note" id="note"></div>
+    </div>
+  </div>
+
+  <section>
+    <h2>Разбор по словам</h2>
+    <div class="gloss" id="gloss"></div>
+    <p class="empty" id="glossEmpty" hidden>Слов из встроенного словаря в тексте нет.</p>
+  </section>
+
+  <section>
+    <h2>Разговорник</h2>
+    <div class="phr" id="phr"></div>
+  </section>
+
+  <section>
+    <div class="hist-head"><h2>История</h2><button type="button" id="histClear" hidden>очистить</button></div>
+    <div class="hist" id="hist"></div>
+    <p class="empty" id="histEmpty">Переводы этого браузера будут сохраняться здесь.</p>
+  </section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* ---------- Встроенный татарско-русский словарь (офлайн-запас и разбор по словам) ---------- */
+const DICT_TT = [
+["исәнмесез","здравствуйте"],["исәнме","здравствуй, привет"],["сәлам","привет"],["сау булыгыз","до свидания"],["сау бул","пока, будь здоров"],
+["хуш","прощай"],["рәхмәт","спасибо"],["зур рәхмәт","большое спасибо"],["зинһар","пожалуйста (просьба)"],["рәхим итегез","пожалуйста, добро пожаловать"],
+["гафу итегез","извините"],["гафу ит","извини"],["әйе","да"],["юк","нет, не имеется"],["түгел","не (отрицание)"],["ярый","ладно, хорошо"],["ярар","ладно"],
+["яхшы","хорошо, хороший"],["начар","плохо, плохой"],["бик","очень"],["хәерле иртә","доброе утро"],["хәерле көн","добрый день"],["хәерле кич","добрый вечер"],
+["тыныч йокы","спокойной ночи"],["хәлләр ничек","как дела"],["хәлләрегез ничек","как ваши дела"],["ничек","как"],["нәрсә","что"],["кем","кто"],["кайда","где"],
+["кая","куда"],["кайдан","откуда"],["кайчан","когда"],["ни өчен","почему"],["нигә","почему, зачем"],["ничә","сколько (счётное)"],["күпме","сколько"],
+["нинди","какой"],["кайсы","который"],["мин","я"],["син","ты"],["ул","он, она, оно; тот"],["без","мы"],["сез","вы"],["алар","они"],
+["минем","мой"],["синең","твой"],["аның","его, её"],["безнең","наш"],["сезнең","ваш"],["аларның","их"],["бу","это, этот"],["шул","тот, этот самый"],
+["монда","здесь"],["анда","там"],["тегендә","вон там"],["исем","имя"],["исемем","моё имя"],["исемегез","ваше имя"],["кеше","человек"],["кешеләр","люди"],
+["ир","мужчина, муж"],["хатын","женщина, жена"],["кыз","девочка, девушка, дочь"],["малай","мальчик"],["егет","парень"],["бала","ребёнок"],["балалар","дети"],
+["әни","мама"],["әти","папа"],["әби","бабушка"],["бабай","дедушка"],["апа","старшая сестра, тётя"],["абый","старший брат, дядя"],["сеңел","младшая сестра"],
+["эне","младший брат"],["гаилә","семья"],["дус","друг"],["дуслар","друзья"],["күрше","сосед"],["укытучы","учитель"],["укучы","ученик"],["табиб","врач"],
+["өй","дом"],["йорт","дом, здание"],["фатир","квартира"],["бүлмә","комната"],["ишек","дверь"],["тәрәзә","окно"],["өстәл","стол"],["урындык","стул"],
+["урам","улица"],["шәһәр","город"],["авыл","деревня, село"],["ил","страна"],["җир","земля"],["су","вода"],["күк","небо"],["кояш","солнце"],["ай","луна, месяц"],
+["йолдыз","звезда"],["җил","ветер"],["яңгыр","дождь"],["кар","снег"],["урман","лес"],["тау","гора"],["елга","река"],["күл","озеро"],["диңгез","море"],
+["агач","дерево"],["чәчәк","цветок"],["үлән","трава"],["ат","лошадь"],["эт","собака"],["песи","кошка"],["мәче","кошка"],["сыер","корова"],["сарык","овца"],
+["кош","птица"],["балык","рыба"],["икмәк","хлеб"],["сөт","молоко"],["чәй","чай"],["ит","мясо"],["йомырка","яйцо"],["май","масло; май"],["бал","мёд"],
+["шикәр","сахар"],["тоз","соль"],["алма","яблоко"],["бәрәңге","картофель"],["аш","суп, еда"],["ашарга","есть, кушать"],["ашыйм","ем"],["эчәргә","пить"],
+["тәмле","вкусный"],["аш булсын","приятного аппетита"],["өчпочмак","эчпочмак (пирожок-треугольник)"],["чәк-чәк","чак-чак"],["бәлеш","пирог"],
+["тел","язык"],["татар теле","татарский язык"],["татарча","по-татарски"],["русча","по-русски"],["рус теле","русский язык"],["инглизчә","по-английски"],
+["сүз","слово"],["сүзләр","слова"],["җөмлә","предложение"],["китап","книга"],["хат","письмо"],["кәгазь","бумага"],["мәктәп","школа"],["дәрес","урок"],
+["эш","работа, дело"],["эшләргә","работать, делать"],["эшлим","работаю"],["эшли","работает"],["укырга","читать, учиться"],["укыйм","читаю, учусь"],
+["язарга","писать"],["язам","пишу"],["языгыз","пишите"],["өйрәнергә","учить, изучать"],["өйрәнәм","изучаю"],["белергә","знать"],["беләм","знаю"],
+["белмим","не знаю"],["аңларга","понимать"],["аңлыйм","понимаю"],["аңламыйм","не понимаю"],["сөйләргә","говорить"],["сөйләшергә","разговаривать"],
+["сөйлим","говорю"],["әйтергә","сказать"],["әйт","скажи"],["әйтегез","скажите"],["барырга","идти, ехать"],["барам","иду, еду"],["бара","идёт"],
+["килергә","приходить"],["килә","приходит"],["килдем","пришёл"],["кил","приходи"],["килегез","приходите"],["китәргә","уходить"],["кайтырга","возвращаться"],
+["торырга","стоять, жить, вставать"],["торам","живу, стою"],["яшәргә","жить"],["яшим","живу"],["яши","живёт"],["яшиләр","живут"],["утырырга","сидеть"],
+["утыр","садись"],["утырыгыз","садитесь"],["йокларга","спать"],["карарга","смотреть"],["карыйм","смотрю"],["күрергә","видеть"],["күрәм","вижу"],
+["ишетергә","слышать"],["яратырга","любить"],["яратам","люблю"],["ярата","любит"],["теләргә","хотеть, желать"],["телим","хочу, желаю"],["кирәк","нужно"],
+["кирәкми","не нужно"],["мөмкин","можно, возможно"],["ярамый","нельзя"],["була","бывает, можно"],["булырга","быть"],["булды","стало, готово"],["бар","есть, имеется; иди"],
+["алырга","брать, покупать"],["алам","беру"],["бирергә","давать"],["бирегез","дайте"],["сатып алырга","купить"],["сатарга","продавать"],["түләргә","платить"],
+["ачарга","открывать"],["ябарга","закрывать"],["башларга","начинать"],["бетерергә","заканчивать"],["ярдәм","помощь"],["ярдәм итегез","помогите"],
+["көтәргә","ждать"],["көт","подожди"],["уйларга","думать"],["уйлыйм","думаю"],["онытырга","забывать"],["исемдә","помню"],["эзләргә","искать"],["табарга","найти"],
+["вакыт","время"],["сәгать","час, часы"],["минут","минута"],["көн","день"],["төн","ночь"],["иртә","утро"],["кич","вечер"],["бүген","сегодня"],["иртәгә","завтра"],
+["кичә","вчера"],["хәзер","сейчас"],["соң","потом, поздно"],["аннары","потом, затем"],["элек","раньше"],["һәрвакыт","всегда"],["беркайчан","никогда"],
+["еш","часто"],["кайвакыт","иногда"],["атна","неделя"],["ел","год"],["яз","весна"],["җәй","лето"],["көз","осень"],["кыш","зима"],
+["дүшәмбе","понедельник"],["сишәмбе","вторник"],["чәршәмбе","среда"],["пәнҗешәмбе","четверг"],["җомга","пятница"],["шимбә","суббота"],["якшәмбе","воскресенье"],
+["бер","один"],["ике","два"],["өч","три"],["дүрт","четыре"],["биш","пять"],["алты","шесть"],["җиде","семь"],["сигез","восемь"],["тугыз","девять"],["ун","десять"],
+["унбер","одиннадцать"],["егерме","двадцать"],["утыз","тридцать"],["кырык","сорок"],["илле","пятьдесят"],["алтмыш","шестьдесят"],["җитмеш","семьдесят"],
+["сиксән","восемьдесят"],["туксан","девяносто"],["йөз","сто; лицо"],["мең","тысяча"],["беренче","первый"],["икенче","второй"],["соңгы","последний"],
+["зур","большой"],["кечкенә","маленький"],["озын","длинный, высокий"],["кыска","короткий"],["яңа","новый"],["иске","старый"],["яшь","молодой; возраст"],["карт","старый (о человеке)"],
+["матур","красивый"],["ямьсез","некрасивый"],["җылы","тёплый"],["салкын","холодный"],["эссе","жарко"],["кайнар","горячий"],["якты","светлый"],["караңгы","тёмный"],
+["ак","белый"],["кара","чёрный"],["кызыл","красный"],["яшел","зелёный"],["зәңгәр","синий, голубой"],["сары","жёлтый"],["соры","серый"],
+["тиз","быстро"],["әкрен","медленно"],["ерак","далеко"],["якын","близко"],["уң","правый"],["сул","левый"],["туры","прямо"],["югары","верх, высокий"],["түбән","низ, низкий"],
+["күп","много"],["аз","мало"],["бераз","немного"],["барысы да","все"],["бернәрсә дә","ничего"],["һәр","каждый"],["башка","другой"],["бергә","вместе"],
+["бәхет","счастье"],["бәхетле","счастливый"],["шат","рад"],["шатмын","я рад"],["кайгы","горе"],["мәхәббәт","любовь"],["җан","душа"],["йөрәк","сердце"],["күңел","душа, настроение"],
+["дөрес","правильно"],["ялгыш","ошибка, неправильно"],["мөһим","важный"],["кызык","интересно"],["авыр","тяжёлый, трудный"],["җиңел","лёгкий"],
+["акча","деньги"],["сум","рубль"],["бәя","цена"],["кыйммәт","дорого"],["арзан","дёшево"],["кибет","магазин"],["базар","рынок"],["сатучы","продавец"],
+["юл","дорога, путь"],["машина","машина"],["автобус","автобус"],["поезд","поезд"],["тукталыш","остановка"],["вокзал","вокзал"],["һава аланы","аэропорт"],
+["хастаханә","больница"],["даруханә","аптека"],["мәчет","мечеть"],["мәдәният","культура"],["тарих","история"],["җыр","песня"],["бию","танец"],["бәйрәм","праздник"],
+["туган көн","день рождения"],["котлыйм","поздравляю"],["котлы булсын","с праздником (пусть будет благословенно)"],["сабантуй","Сабантуй"],["туган","родной; родственник"],
+["ватан","родина"],["туган ил","родная страна"],["халык","народ"],["дәүләт","государство"],["хөкүмәт","правительство"],["закон","закон"],
+["исәнлек","здоровье"],["авыру","болезнь, больной"],["сәламәт","здоровый"],["сәламәтлек","здоровье"],["авырта","болит"],["баш","голова"],["күз","глаз"],["кул","рука"],["аяк","нога"],
+["һәм","и"],["белән","с, вместе с"],["өчен","для, ради"],["турында","о, про"],["ләкин","но"],["әмма","однако"],["чөнки","потому что"],["әгәр","если"],
+["да","и, тоже"],["дә","и, тоже"],["инде","уже"],["тагын","ещё, опять"],["гына","только"],["генә","только"],["түгелме","не так ли"],["ник","почему"],
+["монысы","вот это"],["менә","вот"],["әнә","вон"],["кебек","как, подобно"],["шикелле","словно"],["кадәр","до"],["аша","через"],
+["казан","Казань; котёл"],["татарстан","Татарстан"],["идел","Волга"],["мәскәү","Москва"],["россия","Россия"],
+];
+const DICT = new Map(DICT_TT);
+const DICT_RU = new Map();
+for (const [tt, ru] of DICT_TT) for (const part of ru.split(/[;,()]/)) { const k = part.trim().toLowerCase(); if (k && !DICT_RU.has(k)) DICT_RU.set(k, tt); }
+
+const PHRASES = [
+["Исәнмесез!","Здравствуйте!"],["Хәлләрегез ничек?","Как ваши дела?"],["Рәхмәт, яхшы.","Спасибо, хорошо."],["Минем исемем …","Меня зовут …"],
+["Сезнең исемегез ничек?","Как вас зовут?"],["Мин татарча аз сөйләшәм.","Я немного говорю по-татарски."],["Мин аңламыйм.","Я не понимаю."],
+["Зинһар, әкренрәк сөйләгез.","Пожалуйста, говорите медленнее."],["Бу күпме тора?","Сколько это стоит?"],["Кайда … ?","Где находится … ?"],
+["Ярдәм итегез, зинһар.","Помогите, пожалуйста."],["Аш булсын!","Приятного аппетита!"],["Туган көнең белән!","С днём рождения!"],
+["Сау булыгыз!","До свидания!"],["Мин сине яратам.","Я тебя люблю."],["Тыныч йокы.","Спокойной ночи."],
+];
+
+/* ---------- Транслитерация татарской кириллицы в латиницу (Zamanälif, упрощённо) ---------- */
+const LAT = {а:"a",ә:"ä",б:"b",в:"v",г:"g",д:"d",е:"e",ё:"yo",ж:"j",җ:"c",з:"z",и:"i",й:"y",к:"k",л:"l",м:"m",н:"n",ң:"ñ",о:"o",ө:"ö",п:"p",р:"r",с:"s",т:"t",у:"u",ү:"ü",ф:"f",х:"x",һ:"h",ц:"ts",ч:"ç",ш:"ş",щ:"şç",ъ:"",ы:"ı",ь:"",э:"e",ю:"yu",я:"ya"};
+function toLatin(s){
+  return s.replace(/[Ѐ-ӿ]/g,(ch,i,str)=>{
+    const low=ch.toLowerCase(); let r=LAT[low];
+    if(r===undefined) return ch;
+    if(low==="е" && (i===0 || !/[Ѐ-ӿ]/.test(str[i-1]))) r="ye";
+    if(ch!==low) r=r.charAt(0).toUpperCase()+r.slice(1);
+    return r;
+  });
+}
+
+/* ---------- Определение языка ---------- */
+const TT_LETTERS=/[әөүҗңһӘӨҮҖҢҺ]/;
+function detect(text){
+  if(/^[\s\d\p{P}]*$/u.test(text)) return "ru";
+  if(TT_LETTERS.test(text)) return "tt";
+  const cyr=(text.match(/[Ѐ-ӿ]/g)||[]).length, lat=(text.match(/[A-Za-z]/g)||[]).length;
+  if(lat>cyr) return "en";
+  const words=tokens(text); let tt=0, ru=0;
+  for(const w of words){ if(DICT.has(w)) tt++; if(DICT_RU.has(w)) ru++; }
+  if(tt>ru) return "tt";
+  if(words.some(w=>/[ыъь]$/.test(w) && /[ие]/.test(w)) && tt===0) return "ru";
+  return tt>0 && tt>=words.length/3 ? "tt" : "ru";
+}
+function tokens(text){ return (text.toLowerCase().match(/[Ѐ-ӿa-z]+(?:-[Ѐ-ӿa-z]+)?/g)||[]); }
+
+/* ---------- Офлайн-перевод по словарю ---------- */
+function offlineTranslate(text, from, to){
+  const map = from==="tt" ? DICT : (from==="ru" ? DICT_RU : null);
+  if(!map) return null;
+  let hits=0;
+  const out=text.replace(/[Ѐ-ӿ]+(?:-[Ѐ-ӿ]+)?/g, w=>{
+    const k=w.toLowerCase(); const v=map.get(k); if(!v) return w; hits++;
+    const first=v.split(/[;,]/)[0].trim();
+    return w[0]===k[0] ? first : first.charAt(0).toUpperCase()+first.slice(1);
+  });
+  return hits ? out : null;
+}
+
+/* ---------- Движки перевода ---------- */
+const NAMES={tt:"Татарский",ru:"Русский",en:"Английский"};
+const FULL={tt:"татарского",ru:"русского",en:"английского"};
+const FULL_TO={tt:"татарский",ru:"русский",en:"английский"};
+let engine=null; // {name, kind, run(text, from, to, onText, signal)}
+let sampleFn=null;
+
+async function pickEngine(){
+  // 1. Внутри просмотрщика Claude: перевод делает Claude.
+  if(window.claude && typeof window.claude.use==="function"){
+    try{ sampleFn=await window.claude.use("sample"); }catch(e){ sampleFn=null; }
+    if(sampleFn){
+      engine={name:"Переводит Claude",kind:"claude",run:async(text,from,to,onText,signal)=>{
+        const prompt=`Переведи текст с ${FULL[from]} языка на ${FULL_TO[to]}. Сохрани смысл, стиль и разбивку на строки. Ответь только переводом, без пояснений, кавычек и вступления.\n\nТекст:\n${text}`;
+        const {text:res}=await sampleFn(prompt,{modelTier:"quick",signal,onText:({text})=>onText(text)});
+        return res.trim();
+      }};
+      return;
+    }
+  }
+  // 2. Веб-приложение Google Apps Script: перевод делает сервер (LanguageApp).
+  if(window.google && google.script && google.script.run){
+    engine={name:"Google Переводчик (Apps Script)",kind:"gas",run:(text,from,to)=>new Promise((ok,fail)=>{
+      google.script.run.withSuccessHandler(ok).withFailureHandler(e=>fail(new Error(e.message||String(e)))).translateText(text,from,to);
+    })};
+    return;
+  }
+  // 3. Автономный файл: открытый эндпоинт Google, затем MyMemory.
+  engine={name:"Google Переводчик",kind:"web",run:async(text,from,to,onText,signal)=>{
+    try{
+      const u=`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${from}&tl=${to}&dt=t&q=${encodeURIComponent(text)}`;
+      const r=await fetch(u,{signal}); if(!r.ok) throw new Error("HTTP "+r.status);
+      const j=await r.json(); return (j[0]||[]).map(x=>x[0]).join("");
+    }catch(e){
+      if(e.name==="AbortError") throw e;
+      const u=`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0,500))}&langpair=${from}|${to}`;
+      const r=await fetch(u,{signal}); if(!r.ok) throw new Error("HTTP "+r.status);
+      const j=await r.json(); if(!j.responseData||!j.responseData.translatedText) throw new Error("MyMemory: пустой ответ");
+      return j.responseData.translatedText;
+    }
+  }};
+}
+
+/* ---------- Интерфейс ---------- */
+const $=id=>document.getElementById(id);
+const src=$("src"), out=$("out"), note=$("note"), latin=$("latin"), fromSel=$("from"), toSel=$("to");
+let timer=null, ctl=null, lastKey="", shiftOn=false, lastResult="";
+
+function setEngineLabel(ok,text){ $("dot").className="dot "+(ok?"ok":"off"); $("engineName").textContent=text; }
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),1600); }
+let detected="";
+function updateLabels(){
+  const f=fromSel.value, t=toSel.value;
+  $("srcLabel").textContent=f==="auto"?(detected?NAMES[detected]+" (определён)":"Определяю язык"):NAMES[f];
+  $("dstLabel").textContent=NAMES[t];
+  $("count").textContent=src.value.length+" символов";
+}
+function resolveFrom(text){ let f=fromSel.value; if(f==="auto") f=detected=detect(text); if(f===toSel.value) toSel.value=f==="ru"?"tt":"ru"; return f; }
+
+function showResult(text, from, to){
+  out.textContent=text; out.classList.remove("placeholder");
+  const ttText = to==="tt" ? text : (from==="tt" ? src.value : "");
+  if(ttText.trim()){ latin.hidden=false; latin.textContent="Латиницей: "+toLatin(ttText); } else latin.hidden=true;
+  $("speak").hidden = !(to==="ru" && window.speechSynthesis);
+}
+
+function renderGloss(text, from){
+  const box=$("gloss"); box.innerHTML="";
+  const words=[...new Set(tokens(text))];
+  const map= from==="tt" ? DICT : (from==="ru" ? DICT_RU : null);
+  let n=0;
+  if(map) for(const w of words){
+    const v=map.get(w); if(!v) continue; n++;
+    const d=document.createElement("div"); const b=document.createElement("b"); b.textContent=w; const s=document.createElement("span"); s.textContent=v;
+    d.append(b,s); box.append(d);
+  }
+  $("glossEmpty").hidden=n>0;
+}
+
+async function translate(){
+  const text=src.value.trim();
+  if(ctl) ctl.abort(); ctl=null;
+  if(!text){ out.textContent="Перевод появится здесь."; out.classList.add("placeholder"); latin.hidden=true; note.textContent=""; renderGloss("", "tt"); return; }
+  const from=resolveFrom(text), to=toSel.value; updateLabels();
+  renderGloss(text, from);
+  const key=from+"|"+to+"|"+text; if(key===lastKey) return; lastKey=key;
+  const offline=offlineTranslate(text,from,to);
+  if(!engine){ await enginePromise; }
+  note.className="note"; note.textContent="";
+  $("go").disabled=true;
+  if(engine.kind==="claude") { out.textContent="Думаю…"; out.classList.add("placeholder"); }
+  const my=ctl=new AbortController();
+  try{
+    const res=await engine.run(text,from,to,t=>{ if(ctl===my) showResult(t,from,to); },my.signal);
+    if(ctl!==my) return;
+    lastResult=res; showResult(res,from,to);
+    note.textContent= engine.kind==="claude" ? "Перевод сделал Claude. Проверьте важные формулировки." : "";
+    saveHistory(text,res,from,to);
+  }catch(e){
+    if(ctl!==my || e.name==="AbortError" || e.code==="cancelled") return;
+    const code=e.code||"";
+    if(code==="not_granted"||code==="sampling_disabled"||code==="refused"){ /* Claude недоступен: далее словарь */ }
+    if(offline){ lastResult=offline; showResult(offline,from,to); note.className="note err"; note.textContent="Онлайн-перевод недоступен ("+(e.message||code||"ошибка")+"). Показан пословный перевод по встроенному словарю."; }
+    else { out.textContent="Не удалось перевести."; out.classList.add("placeholder"); note.className="note err"; note.textContent=(code==="rate_limited"?"Слишком много запросов, подождите немного.":"Онлайн-перевод недоступен: "+(e.message||code||"ошибка"))+" Встроенный словарь этих слов не знает."; }
+  }finally{ if(ctl===my){ ctl=null; $("go").disabled=false; } }
+}
+
+function schedule(){ updateLabels(); clearTimeout(timer); if($("live").checked) timer=setTimeout(translate, engine&&engine.kind==="claude"?900:500); }
+src.addEventListener("input",schedule);
+fromSel.addEventListener("change",()=>{ lastKey=""; schedule(); });
+toSel.addEventListener("change",()=>{ lastKey=""; schedule(); });
+$("go").addEventListener("click",()=>{ lastKey=""; translate(); });
+$("swap").addEventListener("click",()=>{
+  let f=fromSel.value, t=toSel.value; if(f==="auto") f=detect(src.value||"");
+  fromSel.value=t; toSel.value=f;
+  if(lastResult && !out.classList.contains("placeholder")){ src.value=lastResult; }
+  lastKey=""; schedule();
+});
+$("clear").addEventListener("click",()=>{ src.value=""; lastKey=""; src.focus(); translate(); });
+$("copy").addEventListener("click",()=>{
+  const t=out.classList.contains("placeholder")?"":out.textContent;
+  if(!t) return;
+  const sel=()=>{ const r=document.createRange(); r.selectNodeContents(out); const s=getSelection(); s.removeAllRanges(); s.addRange(r); toast("Выделено: нажмите Ctrl+C"); };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(()=>toast("Скопировано"),sel); else sel();
+});
+$("speak").addEventListener("click",()=>{
+  if(!window.speechSynthesis) return;
+  const u=new SpeechSynthesisUtterance(out.textContent); u.lang="ru-RU"; speechSynthesis.cancel(); speechSynthesis.speak(u);
+});
+if(navigator.clipboard&&navigator.clipboard.readText){ $("paste").hidden=false; $("paste").addEventListener("click",()=>navigator.clipboard.readText().then(t=>{ insertAtCursor(t); },()=>toast("Вставьте текст вручную: Ctrl+V"))); }
+
+function insertAtCursor(ch){
+  const s=src.selectionStart, e=src.selectionEnd; src.setRangeText(ch,s,e,"end"); src.focus(); src.dispatchEvent(new Event("input"));
+}
+$("keys").addEventListener("click",ev=>{
+  const b=ev.target.closest("button"); if(!b) return;
+  if(b.id==="shift"){ shiftOn=!shiftOn; b.setAttribute("aria-pressed",String(shiftOn)); $("keys").querySelectorAll("[data-k]").forEach(k=>k.textContent=shiftOn?k.dataset.k.toUpperCase():k.dataset.k); return; }
+  insertAtCursor(shiftOn?b.dataset.k.toUpperCase():b.dataset.k);
+});
+// Alt + буква вводит татарскую: Alt+a=ә, Alt+o=ө, Alt+u=ү, Alt+j=җ, Alt+n=ң, Alt+h=һ (и русские а/о/у/ж/н/х)
+const ALT={a:"ә",o:"ө",u:"ү",j:"җ",n:"ң",h:"һ",а:"ә",о:"ө",у:"ү",ж:"җ",н:"ң",х:"һ"};
+src.addEventListener("keydown",ev=>{
+  if(!ev.altKey||ev.ctrlKey||ev.metaKey) return;
+  const k=ev.key.toLowerCase(); const m=ALT[k]; if(!m) return;
+  ev.preventDefault(); insertAtCursor(ev.shiftKey||(ev.getModifierState&&ev.getModifierState("CapsLock"))?m.toUpperCase():m);
+});
+
+/* Разговорник */
+{
+  const box=$("phr");
+  for(const [tt,ru] of PHRASES){
+    const b=document.createElement("button"); b.type="button"; b.textContent=tt; const s=document.createElement("small"); s.textContent=ru; b.append(s);
+    b.addEventListener("click",()=>{ fromSel.value="tt"; toSel.value="ru"; src.value=tt; lastKey=""; translate(); src.focus(); });
+    box.append(b);
+  }
+}
+
+/* История (только в этом браузере) */
+const HKEY="tt-translator-history";
+function loadHistory(){ try{ return JSON.parse(localStorage.getItem(HKEY)||"[]"); }catch(e){ return []; } }
+function saveHistory(s,r,from,to){
+  let h=loadHistory().filter(x=>!(x.s===s&&x.from===from&&x.to===to));
+  h.unshift({s,r,from,to,t:Date.now()}); h=h.slice(0,30);
+  try{ localStorage.setItem(HKEY,JSON.stringify(h)); }catch(e){}
+  renderHistory();
+}
+function renderHistory(){
+  const h=loadHistory(), box=$("hist"); box.innerHTML="";
+  $("histEmpty").hidden=h.length>0; $("histClear").hidden=h.length===0;
+  for(const x of h){
+    const b=document.createElement("button"); b.type="button";
+    const a=document.createElement("span"); a.textContent=x.s; const c=document.createElement("span"); c.textContent=x.r; b.append(a,c);
+    b.title=NAMES[x.from]+" → "+NAMES[x.to];
+    b.addEventListener("click",()=>{ fromSel.value=x.from; toSel.value=x.to; src.value=x.s; lastKey=""; translate(); });
+    box.append(b);
+  }
+}
+$("histClear").addEventListener("click",()=>{ try{ localStorage.removeItem(HKEY); }catch(e){} renderHistory(); });
+
+/* Запуск */
+const enginePromise=pickEngine().then(()=>{
+  setEngineLabel(true,engine.name);
+}).catch(()=>{ engine={name:"Встроенный словарь",kind:"dict",run:async(t,f,to)=>{ const r=offlineTranslate(t,f,to); if(!r) throw new Error("нет слов в словаре"); return r; }}; setEngineLabel(false,engine.name); });
+renderHistory(); updateLabels(); renderGloss(src.value,"tt");
+enginePromise.then(()=>{
+  if(engine.kind==="claude"){
+    // Claude тратит лимит того, кто открыл страницу: переводим только по кнопке или после паузы в вводе.
+    out.textContent="Нажмите «Перевести»: текст переведёт Claude. При первом запросе страница попросит разрешение.";
+    $("live").checked=false;
+  } else translate();
+});
+</script>
+</body>
+</html>
