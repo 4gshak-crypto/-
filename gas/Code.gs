@@ -301,7 +301,9 @@ function updateWork(token, key, patch) {
     if (!changes.length) return workFromRow_(row);
     row[15] = now;
     row[16] = user.name;
-    sh.getRange(rowIdx, 1, 1, WORK_COLS.length).setValues([row]);
+    // строка пишется целиком, поэтому экранируем все текстовые ячейки, а не только изменённые:
+    // getValues() отдаёт текст без апострофа, и «=…» снова стал бы формулой
+    sh.getRange(rowIdx, 1, 1, WORK_COLS.length).setValues([row.map(safe_)]);
     var log = sheet_(SHEET_LOG);
     changes.forEach(function (c) { log.appendRow([now, user.name, key, item.addr, item.work, c[0], safe_(c[1]), safe_(c[2])]); });
     bumpRev_();
@@ -332,6 +334,27 @@ function addWork(token, w) {
     sheet_(SHEET_LOG).appendRow([now, user.name, key, safe_(addr), safe_(work), 'Добавлена работа', '', ex]);
     bumpRev_();
     return workFromRow_(row);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function addIssue(token, q) {
+  var user = auth_(token);
+  if (user.role !== 'Администратор') throw new Error('Добавлять вопросы может только администратор.');
+  q = q || {};
+  var text = String(q.text || '').trim().slice(0, 1000);
+  if (!text) throw new Error('Опишите вопрос.');
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var sh = sheet_(SHEET_ISSUES);
+    var nums = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().map(function (r) { return Number(r[0]) || 0; }) : [];
+    var num = Math.max.apply(null, nums.concat([0])) + 1;
+    sh.appendRow([num, safe_(text), safe_(String(q.resp || '').trim()), safe_(String(q.term || '').trim()), '', false, '', '']);
+    sheet_(SHEET_LOG).appendRow([new Date(), user.name, 'q' + num, '', safe_(text.slice(0, 120)), 'Новый вопрос', '', '']);
+    bumpRev_();
+    return readIssues_();
   } finally {
     lock.releaseLock();
   }

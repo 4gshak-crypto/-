@@ -164,7 +164,7 @@ main{max-width:1200px;margin:0 auto;padding:20px 16px 48px}
 .utable th,.utable td{text-align:left;padding:10px 14px;border-top:1px solid var(--line)}
 .utable th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-top:0}
 .uform{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) auto;gap:10px;align-items:end;margin-top:12px}
-@media (max-width:760px){.uform{grid-template-columns:1fr 1fr}}
+@media (max-width:760px){.uform,#qf{grid-template-columns:1fr 1fr!important}}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:40}
 .demo{background:var(--c-wait-bg);color:var(--fg);font-size:12px;text-align:center;padding:6px 16px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -252,6 +252,7 @@ const DEMO=(function(){
     addWork(t,w){const u=auth(t);if(u.role!=="Администратор")throw new Error("Только администратор.");if(!w.addr||!w.work)throw new Error("Укажите адрес и вид работы.");
       const it={key:"n"+Date.now(),row:null,month:w.month,addr:w.addr,uk:w.uk||"",work:w.work,cat:"Добавлено вручную",basis:w.basis||"",sum:Number(w.sum)||null,fsum:null,ex:w.ex,status:"Не начато",note:"",src:"",kr:"",at:Date.now(),by:u.name};
       items.push(it);log.unshift({at:it.at,by:u.name,key:it.key,addr:it.addr,work:it.work,what:"Добавлена работа",from:"",to:it.ex});rev++;return it;},
+    addIssue(t,q){const u=auth(t);if(u.role!=="Администратор")throw new Error("Только администратор.");issues.push({num:issues.length+1,text:q.text,resp:q.resp||"",term:q.term||"",ref:"",done:false});rev++;return issues;},
     setIssue(t,num,done){const u=auth(t);if(u.role!=="Администратор")throw new Error("Только администратор.");const i=issues.find(x=>x.num===num);i.done=done;i.by=u.name;i.at=Date.now();rev++;return true;},
     listUsers(t){auth(t);return users.map(u=>Object.assign({hasPin:true,bxId:""},u));},
     saveUser(t,u){auth(t);const ex=users.find(x=>x.name===(u.oldName||u.name));if(ex)Object.assign(ex,{name:u.name,role:u.role,active:u.active,bxId:u.bxId||""});else users.push({name:u.name,role:u.role,active:u.active,bxId:u.bxId||""});return this.listUsers(t);}
@@ -342,7 +343,7 @@ function renderDash(){
     return'<div class="srow" data-go="month" data-v="'+m[0]+'"><span class="lbl">'+m[1]+'</span>'+stackHtml(l)+'<span class="val">'+d+'/'+l.filter(i=>i.g!=="cancel").length+'</span></div>';}).join("");
   const legend='<div class="legend">'+GROUPS.map(g=>'<span><i class="fill g-'+g[0]+'"></i>'+g[1]+'</span>').join("")+'</div>';
   $("view").innerHTML=
-   '<div class="head"><h2>Сводка</h2>'+scopeSeg()+'<span class="faint" style="font-size:12px">план от '+esc(S.asof.split("-").reverse().join("."))+'</span></div>'+
+   '<div class="head"><h2>Сводка</h2>'+scopeSeg()+'<span class="faint" style="font-size:12px">план загружен из файла от '+esc(S.asof.split("-").reverse().join("."))+'</span></div>'+
    '<div class="tiles">'+
      '<button class="tile done" data-go="grp" data-v="noact" type="button"><div class="l">Выполнено</div><div class="v">'+pct+'%</div><div class="s">'+done+' из '+live.length+(noact?' · '+noact+' без акта':'')+'</div></button>'+
      '<button class="tile" data-go="open" type="button"><div class="l">Открыто</div><div class="v">'+open.length+'</div><div class="s">'+(od?od+' '+plural(od,"просрочена","просрочены","просрочено"):"всё в сроке")+'</div></button>'+
@@ -370,19 +371,20 @@ document.addEventListener("mousemove",ev=>{const t=ev.target.closest&&ev.target.
 function filtered(){
   const q=V.q.toLowerCase();
   return scoped().filter(i=>(!V.month||i.month===V.month)&&(!V.ex||i.ex===V.ex)&&(!V.grp||i.g===V.grp)&&(!V.open||!i.closed)&&(!V.addr||i.addr===V.addr)&&(!V.cat||i.cat===V.cat)&&
-    (!q||(i.addr+" "+i.work+" "+(i.row||"")+" "+i.note).toLowerCase().indexOf(q)>=0))
+    (!q||[i.addr,i.work,i.row,i.note,i.src,i.basis,i.act,i.uk].join(" ").toLowerCase().indexOf(q)>=0))
    .sort((a,b)=>(RANK[b.status]-RANK[a.status])||(b.overdue-a.overdue)||a.addr.localeCompare(b.addr,"ru"));
 }
 const opt=(v,l,cur)=>'<option value="'+esc(v)+'"'+(v===cur?" selected":"")+'>'+esc(l)+'</option>';
 function renderWorks(){
   const list=filtered();
+  let hiddenClosed=0;if(V.open&&(V.q||V.addr||V.cat)){V.open=false;hiddenClosed=filtered().length-list.length;V.open=true;}
   $("view").innerHTML='<div class="head"><h2>Работы</h2>'+scopeSeg()+(isAdmin()?'<button class="btn" id="addw" type="button">+ Добавить работу</button>':"")+'</div>'+
-  '<div class="filters"><input class="ctl search" id="fq" type="search" placeholder="Адрес, работа, № строки" value="'+esc(V.q||V.addr||V.cat)+'" aria-label="Поиск">'+
+  '<div class="filters"><input class="ctl search" id="fq" type="search" placeholder="Адрес, работа, № строки, акт, «проверить»" value="'+esc(V.q||V.addr||V.cat)+'" aria-label="Поиск">'+
   '<select class="ctl" id="fm" aria-label="Месяц">'+opt("","Все месяцы",V.month)+MONTHS.map(m=>opt(m[0],m[1],V.month)).join("")+'</select>'+
   (myEx()&&V.scope==="mine"?"":'<select class="ctl" id="fe" aria-label="Исполнитель">'+opt("","Все исполнители",V.ex)+EXS.map(e=>opt(e,e,V.ex)).join("")+'</select>')+
   '<select class="ctl" id="fg" aria-label="Статус">'+opt("","Все статусы",V.grp)+GROUPS.map(g=>opt(g[0],g[1],V.grp)).join("")+'</select>'+
   '<label class="chk"><input type="checkbox" id="fo"'+(V.open?" checked":"")+'> Только открытые</label></div>'+
-  '<div class="count"><span>'+list.length+' '+plural(list.length,"работа","работы","работ")+'</span>'+((V.q||V.month||V.ex||V.grp||V.addr||V.cat||!V.open)?'<button class="linkbtn" id="fr" type="button">Сбросить</button>':"")+'</div>'+
+  '<div class="count"><span>'+list.length+' '+plural(list.length,"работа","работы","работ")+(hiddenClosed?' · <button class="linkbtn" id="showcl" type="button">ещё '+hiddenClosed+' среди закрытых — показать</button>':"")+'</span>'+((V.q||V.month||V.ex||V.grp||V.addr||V.cat||!V.open)?'<button class="linkbtn" id="fr" type="button">Сбросить</button>':"")+'</div>'+
   '<div class="list">'+(list.length?list.slice(0,V.limit).map(rowHtml).join("")+(list.length>V.limit?'<button class="more" id="more" type="button">Показать ещё '+Math.min(40,list.length-V.limit)+'</button>':""):'<div class="empty">Ничего не найдено. Измените фильтры.</div>')+'</div>';
   bindScope();
   let qt;$("fq").oninput=e=>{clearTimeout(qt);qt=setTimeout(()=>{V.q=e.target.value.trim();V.addr="";V.cat="";V.limit=40;renderWorks();const f=$("fq");f.focus();f.setSelectionRange(f.value.length,f.value.length);},200);};
@@ -391,6 +393,7 @@ function renderWorks(){
   $("fg").onchange=e=>{V.grp=e.target.value;if(["done","noact","cancel","winter"].includes(V.grp))V.open=false;renderWorks();};
   $("fo").onchange=e=>{V.open=e.target.checked;renderWorks();};
   if($("fr"))$("fr").onclick=()=>{Object.assign(V,{q:"",month:"",ex:"",grp:"",open:true,addr:"",cat:"",limit:40});renderWorks();};
+  if($("showcl"))$("showcl").onclick=()=>{V.open=false;renderWorks();};
   if($("more"))$("more").onclick=()=>{V.limit+=40;renderWorks();};
   if($("addw"))$("addw").onclick=()=>{V.drawer={add:true};renderDrawer();};
 }
@@ -463,9 +466,15 @@ function renderAdd(host){
 /* ---------- вопросы, журнал, пользователи ---------- */
 function renderIssues(){
   const open=S.issues.filter(i=>!i.done).length;
-  $("view").innerHTML='<div class="head"><h2>Открытые вопросы</h2><span class="muted">'+open+' из '+S.issues.length+' открыто</span></div><div class="list"><ul class="ilist">'+
+  $("view").innerHTML='<div class="head"><h2>Открытые вопросы</h2><span class="muted">'+open+' из '+S.issues.length+' открыто</span></div>'+
+  (isAdmin()?'<form class="card" id="qf" style="display:grid;grid-template-columns:minmax(0,3fr) minmax(0,1fr) minmax(0,1fr) auto;gap:10px;align-items:end;margin-bottom:12px">'+
+    '<label class="field">Новый вопрос<input id="qt" maxlength="1000" placeholder="Что нужно решить"></label><label class="field">Ответственный<input id="qr" maxlength="80"></label>'+
+    '<label class="field">Срок<input id="qd" maxlength="40" placeholder="до 15.10"></label><button class="btn primary" type="submit">Добавить</button></form>':"")+
+  '<div class="list"><ul class="ilist">'+
   S.issues.slice().sort((a,b)=>a.done-b.done).map(i=>'<li class="'+(i.done?"done":"")+'"><input type="checkbox" data-iss="'+i.num+'"'+(i.done?" checked":"")+(isAdmin()?"":" disabled")+' aria-label="Вопрос решён">'+
    '<div><div class="t">'+esc(i.text)+'</div><div class="meta"><span>'+esc(i.resp)+'</span><span>срок: '+esc(i.term)+'</span>'+(i.done&&i.by?'<span>закрыл '+esc(i.by)+' '+when(i.at)+'</span>':"")+'</div></div></li>').join("")+'</ul></div>';
+  if($("qf"))$("qf").onsubmit=e=>{e.preventDefault();const t=$("qt").value.trim();if(!t){toast("Опишите вопрос");return;}
+    call("addIssue",S.token,{text:t,resp:$("qr").value,term:$("qd").value}).then(is=>{S.issues=is;toast("Вопрос добавлен");renderIssues();}).catch(fail);};
   document.querySelectorAll("[data-iss]").forEach(c=>c.onchange=()=>{c.disabled=true;call("setIssue",S.token,+c.dataset.iss,c.checked).then(()=>load(true)).catch(e=>{c.checked=!c.checked;c.disabled=false;fail(e);});});
 }
 function renderLog(){
