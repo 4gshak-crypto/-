@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import os
 import queue
 import re
 import shutil
@@ -315,8 +316,13 @@ def download(job_id: str, kind: str) -> FileResponse:
 
 
 def main() -> None:
-    print(f"Протокол совещания {__version__}: http://{settings.host}:{settings.port}")
+    url = f"http://{'127.0.0.1' if settings.host in ('0.0.0.0', '::') else settings.host}:{settings.port}"
+    print(f"Протокол совещания {__version__}: {url}")
     print(f"Whisper: {settings.whisper_model}; Claude: {settings.claude_model}; ключ API: {'есть' if settings.has_api_key else 'НЕТ'}")
+    if os.environ.get("MEETING_OPEN_BROWSER", "") == "1":
+        import webbrowser
+
+        threading.Timer(1.5, lambda: webbrowser.open(url)).start()
     uvicorn.run(app, host=settings.host, port=settings.port, log_level="info")
 
 
