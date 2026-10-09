@@ -1,0 +1,13 @@
+# Запуск через Docker: docker compose up
+# Ключ берётся из файла .env (ANTHROPIC_API_KEY=...). Результаты в ./data, модели Whisper в ./models.
+services:
+  meeting-notes:
+    build: .
+    ports:
+      - "127.0.0.1:8787:8787"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/data
+      - ./models:/models
+    restart: unless-stopped
