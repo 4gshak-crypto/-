@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ведомость для УК</title>
+<meta name="description" content="Трекеры текущего ремонта, веб-приложения на Google Таблицах и встраивание в Битрикс24 для управляющих компаний и ТСЖ.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=Golos+Text:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Макет: страница как инженерная ведомость — сетка граф, штамп в подвале,
+   цвета статусов из годового плана (жёлтая строка — выполнено без акта, зелёная — принято). */
+:root {
+  --paper: #f4f6f3;
+  --sheet: #ffffff;
+  --ink: #18221f;
+  --muted: #5a6762;
+  --rule: #cfd8d3;
+  --accent: #1d6a4e;      /* «Принято, акт есть» */
+  --accent-ink: #ffffff;
+  --signal: #e9c446;      /* «Выполнено, акта нет» */
+  --signal-soft: #fbf1c9;
+  --accent-soft: #dcefe6;
+  --work: #2f5f8f;
+  --work-soft: #e1ebf5;
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "Golos Text", "Segoe UI", Roboto, Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --s-1: .8125rem; --s0: 1rem; --s1: 1.125rem; --s2: 1.5rem; --s3: 2.125rem; --s4: clamp(2.25rem, 5.2vw, 3.75rem);
+  --gutter: clamp(16px, 4vw, 40px);
+  --wrap: 1120px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #111816; --sheet: #172120; --ink: #e5ece8; --muted: #9aa8a2; --rule: #2c3936;
+    --accent: #4fb98c; --accent-ink: #0d1a15; --signal: #e3c055; --signal-soft: #3a3318;
+    --accent-soft: #173a2d; --work: #7fb0e0; --work-soft: #1b2c3d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #111816; --sheet: #172120; --ink: #e5ece8; --muted: #9aa8a2; --rule: #2c3936;
+  --accent: #4fb98c; --accent-ink: #0d1a15; --signal: #e3c055; --signal-soft: #3a3318;
+  --accent-soft: #173a2d; --work: #7fb0e0; --work-soft: #1b2c3d;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; animation: none !important; } }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 400 var(--s0)/1.6 var(--f-body);
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: var(--wrap); margin-inline: auto; padding-inline: var(--gutter); }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 700; line-height: 1.08; margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font-size: var(--s3); }
+h3 { font-size: var(--s1); font-weight: 600; letter-spacing: 0; }
+p { margin: 0; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+.label {
+  font: 500 var(--s-1)/1.3 var(--f-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+}
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* Шапка */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); border-bottom: 1px solid var(--rule); }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 12px; }
+.brand { display: flex; align-items: baseline; gap: 10px; text-decoration: none; }
+.brand b { font: 700 1.25rem/1 var(--f-display); letter-spacing: .02em; text-transform: uppercase; }
+.brand span { font: 400 var(--s-1)/1 var(--f-mono); color: var(--muted); }
+.nav { display: flex; gap: 22px; align-items: center; }
+.nav a { text-decoration: none; font-size: .9375rem; color: var(--muted); }
+.nav a:hover { color: var(--ink); }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font: 600 .9375rem/1 var(--f-body); padding: 13px 20px; border-radius: 4px;
+  background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent);
+  text-decoration: none; cursor: pointer;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--rule); }
+.btn.ghost:hover { border-color: var(--ink); filter: none; }
+.nav .btn { color: var(--accent-ink); padding: 10px 16px; }
+@media (max-width: 760px) { .nav a:not(.btn) { display: none; } .brand span { display: none; } }
+
+/* Первый экран */
+.hero { padding-block: clamp(40px, 7vw, 88px) clamp(40px, 6vw, 72px); }
+.hero .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: clamp(28px, 5vw, 64px); align-items: center; }
+@media (max-width: 900px) { .hero .wrap { grid-template-columns: minmax(0, 1fr); } }
+.hero h1 { font-size: var(--s4); margin-top: 14px; }
+.hero h1 em { font-style: normal; background: linear-gradient(transparent 62%, var(--signal) 62%, var(--signal) 92%, transparent 92%); padding-inline: 2px; }
+.hero .lead { font-size: var(--s1); color: var(--muted); margin-top: 20px; max-width: 34em; }
+.hero .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+
+/* Мини-трекер */
+.sheet { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; min-width: 0; box-shadow: 0 1px 0 var(--rule), 0 18px 40px -28px rgba(20, 40, 30, .45); }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+.sheet-head .t { font: 600 .9375rem/1.2 var(--f-display); letter-spacing: .02em; }
+.progress { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--rule); margin: 12px 16px 0; }
+.progress i { display: block; height: 100%; transition: width .35s ease; }
+.progress .p-acc { background: var(--accent); }
+.progress .p-sig { background: var(--signal); }
+.progress .p-wrk { background: var(--work); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 8px 16px 4px; font-size: var(--s-1); color: var(--muted); }
+.legend b { color: var(--ink); font-weight: 500; }
+.rows { list-style: none; margin: 0; padding: 4px 0 6px; }
+.row { display: grid; grid-template-columns: 2.6em minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 16px; border-top: 1px dashed var(--rule); }
+.row:first-child { border-top: 0; }
+.row .n { font: 400 var(--s-1)/1 var(--f-mono); color: var(--muted); }
+.row .w { min-width: 0; }
+.row .w b { display: block; font-weight: 500; font-size: .9375rem; line-height: 1.3; }
+.row .w small { display: block; color: var(--muted); font-size: var(--s-1); margin-top: 2px; }
+.row.st-signal { background: var(--signal-soft); }
+.row.st-accept { background: var(--accent-soft); }
+.pill {
+  font: 500 .75rem/1.2 var(--f-body); padding: 6px 10px; border-radius: 999px; border: 1px solid var(--rule);
+  background: var(--sheet); color: var(--ink); cursor: pointer; white-space: nowrap;
+}
+.pill::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; background: var(--muted); vertical-align: 1px; }
+.pill[data-s="1"]::before { background: var(--work); }
+.pill[data-s="2"]::before { background: var(--signal); }
+.pill[data-s="3"]::before { background: var(--accent); }
+.pill:hover { border-color: var(--ink); }
+.sheet-foot { padding: 10px 16px 14px; border-top: 1px solid var(--rule); font-size: var(--s-1); color: var(--muted); }
+@media (max-width: 480px) { .row { grid-template-columns: minmax(0, 1fr); gap: 6px; } .row .n { display: none; } .row .pill { justify-self: start; } }
+
+/* Полоса цифр */
+.facts { border-block: 1px solid var(--rule); background: var(--sheet); }
+.facts .wrap { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.fact { padding: 22px 18px; border-left: 1px solid var(--rule); }
+.fact:first-child { border-left: 0; padding-left: 0; }
+.fact .v { font: 600 var(--s3)/1 var(--f-display); font-variant-numeric: tabular-nums; }
+.fact .k { color: var(--muted); font-size: .9375rem; margin-top: 8px; }
+@media (max-width: 760px) {
+  .facts .wrap { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fact { padding: 18px 12px; }
+  .fact:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .fact:nth-child(n+3) { border-top: 1px solid var(--rule); }
+}
+
+/* Разделы */
+section.block { padding-block: clamp(56px, 8vw, 96px); }
+.sec-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px 48px; align-items: end; margin-bottom: 40px; }
+.sec-head p { color: var(--muted); max-width: 36em; }
+@media (max-width: 760px) { .sec-head { grid-template-columns: minmax(0, 1fr); } }
+
+/* Услуги — ведомость работ */
+.ledger { border-top: 2px solid var(--ink); }
+.svc { display: grid; grid-template-columns: 5.5em minmax(0, 1.1fr) minmax(0, 1.6fr) minmax(0, .9fr); gap: 12px 28px; padding-block: 24px; border-bottom: 1px solid var(--rule); }
+.svc .code { font: 500 var(--s-1)/1.6 var(--f-mono); color: var(--muted); }
+.svc h3 { font-size: 1.3rem; }
+.svc p { color: var(--muted); }
+.svc ul { margin: 0; padding: 0; list-style: none; font-size: .9375rem; display: grid; gap: 4px; }
+.svc li::before { content: "— "; color: var(--muted); }
+.svc .term { font-size: .9375rem; }
+.svc .term b { display: block; font-weight: 600; }
+@media (max-width: 900px) { .svc { grid-template-columns: 4.5em minmax(0, 1fr); } .svc > :nth-child(n+3) { grid-column: 2; } }
+@media (max-width: 480px) { .svc { grid-template-columns: minmax(0, 1fr); } .svc > :nth-child(n+3) { grid-column: 1; } }
+
+/* Кейс */
+.case { background: var(--sheet); border-block: 1px solid var(--rule); }
+.case-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px 56px; }
+@media (max-width: 900px) { .case-grid { grid-template-columns: minmax(0, 1fr); } }
+.case-text { display: grid; gap: 16px; align-content: start; }
+.case-text p { color: var(--muted); max-width: 34em; }
+.roles { width: 100%; border-collapse: collapse; font-size: .9375rem; }
+.roles th, .roles td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.roles th { font: 500 var(--s-1)/1.3 var(--f-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-bottom: 2px solid var(--ink); }
+.roles td:first-child { font-weight: 600; white-space: nowrap; }
+.table-scroll { overflow-x: auto; }
+.checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 28px; margin-top: 28px; padding: 0; list-style: none; }
+.checks li { padding-left: 22px; position: relative; font-size: .9375rem; }
+.checks li::before { content: ""; position: absolute; left: 0; top: .45em; width: 10px; height: 10px; border: 2px solid var(--accent); border-radius: 2px; }
+@media (max-width: 560px) { .checks { grid-template-columns: minmax(0, 1fr); } }
+
+/* Порядок работы — реальная последовательность */
+.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; counter-reset: st; border-top: 2px solid var(--ink); }
+.step { padding: 22px 22px 8px 0; display: grid; gap: 10px; align-content: start; }
+.step + .step { padding-left: 22px; border-left: 1px solid var(--rule); }
+.step .label { color: var(--accent); }
+.step p { color: var(--muted); font-size: .9375rem; }
+@media (max-width: 900px) {
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .step:nth-child(3) { padding-left: 0; border-left: 0; }
+  .step:nth-child(n+3) { border-top: 1px solid var(--rule); }
+}
+@media (max-width: 520px) {
+  .steps { grid-template-columns: minmax(0, 1fr); }
+  .step, .step + .step { padding: 18px 0 6px; border-left: 0; }
+  .step + .step { border-top: 1px solid var(--rule); }
+}
+
+/* Для кого */
+.who { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.who div { padding: 20px; border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); display: grid; gap: 8px; align-content: start; }
+.who p { color: var(--muted); font-size: .9375rem; }
+@media (max-width: 760px) { .who { grid-template-columns: minmax(0, 1fr); } }
+
+/* Вопросы */
+.faq { border-top: 2px solid var(--ink); }
+.faq details { border-bottom: 1px solid var(--rule); }
+.faq summary { cursor: pointer; list-style: none; padding: 18px 40px 18px 0; position: relative; font: 600 1.0625rem/1.4 var(--f-body); }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; position: absolute; right: 4px; top: 14px; font: 400 1.5rem/1 var(--f-mono); color: var(--muted); }
+.faq details[open] summary::after { content: "−"; }
+.faq details p { padding: 0 0 20px; color: var(--muted); max-width: 46em; }
+
+/* Заявка */
+.order { background: var(--ink); color: var(--paper); }
+.order .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 40px 64px; }
+@media (max-width: 900px) { .order .wrap { grid-template-columns: minmax(0, 1fr); } }
+.order h2 { color: var(--paper); }
+.order .intro { display: grid; gap: 18px; align-content: start; }
+.order .intro p { opacity: .78; max-width: 30em; }
+.contacts { display: grid; gap: 10px; margin-top: 8px; }
+.contacts div { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.contacts .label { color: var(--paper); opacity: .6; min-width: 7.5em; }
+.contacts a, .contacts span { font: 500 1.0625rem/1.4 var(--f-mono); color: var(--paper); word-break: break-word; }
+form { display: grid; gap: 14px; background: var(--sheet); color: var(--ink); padding: clamp(18px, 3vw, 28px); border-radius: 6px; min-width: 0; }
+.field { display: grid; gap: 6px; }
+.field label { font-size: .875rem; font-weight: 500; }
+.field input, .field select, .field textarea {
+  font: 400 1rem/1.4 var(--f-body); color: var(--ink); background: var(--paper);
+  border: 1px solid var(--rule); border-radius: 4px; padding: 11px 12px; width: 100%;
+}
+.field textarea { min-height: 110px; resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 520px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; }
+.tags legend { font-size: .875rem; font-weight: 500; margin-bottom: 6px; padding: 0; }
+.tags label { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1px solid var(--rule); border-radius: 999px; font-size: .875rem; cursor: pointer; }
+.tags input { accent-color: var(--accent); margin: 0; }
+.tags label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.form-note { font-size: var(--s-1); color: var(--muted); }
+.result { border: 1px solid var(--accent); background: var(--accent-soft); border-radius: 4px; padding: 14px; display: grid; gap: 10px; }
+.result pre { margin: 0; white-space: pre-wrap; font: 400 .875rem/1.5 var(--f-mono); }
+.result .acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.result .btn { padding: 10px 14px; }
+.err { color: #b3261e; font-size: .875rem; }
+
+/* Подвал — штамп основной надписи */
+footer { padding-block: 40px 48px; }
+.stamp { display: grid; grid-template-columns: 1.4fr 1fr 1fr; border: 2px solid var(--ink); font-size: var(--s-1); }
+.stamp > div { padding: 10px 12px; border-left: 1px solid var(--ink); display: grid; gap: 4px; min-width: 0; }
+.stamp > div:first-child { border-left: 0; }
+.stamp .label { font-size: .6875rem; }
+.stamp b { font: 600 .9375rem/1.3 var(--f-display); }
+@media (max-width: 640px) { .stamp { grid-template-columns: minmax(0, 1fr); } .stamp > div { border-left: 0; border-top: 1px solid var(--ink); } .stamp > div:first-child { border-top: 0; } }
+</style>
+</head>
+<body>
+
+<!--
+  ЗАМЕНИТЕ ПЕРЕД ПУБЛИКАЦИЕЙ: имя, телефон, e-mail, Telegram, город.
+  Они помечены квадратными скобками [ ] и продублированы в объекте CONTACT внизу страницы.
+-->
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top"><b>Ведомость</b><span>цифровые инструменты для УК</span></a>
+    <nav class="nav" aria-label="Разделы">
+      <a href="#services">Услуги</a>
+      <a href="#case">Кейс</a>
+      <a href="#process">Как работаем</a>
+      <a href="#faq">Вопросы</a>
+      <a class="btn" href="#order">Оставить заявку</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <p class="label">Для управляющих компаний и ТСЖ</p>
+        <h1>Текущий ремонт по&nbsp;всем домам — в&nbsp;одной <em>живой таблице</em></h1>
+        <p class="lead">Перевожу годовой план из разрозненных Excel-файлов в трекер, где мастер, подрядчик и ПТО отмечают работы сами, а руководитель видит сводку по месяцам, актам и суммам. Работает на Google Таблице и открывается прямо из Битрикс24.</p>
+        <div class="cta">
+          <a class="btn" href="#order">Обсудить задачу</a>
+          <a class="btn ghost" href="#case">Посмотреть кейс</a>
+        </div>
+      </div>
+
+      <div class="sheet" aria-label="Пример трекера">
+        <div class="sheet-head">
+          <span class="t">План текущего ремонта · сентябрь</span>
+          <span class="label">пример</span>
+        </div>
+        <div class="progress" aria-hidden="true"><i class="p-acc"></i><i class="p-sig"></i><i class="p-wrk"></i></div>
+        <div class="legend" id="legend"></div>
+        <ol class="rows" id="rows"></ol>
+        <div class="sheet-foot">Нажмите на статус, чтобы провести работу по этапам. Жёлтая строка — выполнено без акта, зелёная — принято.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="facts">
+    <div class="wrap">
+      <div class="fact"><div class="v">282</div><div class="k">работы в трекере одной УК</div></div>
+      <div class="fact"><div class="v">140</div><div class="k">домов в годовом плане</div></div>
+      <div class="fact"><div class="v">13,2 млн&nbsp;₽</div><div class="k">план работ на сентябрь под контролем</div></div>
+      <div class="fact"><div class="v">10&nbsp;мин</div><div class="k">установка в вашу Google Таблицу</div></div>
+    </div>
+  </div>
+
+  <section class="block" id="services">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>Что я делаю для УК</h2>
+        <p>Беру то, что у вас уже есть — годовой план, реестр заявок, таблицы подрядчиков — и превращаю в инструмент, которым сотрудники пользуются каждый день. Без покупки новой системы и без переобучения всего штата.</p>
+      </div>
+
+      <div class="ledger">
+        <div class="svc">
+          <span class="code">Поз. 1</span>
+          <div><h3>Трекер текущего ремонта</h3></div>
+          <div>
+            <p>Все работы годового плана по месяцам: адрес, основание (протокол, заявление, предписание), оценка, исполнитель и статус. Сводка по категориям и суммам план/факт.</p>
+          </div>
+          <ul>
+            <li>статусы и перенос сроков</li>
+            <li>акт и фактическая сумма</li>
+            <li>журнал изменений</li>
+          </ul>
+        </div>
+        <div class="svc">
+          <span class="code">Поз. 2</span>
+          <div><h3>Веб-приложение на Google Таблице</h3></div>
+          <div>
+            <p>Отдельный сайт для сотрудников и подрядчиков с входом по имени и PIN-коду. Таблица остаётся у вас как база данных и резервная копия, наружу её никто не видит.</p>
+          </div>
+          <ul>
+            <li>роли и права на сервере</li>
+            <li>защита от подбора PIN</li>
+            <li>автообновление страницы</li>
+          </ul>
+        </div>
+        <div class="svc">
+          <span class="code">Поз. 3</span>
+          <div><h3>Встраивание в Битрикс24</h3></div>
+          <div>
+            <p>Трекер открывается пунктом левого меню облачного портала. Сотрудник входит под своей учётной записью Битрикс24, а подрядчики без портала — по прямой ссылке.</p>
+          </div>
+          <ul>
+            <li>локальное приложение</li>
+            <li>вход без PIN</li>
+            <li>инструкция для админа</li>
+          </ul>
+        </div>
+        <div class="svc">
+          <span class="code">Поз. 4</span>
+          <div><h3>Перенос и сверка данных из Excel</h3></div>
+          <div>
+            <p>Разбираю годовой план, где статус хранится цветом заливки, а суммы — в разных листах. Нахожу дубли, пустые основания, расхождения итогов и выдаю список открытых вопросов.</p>
+          </div>
+          <ul>
+            <li>статус по цвету строки</li>
+            <li>сверка итогов по месяцам</li>
+            <li>отметки капремонта</li>
+          </ul>
+        </div>
+        <div class="svc">
+          <span class="code">Поз. 5</span>
+          <div><h3>Отчёты для руководства и собственников</h3></div>
+          <div>
+            <p>Сводка выполненных работ по дому или по УК за месяц и год: что сделано, на какие деньги и на основании чего. Подходит для совета МКД и годового собрания.</p>
+          </div>
+          <ul>
+            <li>по дому и по УК</li>
+            <li>план и факт, ₽</li>
+            <li>выгрузка в таблицу</li>
+          </ul>
+        </div>
+        <div class="svc">
+          <span class="code">Поз. 6</span>
+          <div><h3>Сопровождение и доработки</h3></div>
+          <div>
+            <p>Новые поля и статусы, ещё одна УК в группе, обучение сотрудников, помощь в первый месяц работы. Дорабатываю под то, как у вас реально принимают работы.</p>
+          </div>
+          <ul>
+            <li>обучение команды</li>
+            <li>новые роли и отчёты</li>
+            <li>поддержка по договору</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block case" id="case">
+    <div class="wrap">
+      <div class="case-grid">
+        <div class="case-text">
+          <p class="label">Кейс · текущий ремонт, сентябрь–декабрь 2026</p>
+          <h2>Годовой план в Excel стал трекером, которым пользуется вся УК</h2>
+          <p>Было: один большой файл, статус работы обозначался цветом строки, подрядчики присылали отметки в мессенджер, а итоги месяца сводили вручную.</p>
+          <p>Стало: 282 работы по 140 домам перенесены в трекер с номерами строк исходного плана. Каждый видит только свои работы и меняет только то, что ему положено. Руководитель открывает сводку и видит, сколько выполнено, сколько ждёт акта и что перенесено на следующий месяц.</p>
+          <ul class="checks">
+            <li>Правило «жёлтая — без акта, зелёная — принято» сохранено</li>
+            <li>Принятую работу исполнитель вернуть не может</li>
+            <li>При переносе виден исходный месяц</li>
+            <li>Кто, когда и что поменял — в журнале</li>
+            <li>5 неверных PIN подряд — блокировка на 15 минут</li>
+            <li>Открытые страницы обновляются каждые 45 секунд</li>
+          </ul>
+        </div>
+        <div>
+          <p class="label" style="margin-bottom:12px">Роли в трекере</p>
+          <div class="table-scroll">
+            <table class="roles">
+              <thead><tr><th>Роль</th><th>Что может</th></tr></thead>
+              <tbody>
+                <tr><td>Администратор</td><td>Всё: приёмка, акт и факт ₽, перенос месяца, исполнители, пользователи</td></tr>
+                <tr><td>Свои силы</td><td>Статус и комментарий в работах, назначенных собственной бригаде</td></tr>
+                <tr><td>Подрядчики</td><td>Статус и комментарий только в работах подрядчиков</td></tr>
+                <tr><td>Просмотр</td><td>Сводка и список работ без права правки</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="process">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>Как проходит внедрение</h2>
+        <p>Первую рабочую версию вы видите на своих данных, а не на демонстрации. Договор и оплата — по этапам.</p>
+      </div>
+      <div class="steps">
+        <div class="step"><span class="label">Этап 1</span><h3>Разбор</h3><p>Созваниваемся, вы присылаете годовой план или реестр. Описываю, кто что отмечает и какие отчёты нужны.</p></div>
+        <div class="step"><span class="label">Этап 2</span><h3>Прототип на ваших данных</h3><p>Переношу план, показываю трекер и список расхождений, найденных при сверке с Excel.</p></div>
+        <div class="step"><span class="label">Этап 3</span><h3>Запуск</h3><p>Ставлю в вашу Google Таблицу, подключаю Битрикс24, заводим пользователей и PIN, обучаем сотрудников.</p></div>
+        <div class="step"><span class="label">Этап 4</span><h3>Сопровождение</h3><p>Первый месяц правлю всё, что всплывает в работе. Дальше — доработки по запросу.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>Кому подходит</h2>
+        <p>Если у вас больше десятка домов и работы распределены между своими бригадами и подрядчиками, трекер окупится уже на первом закрытии месяца.</p>
+      </div>
+      <div class="who">
+        <div><h3>Управляющие компании</h3><p>Группа УК с общим планом, контроль подрядчиков и закрытия актов по каждому дому.</p></div>
+        <div><h3>ТСЖ и ЖСК</h3><p>Прозрачный отчёт для правления и собственников: что сделано и на какие средства.</p></div>
+        <div><h3>Подрядные организации</h3><p>Учёт работ сразу по нескольким заказчикам, сроки и отметки о выполнении.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="faq" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-head"><h2>Частые вопросы</h2><p>Если вашего вопроса нет — напишите, отвечу в тот же день.</p></div>
+      <div class="faq">
+        <details><summary>Нужно ли покупать программу или подписку?</summary><p>Нет. Трекер работает на бесплатном Google Apps Script и вашей Google Таблице. Платите только за разработку и сопровождение.</p></details>
+        <details><summary>Где хранятся данные и кто их видит?</summary><p>В вашей Google Таблице, на вашем аккаунте. Сотрудники работают через ссылку и не видят саму таблицу. Права проверяет сервер, обойти их из браузера нельзя.</p></details>
+        <details><summary>У нас Битрикс24. Придётся работать в двух системах?</summary><p>Нет. Трекер встраивается в облачный Битрикс24 пунктом меню, сотрудники входят под своей учётной записью портала.</p></details>
+        <details><summary>Наш годовой план ведётся в Excel с цветными строками. Это подойдёт?</summary><p>Да, это самый частый случай. Статус читается по цвету заливки, номера строк исходного плана сохраняются, чтобы всегда можно было свериться.</p></details>
+        <details><summary>Сколько стоит и сколько длится?</summary><p>Зависит от объёма плана и числа ролей. Типичный трекер для одной УК запускается за одну–две недели. Точную смету называю после разбора ваших файлов.</p></details>
+        <details><summary>Можно ли сделать не про ремонт, а про заявки или осмотры?</summary><p>Да. Тот же подход подходит для журнала заявок, весенних и осенних осмотров, подготовки к отопительному сезону и предписаний ГЖИ.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="block order" id="order">
+    <div class="wrap">
+      <div class="intro">
+        <p class="label" style="color:inherit;opacity:.6">Заявка</p>
+        <h2>Расскажите, как у вас ведётся план работ</h2>
+        <p>Опишите задачу в паре предложений. Я отвечу, подойдёт ли трекер, и предложу время для короткого созвона.</p>
+        <div class="contacts">
+          <div><span class="label">Исполнитель</span><span data-c="name">[Ваше имя]</span></div>
+          <div><span class="label">Телефон</span><a data-c="phone" href="#">[+7 900 000-00-00]</a></div>
+          <div><span class="label">E-mail</span><a data-c="email" href="#">[you@example.ru]</a></div>
+          <div><span class="label">Telegram</span><a data-c="tg" href="#" target="_blank" rel="noopener">[@username]</a></div>
+        </div>
+      </div>
+
+      <form id="lead" novalidate>
+        <div class="two">
+          <div class="field"><label for="f-name">Ваше имя</label><input id="f-name" name="name" autocomplete="name" placeholder="Ирина Петрова" required></div>
+          <div class="field"><label for="f-org">Организация</label><input id="f-org" name="org" placeholder="УК «Северная»"></div>
+        </div>
+        <div class="two">
+          <div class="field"><label for="f-contact">Телефон или e-mail</label><input id="f-contact" name="contact" autocomplete="tel" placeholder="+7 912 345-67-89" required></div>
+          <div class="field"><label for="f-size">Сколько домов</label>
+            <select id="f-size" name="size">
+              <option>до 20</option><option selected>20–100</option><option>100–300</option><option>больше 300</option>
+            </select>
+          </div>
+        </div>
+        <fieldset class="tags">
+          <legend>Что нужно</legend>
+          <label><input type="checkbox" id="t-tracker" name="need" value="Трекер текущего ремонта" checked>Трекер ремонта</label>
+          <label><input type="checkbox" id="t-bitrix" name="need" value="Встраивание в Битрикс24">Битрикс24</label>
+          <label><input type="checkbox" id="t-excel" name="need" value="Перенос и сверка Excel">Сверка Excel</label>
+          <label><input type="checkbox" id="t-report" name="need" value="Отчёты">Отчёты</label>
+          <label><input type="checkbox" id="t-other" name="need" value="Другое">Другое</label>
+        </fieldset>
+        <div class="field"><label for="f-msg">Задача</label><textarea id="f-msg" name="msg" placeholder="План текущего ремонта ведём в Excel, подрядчики присылают отметки в WhatsApp, итоги месяца сводим вручную…"></textarea></div>
+        <p class="err" id="err" hidden></p>
+        <button class="btn" type="submit">Подготовить заявку</button>
+        <p class="form-note">Нажимая кнопку, вы соглашаетесь на обработку персональных данных для ответа на заявку.</p>
+        <div class="result" id="result" hidden>
+          <strong>Заявка готова. Отправьте её удобным способом:</strong>
+          <pre id="result-text"></pre>
+          <div class="acts">
+            <button class="btn" type="button" id="copy">Скопировать текст</button>
+            <a class="btn ghost" id="send-tg" href="#" target="_blank" rel="noopener">Открыть Telegram</a>
+            <a class="btn ghost" id="send-mail" href="#">Написать письмо</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="stamp">
+      <div><span class="label">Наименование</span><b>Ведомость — цифровые инструменты для ЖКХ</b></div>
+      <div><span class="label">Исполнитель</span><b data-c="name">[Ваше имя]</b></div>
+      <div><span class="label">Лист · Год</span><b class="num">1 · 2026</b></div>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* Контакты: замените значения — они подставятся на всю страницу. */
+const CONTACT = {
+  name: "[Ваше имя]",
+  phone: "+7 900 000-00-00",
+  email: "you@example.ru",
+  tg: "username"
+};
+
+(function contacts() {
+  document.querySelectorAll('[data-c="name"]').forEach(el => el.textContent = CONTACT.name);
+  const ph = document.querySelector('[data-c="phone"]');
+  ph.textContent = CONTACT.phone; ph.href = "tel:" + CONTACT.phone.replace(/[^\d+]/g, "");
+  const em = document.querySelector('[data-c="email"]');
+  em.textContent = CONTACT.email; em.href = "mailto:" + CONTACT.email;
+  const tg = document.querySelector('[data-c="tg"]');
+  tg.textContent = "@" + CONTACT.tg; tg.href = "https://t.me/" + CONTACT.tg;
+})();
+
+/* Мини-трекер на первом экране */
+const STATUSES = ["Не начато", "В работе", "Выполнено, акта нет", "Принято, акт есть"];
+const ROWS = [
+  { row: 159, addr: "50-летия ВЛКСМ пр-т, 28", work: "Покраска входных групп, подъезды 1–8", ex: "Подрядчики", s: 3 },
+  { row: 214, addr: "Минаева ул, 5", work: "Ремонт кровли над кв. 211", ex: "Свои силы", s: 2 },
+  { row: 87,  addr: "Розы Люксембург ул, 52", work: "Ремонт крыльца, подъезд 4", ex: "Подрядчики", s: 1 },
+  { row: 132, addr: "Северный Венец ул, 16", work: "Краны ХВС и ГВС в подвале", ex: "Свои силы", s: 2 },
+  { row: 9,   addr: "Аблукова ул, 83", work: "Спил и обрезка деревьев", ex: "Подрядчики", s: 0 }
+];
+const rowsEl = document.getElementById("rows");
+const legendEl = document.getElementById("legend");
+const bar = document.querySelectorAll(".progress i");
+
+function render() {
+  rowsEl.innerHTML = "";
+  ROWS.forEach((r, i) => {
+    const li = document.createElement("li");
+    li.className = "row" + (r.s === 2 ? " st-signal" : r.s === 3 ? " st-accept" : "");
+    li.innerHTML = `<span class="n">${r.row}</span>
+      <div class="w"><b></b><small></small></div>
+      <button class="pill" type="button" data-s="${r.s}" aria-label="Сменить статус"></button>`;
+    li.querySelector("b").textContent = r.work;
+    li.querySelector("small").textContent = r.addr + " · " + r.ex;
+    const btn = li.querySelector(".pill");
+    btn.textContent = STATUSES[r.s];
+    btn.addEventListener("click", () => { r.s = (r.s + 1) % 4; render(); });
+    rowsEl.appendChild(li);
+  });
+  const c = [0, 0, 0, 0]; ROWS.forEach(r => c[r.s]++);
+  const pct = n => (n / ROWS.length * 100) + "%";
+  bar[0].style.width = pct(c[3]); bar[1].style.width = pct(c[2]); bar[2].style.width = pct(c[1]);
+  legendEl.innerHTML = `<span>Принято <b class="num">${c[3]}</b></span><span>Без акта <b class="num">${c[2]}</b></span><span>В работе <b class="num">${c[1]}</b></span><span>Не начато <b class="num">${c[0]}</b></span>`;
+}
+render();
+
+/* Заявка: собираем текст, который можно отправить в Telegram или письмом */
+const form = document.getElementById("lead");
+form.addEventListener("submit", e => {
+  e.preventDefault();
+  const f = new FormData(form);
+  const err = document.getElementById("err");
+  if (!f.get("name").trim() || !f.get("contact").trim()) {
+    err.textContent = "Укажите имя и телефон или e-mail, чтобы я мог ответить.";
+    err.hidden = false; return;
+  }
+  err.hidden = true;
+  const needs = f.getAll("need");
+  const text = [
+    "Заявка с сайта",
+    "Имя: " + f.get("name").trim(),
+    f.get("org").trim() ? "Организация: " + f.get("org").trim() : null,
+    "Контакт: " + f.get("contact").trim(),
+    "Домов: " + f.get("size"),
+    needs.length ? "Нужно: " + needs.join(", ") : null,
+    f.get("msg").trim() ? "Задача: " + f.get("msg").trim() : null
+  ].filter(Boolean).join("\n");
+  document.getElementById("result-text").textContent = text;
+  document.getElementById("send-tg").href = "https://t.me/" + CONTACT.tg;
+  document.getElementById("send-mail").href = "mailto:" + CONTACT.email + "?subject=" + encodeURIComponent("Заявка с сайта") + "&body=" + encodeURIComponent(text);
+  document.getElementById("result").hidden = false;
+});
+document.getElementById("copy").addEventListener("click", e => {
+  const btn = e.currentTarget;
+  const pre = document.getElementById("result-text");
+  const done = () => { btn.textContent = "Скопировано"; setTimeout(() => btn.textContent = "Скопировать текст", 2000); };
+  const fallback = () => { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = "Выделено — нажмите Ctrl+C"; };
+  try { navigator.clipboard.writeText(pre.textContent).then(done, fallback); } catch (_) { fallback(); }
+});
+</script>
+</body>
+</html>
