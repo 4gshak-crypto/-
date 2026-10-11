@@ -242,6 +242,8 @@ form { display: grid; gap: 14px; background: var(--sheet); color: var(--ink); pa
 .result .acts { display: flex; flex-wrap: wrap; gap: 8px; }
 .result .btn { padding: 10px 14px; }
 .err { color: #b3261e; font-size: .875rem; }
+.result p { font-size: .9375rem; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
 /* Подвал — штамп основной надписи */
 footer { padding-block: 40px 48px; }
@@ -481,6 +483,7 @@ footer { padding-block: 40px 48px; }
           <div><span class="label">Телефон</span><a data-c="phone" href="#">[+7 900 000-00-00]</a></div>
           <div><span class="label">E-mail</span><a data-c="email" href="#">[you@example.ru]</a></div>
           <div><span class="label">Telegram</span><a data-c="tg" href="#" target="_blank" rel="noopener">[@username]</a></div>
+          <div><span class="label">Бот</span><a data-c="bot" href="#" target="_blank" rel="noopener">[@your_bot]</a></div>
         </div>
       </div>
 
@@ -506,15 +509,21 @@ footer { padding-block: 40px 48px; }
           <label><input type="checkbox" id="t-other" name="need" value="Другое">Другое</label>
         </fieldset>
         <div class="field"><label for="f-msg">Задача</label><textarea id="f-msg" name="msg" placeholder="План текущего ремонта ведём в Excel, подрядчики присылают отметки в WhatsApp, итоги месяца сводим вручную…"></textarea></div>
+        <div class="hp" aria-hidden="true"><label for="f-website">Сайт</label><input id="f-website" name="website" tabindex="-1" autocomplete="off"></div>
         <p class="err" id="err" hidden></p>
-        <button class="btn" type="submit">Подготовить заявку</button>
+        <button class="btn" type="submit" id="submit">Отправить заявку</button>
         <p class="form-note">Нажимая кнопку, вы соглашаетесь на обработку персональных данных для ответа на заявку.</p>
+        <div class="result" id="sent" hidden>
+          <strong id="sent-title">Заявка отправлена</strong>
+          <p>Я получил её в Telegram и отвечу по указанному контакту. Если удобнее переписываться в мессенджере, напишите боту — он на связи круглосуточно.</p>
+          <div class="acts"><a class="btn" data-c="bot-btn" href="#" target="_blank" rel="noopener">Написать боту</a></div>
+        </div>
         <div class="result" id="result" hidden>
           <strong>Заявка готова. Отправьте её удобным способом:</strong>
           <pre id="result-text"></pre>
           <div class="acts">
             <button class="btn" type="button" id="copy">Скопировать текст</button>
-            <a class="btn ghost" id="send-tg" href="#" target="_blank" rel="noopener">Открыть Telegram</a>
+            <a class="btn ghost" id="send-tg" href="#" target="_blank" rel="noopener">Написать боту</a>
             <a class="btn ghost" id="send-mail" href="#">Написать письмо</a>
           </div>
         </div>
@@ -539,8 +548,11 @@ const CONTACT = {
   name: "[Ваше имя]",
   phone: "+7 900 000-00-00",
   email: "you@example.ru",
-  tg: "username"
+  tg: "username",
+  bot: "your_bot",   // имя Telegram-бота без @
+  leadUrl: ""        // адрес веб-приложения бота …/exec — тогда заявки с формы приходят в Telegram
 };
+const BOT_LINK = "https://t.me/" + CONTACT.bot + "?start=site";
 
 (function contacts() {
   document.querySelectorAll('[data-c="name"]').forEach(el => el.textContent = CONTACT.name);
@@ -550,6 +562,9 @@ const CONTACT = {
   em.textContent = CONTACT.email; em.href = "mailto:" + CONTACT.email;
   const tg = document.querySelector('[data-c="tg"]');
   tg.textContent = "@" + CONTACT.tg; tg.href = "https://t.me/" + CONTACT.tg;
+  const bot = document.querySelector('[data-c="bot"]');
+  bot.textContent = "@" + CONTACT.bot; bot.href = BOT_LINK;
+  document.querySelectorAll('[data-c="bot-btn"]').forEach(a => a.href = BOT_LINK);
 })();
 
 /* Мини-трекер на первом экране */
@@ -587,9 +602,9 @@ function render() {
 }
 render();
 
-/* Заявка: собираем текст, который можно отправить в Telegram или письмом */
+/* Заявка: отправляем боту, а если адрес не задан или сеть недоступна — собираем текст для ручной отправки */
 const form = document.getElementById("lead");
-form.addEventListener("submit", e => {
+form.addEventListener("submit", async e => {
   e.preventDefault();
   const f = new FormData(form);
   const err = document.getElementById("err");
@@ -608,8 +623,31 @@ form.addEventListener("submit", e => {
     needs.length ? "Нужно: " + needs.join(", ") : null,
     f.get("msg").trim() ? "Задача: " + f.get("msg").trim() : null
   ].filter(Boolean).join("\n");
+  if (CONTACT.leadUrl) {
+    const btn = document.getElementById("submit");
+    btn.disabled = true; btn.textContent = "Отправляю…";
+    try {
+      // text/plain и no-cors: Apps Script не отвечает на CORS-запросы, поэтому ответ не читаем.
+      await fetch(CONTACT.leadUrl, {
+        method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          source: "site", website: f.get("website"), name: f.get("name").trim(), org: f.get("org").trim(),
+          contact: f.get("contact").trim(), size: f.get("size"), need: needs.join(", "), msg: f.get("msg").trim()
+        })
+      });
+      form.querySelectorAll("input, select, textarea").forEach(el => { if (el.type !== "checkbox") el.value = el.tagName === "SELECT" ? el.value : ""; });
+      document.getElementById("result").hidden = true;
+      document.getElementById("sent").hidden = false;
+      btn.textContent = "Отправить ещё одну"; btn.disabled = false;
+      return;
+    } catch (_) {
+      btn.textContent = "Отправить заявку"; btn.disabled = false;
+      err.textContent = "Не удалось отправить автоматически. Скопируйте заявку ниже и отправьте боту или письмом.";
+      err.hidden = false;
+    }
+  }
   document.getElementById("result-text").textContent = text;
-  document.getElementById("send-tg").href = "https://t.me/" + CONTACT.tg;
+  document.getElementById("send-tg").href = BOT_LINK;
   document.getElementById("send-mail").href = "mailto:" + CONTACT.email + "?subject=" + encodeURIComponent("Заявка с сайта") + "&body=" + encodeURIComponent(text);
   document.getElementById("result").hidden = false;
 });
