@@ -1,0 +1,17 @@
+# секреты
+.env
+# рабочие данные: выгрузки, отчёты, логи, состояние — в git не попадают
+input/*
+!input/.gitkeep
+!input/asu/
+input/asu/*
+!input/asu/.gitkeep
+output/*
+!output/.gitkeep
+state.db
+config/users.yaml
+config/fields_map.discovered.yaml
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/

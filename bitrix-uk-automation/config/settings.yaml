@@ -1,0 +1,15 @@
+# Общие настройки. Вебхук здесь НЕ хранится — только в .env или в переменной BITRIX_WEBHOOK_URL.
+portal:
+  domain: ul-73.ru          # вебхук с другим доменом программа не примет
+  entity_type_id: 1092      # смарт-процесс «Дома»
+  type_id: 13               # ID типа (поля вида UF_CRM_13_...)
+
+limits:
+  requests_per_second: 2    # лимит облачного Битрикс24
+  timeout_seconds: 30
+  max_retries: 5            # паузы 1, 2, 4, 8, 16 с
+
+required_scopes: [crm, task, user]
+
+tasks:
+  third_party_responsible_last_name: Шакиров   # ответственный за задачи третьим сторонам
