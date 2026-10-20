@@ -35,3 +35,21 @@ html = (here / "Index.html").read_text(encoding="utf-8").replace("<?!= BOOT ?>",
 inject = "<script>window.DEMO_SEED=" + json.dumps(demo, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/") + ";</script>\n"
 (here / "demo.html").write_text(html.replace("<script>\n(function(){", inject + "<script>\n(function(){", 1), encoding="utf-8")
 print(len(items), "работ,", len(issues), "вопросов")
+
+# --- страница для показа (claude.ai): без входа по PIN, телефоны жильцов скрыты, тема по правилам площадки
+import re
+mask = lambda t: re.sub(r'\(?\s*(?:\+7|8)[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}\s*\)?', '(тел. скрыт)', t) if isinstance(t, str) else t
+show_items = [{k: mask(v) for k, v in i.items()} for i in demo_items]
+show = dict(demo, items=show_items)
+page = (here / "Index.html").read_text(encoding="utf-8").replace("<?!= BOOT ?>", "null")
+head_end = page.index("</head>")
+style = page[page.index("<style>"):page.index("</style>") + 8]
+dark = re.search(r"@media \(prefers-color-scheme:dark\)\{:root\{(.*?)\}\}", style, re.S)
+style = style.replace(dark.group(0), '@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){' + dark.group(1) + '}}\n:root[data-theme="dark"]{' + dark.group(1) + '}')
+fonts = re.search(r'<link rel="stylesheet"[^>]+>', page).group(0)
+bodyhtml = page[page.index("<body>") + 6:page.index("</body>")]
+inject_show = "<script>window.DEMO_SEED=" + json.dumps(show, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/") + ";</script>\n"
+bodyhtml = bodyhtml.replace("<script>\n(function(){", inject_show + "<script>\n(function(){", 1)
+(here / "meeting.html").write_text("<title>Трекер текущего ремонта</title>\n" + fonts + "\n" + style + "\n" + bodyhtml, encoding="utf-8")
+print("meeting.html:", round((here / "meeting.html").stat().st_size / 1024), "КБ; телефонов скрыто:",
+      sum(json.dumps(i, ensure_ascii=False).count("тел. скрыт") for i in show_items))

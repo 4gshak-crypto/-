@@ -280,6 +280,7 @@ function fail(e){const m=(e&&e.message)||String(e);if(m.indexOf("SESSION_EXPIRED
 
 /* ---------- вход ---------- */
 function renderLogin(){
+  if(!REAL)return renderDemoPick();
   $("root").innerHTML=(REAL?"":'<div class="demo">Демо-режим: данные из файла, изменения не сохраняются. PIN для всех — 1111.</div>')+
   '<div class="login"><form class="login-card" id="lf"><div><div class="faint" style="font-size:12px">Текущий ремонт · 2026</div><h1>Трекер текущего ремонта</h1></div>'+
   '<label class="field">Кто вы<select id="ln"><option value="">Загрузка…</option></select></label>'+
@@ -294,6 +295,20 @@ function renderLogin(){
     call("login",n,p).then(r=>{S.token=r.token;S.user=r.user;saveSess();V.scope=myEx()?"mine":"all";load();}).catch(e=>{$("le").textContent=e.message;$("lb").disabled=false;});});
 }
 
+/* демо для показа: вместо PIN — выбор, от чьего имени смотреть */
+function renderDemoPick(){
+  const who=[["Администратор","Администратор","Всё: приёмка с актом, перенос сроков, мастер, сверка, пользователи"],
+    ["Филимонов","УК","Отмечает статус и комментарий только в работах УК"],
+    ["ПТО (подрядчики)","Подрядчики","Отмечает статус и комментарий только в работах подрядчиков"],
+    ["Руководитель","Просмотр","Смотрит сводку и работы, ничего не меняет"]];
+  $("root").innerHTML='<div class="demo">Демонстрация: данные сведены 20.10.2026 из годового плана, файла исполнителей и Битрикс24. Изменения не сохраняются.</div>'+
+  '<div class="login"><div class="login-card" style="max-width:440px"><div><div class="faint" style="font-size:12px">Текущий ремонт · 2026</div><h1>Трекер текущего ремонта</h1></div>'+
+  '<div class="muted" style="font-size:13px">Посмотреть трекер глазами:</div>'+
+  who.map(w=>'<button class="btn" type="button" data-demo="'+esc(w[0])+'" style="text-align:left;display:flex;flex-direction:column;gap:2px"><b>'+esc(w[1])+'</b><span class="muted" style="font-size:12px;font-weight:400">'+esc(w[2])+'</span></button>').join("")+
+  '<div class="hint">В рабочей версии каждый входит под своим именем по PIN или через Битрикс24.</div></div></div>';
+  document.querySelectorAll("[data-demo]").forEach(b=>b.onclick=()=>call("login",b.dataset.demo,"1111").then(r=>{S.token=r.token;S.user=r.user;saveSess();V.scope=myEx()?"mine":"all";V.tab="dash";load();}));
+}
+
 /* ---------- загрузка ---------- */
 function load(silent){
   return call("bootstrap",S.token).then(d=>{S.user=d.user;saveSess();S.items=d.items.map(enrich);buildMonths();S.issues=d.issues;S.log=d.log;S.rev=d.rev;S.asof=d.asof;
@@ -305,11 +320,12 @@ setInterval(()=>{if(!S.token||document.hidden)return;
 /* ---------- каркас ---------- */
 function tabs(){const t=[["dash","Сводка"],["works","Работы"],["issues","Вопросы"],["log","Журнал"]];if(isAdmin())t.push(["users","Пользователи"]);return t;}
 function renderShell(){
-  $("root").innerHTML=(REAL?"":'<div class="demo">Демо-режим: изменения не сохраняются. Попробуйте войти под разными ролями.</div>')+
+  $("root").innerHTML=(REAL?"":'<div class="demo">Демонстрация: изменения не сохраняются · <button class="linkbtn" id="demoswitch" type="button">сменить роль</button></div>')+
   '<header class="bar"><div class="bar-in"><div class="brand">Текущий ремонт</div><nav class="tabs" role="tablist">'+
   tabs().map(t=>'<button role="tab" data-tab="'+t[0]+'" aria-selected="'+(V.tab===t[0])+'">'+t[1]+'</button>').join("")+
   '</nav><div class="who"><span class="nm">'+esc(S.user.name)+'</span><span class="role">'+esc(S.user.role)+'</span><button class="linkbtn" id="out" type="button"'+(IN_BX?" hidden":"")+'>Выйти</button></div></div></header>'+
   '<main id="view"></main><div id="dr"></div>';
+  if($("demoswitch"))$("demoswitch").onclick=()=>{S.token=null;S.user=null;saveSess();renderLogin();};
   $("out").onclick=()=>{call("logout",S.token).catch(()=>{});S.token=null;S.user=null;saveSess();renderLogin();};
   renderView();
 }
