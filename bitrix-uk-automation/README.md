@@ -10,6 +10,8 @@
 | `sync-asu-journal` | дела и задачи по заявкам АСУ из `input/asu/*.xlsx` | шаг 4 |
 | `report` | сводка в Excel и markdown | шаг 4 |
 
+Концепция продукта, модель данных и дорожная карта — в [docs/concept.md](docs/concept.md).
+
 ## Установка
 
 Нужен Python 3.11 или новее.
