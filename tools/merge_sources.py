@@ -6,7 +6,11 @@
   годовой план (ПТО)   — состав работ, УК, основание, оценка, факт, цвет строки (зелёный = принято, жёлтый = выполнено без акта)
   файл исполнителей    — ответственный мастер или ПТО, статус, отметка об акте, комментарии мастеров, пополнения плана
   Битрикс24            — стадия, ответственный за участок, даты, файл акта КС-2, дата создания
-Плюс прежние данные трекера (tracker/data.json): вид работ, исполнитель (СВОИ/подрядчики), объекты КР.
+Из прежнего трекера (tracker/data.json) берутся только написание адресов и вид работ; статусы, исполнители и
+отметки прежних снимков (23.09, 06.10) не используются — только три последние выгрузки.
+
+Исполнитель: «УК» — работа своими силами (в файле исполнителей указан мастер или электрик, в плане оранжевая строка),
+«Подрядчики» — в файле исполнителей «ПТО», в пополнении исполнитель «ПТО», в плане серая строка.
 
 Пишет tracker/merged.json (работы и вопросы) и tracker/merge_report.json (расхождения для разбора)."""
 import collections, datetime, hashlib, json, pathlib, re, sys
@@ -326,8 +330,6 @@ def main(plan_path, exec_path, bx_path):
         S = w['src']
         p, e, a, pe, pr, b = (S.get(k) for k in ('plan', 'exec', 'add', 'per', 'prev', 'bx'))
         cand = []  # (дата источника, статус)
-        if pr and pr.get('status'):
-            cand.append(('06.10', {'done': 'Выполнено, акта нет'}.get(pr['status'], None) or PREV_ST.get(pr['status'])))
         if e and e['status']:
             cand.append(('08.10', e['status']))
         if pe and pe['status']:
@@ -344,35 +346,35 @@ def main(plan_path, exec_path, bx_path):
             cand.append(('19.10 Битрикс', bs))
         cand = [c for c in cand if c[1]]
         DONE = ('Выполнено, акта нет', 'Принято, акт есть')
-        status = cand[-1][1] if cand else ('Не начато' if (a or (b and b['stage'] == 'Запланировано' and w.get('only') == 'bx')) else 'Нет статуса')
+        status = cand[-1][1] if cand else ('Не начато' if (a or (b and b['stage'] == 'Запланировано')) else 'Нет статуса')
         conflict = ''
-        strong_done = [c for c in cand if c[1] in DONE and not c[0].startswith('06.10')]
+        strong_done = [c for c in cand if c[1] in DONE]
         if status not in DONE and status != 'Снято' and strong_done and cand[-1][0].startswith('19.10'):
             conflict = 'Битрикс24: «%s», а %s — %s' % (b['stage'], strong_done[-1][0], strong_done[-1][1].lower())
             status = strong_done[-1][1]
         elif status not in DONE and status != 'Снято' and strong_done:
             conflict = '%s — %s, позже %s — %s' % (strong_done[-1][0], strong_done[-1][1].lower(), cand[-1][0], cand[-1][1].lower())
+        if status not in DONE and status != 'Снято' and '???' in ((e and e['note']) or '') + ((pe and pe['note']) or ''):
+            status = 'Требует уточнения'  # у исполнителя открытый вопрос: «Почему мы???», «где делать кровлю???»
         if ps == 'Принято, акт есть' and status != 'Снято':
             status = 'Принято, акт есть'  # принятие по годовому плану ПТО главнее отметок исполнителя
         if status in DONE and b and b['stage'] == 'Запланировано':
             rep['Битрикс24: выполнено, а стадия «Запланировано»'].append((w['addr'], w['work']))
 
-        # исполнитель: СВОИ / Подрядчики
+        # исполнитель: УК (своими силами) / Подрядчики (в файлах — «ПТО»)
         ex = None
         if a and a['executor']:
-            ex = 'Подрядчики' if 'пто' in a['executor'].lower() and 'филимон' not in a['executor'].lower() else 'СВОИ'
+            ex = 'Подрядчики' if 'пто' in a['executor'].lower() and 'филимон' not in a['executor'].lower() else 'УК'
         if not ex and e:
             wl = e['who'].lower()
-            if wl.startswith('пто'):
+            if 'пто' in wl:
                 ex = 'Подрядчики'
-            elif 'алеев' in wl:
-                ex = 'СВОИ'
+            elif master_of(wl) or 'алеев' in wl:
+                ex = 'УК'
         if not ex and p and p['fill'] == 'FFCC99':
-            ex = 'СВОИ'
+            ex = 'УК'
         if not ex and p and p['fill'] in ('969696', 'C0C0C0'):
             ex = 'Подрядчики'
-        if not ex and pr and pr.get('ex') in ('СВОИ', 'Подрядчики'):
-            ex = pr['ex']
         ex = ex or 'Не распределено'
 
         master = (a and a['master']) or (pe and pe['master']) or (e and master_of(e['who'])) or (b and b['resp']) or ''
@@ -404,9 +406,8 @@ def main(plan_path, exec_path, bx_path):
         check = []
         if conflict:
             check.append('статус расходится: ' + conflict)
-        if pr and pr.get('ex') in ('СВОИ', 'Подрядчики') and ex in ('СВОИ', 'Подрядчики') and pr['ex'] != ex:
-            rep['исполнитель изменился'].append((w['addr'], w['work'], pr['ex'], ex, e['who'] if e else ''))
-            check.append('исполнитель: по отметке 23.09 — %s, в файле исполнителей 08.10 — «%s»' % (pr['ex'], e['who'] if e else ex))
+        if e and '/пто' in e['who'].lower():
+            check.append('исполнитель: в файле исполнителей «%s» — УК или подрядчик?' % e['who'])
         if w.get('addr_conflict'):
             check.append('в Битрикс24 другой адрес: «%s»' % w['addr_conflict'])
         if mconf:
@@ -426,11 +427,11 @@ def main(plan_path, exec_path, bx_path):
         if b and b['created']:
             bx_dates += ('; ' if bx_dates else '') + 'создана ' + fmt(b['created'])
         addr = canon.get(addr_key(w['addr'])) or w['addr']
-        uk = w['uk'] or (b and b['uk']) or (pr and pr.get('uk')) or uk_by_addr.get(addr_key(w['addr']), '')
+        uk = w['uk'] or (b and b['uk']) or uk_by_addr.get(addr_key(w['addr']), '')
         item = dict(key=key_of(w['addr'], w['work'], w['month']), row=w['row'], month=w['month'], addr=addr, uk=uk,
                     work=w['work'], cat=(pr and pr.get('cat')) or cat_of(w['work']), basis=w['basis'] or (b and b['basis_type']) or '',
                     sum=w['sum'] or (b and b['sum']) or None, fsum=fsum, ex=ex, master=master, status=status, act=act,
-                    kr='; '.join(pr['kr']['works']) if pr and pr.get('kr') else '',
+                    kr='',
                     bx_stage=b['stage'] if b else '', bx_start=b['start'] if b else '', bx_end=b['end'] if b else '', bx_created=b['created'] if b else '',
                     in_bx=bool(b), in_exec=bool(e or a or pe), conflict=conflict, history=' → '.join('%s: %s' % c for c in cand),
                     src_note=' · '.join(([item_hist] if (item_hist := ' → '.join('%s: %s' % c for c in cand)) else []) + notes),
