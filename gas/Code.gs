@@ -17,7 +17,8 @@ var SHEET_LOG = 'Журнал';
 var SHEET_ISSUES = 'Вопросы';
 
 var WORK_COLS = ['Ключ', 'Строка', 'Месяц', 'Адрес', 'УК', 'Работа', 'Вид работ', 'Основание', 'Оценка, ₽', 'Факт, ₽',
-  'Исполнитель', 'Статус', 'Комментарий', 'Из файла', 'КР', 'Изменено', 'Кем', 'Дата выполнения', 'Акт', 'Исходный месяц'];
+  'Исполнитель', 'Статус', 'Комментарий', 'Из файла', 'КР', 'Изменено', 'Кем', 'Дата выполнения', 'Акт', 'Исходный месяц',
+  'Мастер участка', 'Стадия Битрикс24', 'Сроки Битрикс24', 'Сверить'];
 var USER_COLS = ['Имя', 'Роль', 'Активен', 'Новый PIN', 'PIN-хэш', 'ID Битрикс24'];
 var LOG_COLS = ['Время', 'Пользователь', 'Ключ', 'Адрес', 'Работа', 'Что', 'Было', 'Стало'];
 var ISSUE_COLS = ['№', 'Вопрос', 'Ответственный', 'Срок', 'Ссылка', 'Решён', 'Кем', 'Когда'];
@@ -122,7 +123,8 @@ function setup() {
     works.getRange('T:T').setNumberFormat('@');
     var rows = SEED.items.map(function (it) {
       return [it.key, it.row || '', it.month, it.addr, it.uk || '', it.work, it.cat || '', it.basis || '', it.sum || '', it.fsum || '',
-        it.ex, it.status, '', it.src_note || '', it.kr || '', '', '', '', '', it.month];
+        it.ex, it.status, '', it.src_note || '', it.kr || '', '', '', '', it.act || '', it.month,
+        it.master || '', it.bx_stage || '', it.bx_dates || '', it.check || ''];
     });
     works.getRange(1, 1, 1, WORK_COLS.length).setValues([WORK_COLS]).setFontWeight('bold');
     works.getRange(2, 1, rows.length, WORK_COLS.length).setValues(rows);
@@ -242,7 +244,7 @@ function getHistory(token, key) {
 
 /* ---------------- запись ---------------- */
 
-/** patch: {status?, note?, ex?, month?, fsum?, act?} — последние четыре только администратор. */
+/** patch: {status?, note?, ex?, month?, fsum?, act?, master?, check?} — всё, кроме статуса и комментария, только администратор. */
 function updateWork(token, key, patch) {
   var user = auth_(token);
   patch = patch || {};
@@ -274,8 +276,17 @@ function updateWork(token, key, patch) {
       changes.push(['Комментарий', item.note, note]);
       row[12] = safe_(note);
     }
-    var adminFields = ['ex', 'month', 'fsum', 'act'].filter(function (k) { return patch[k] != null; });
-    if (adminFields.length && !admin) throw new Error('Исполнителя, месяц, факт и акт меняет только администратор.');
+    var adminFields = ['ex', 'month', 'fsum', 'act', 'master', 'check'].filter(function (k) { return patch[k] != null; });
+    if (adminFields.length && !admin) throw new Error('Исполнителя, мастера, месяц, факт и акт меняет только администратор.');
+    if (patch.master != null && String(patch.master).trim() !== item.master) {
+      var ms = String(patch.master).trim().slice(0, 80);
+      changes.push(['Мастер участка', item.master, ms]);
+      row[20] = ms;
+    }
+    if (patch.check != null && String(patch.check) !== item.check) {
+      changes.push(['Сверка', item.check, patch.check ? String(patch.check).slice(0, 300) : 'сверено']);
+      row[23] = String(patch.check).slice(0, 300);
+    }
     if (patch.ex != null && patch.ex !== item.ex) {
       if (EXECUTORS.indexOf(patch.ex) < 0) throw new Error('Неизвестный исполнитель.');
       changes.push(['Исполнитель', item.ex, patch.ex]);
@@ -329,7 +340,7 @@ function addWork(token, w) {
     var key = 'n' + Utilities.getUuid().slice(0, 8);
     var now = new Date();
     var row = [key, '', w.month, safe_(addr), String(w.uk || ''), safe_(work), 'Добавлено вручную', safe_(String(w.basis || '')), sum, '',
-      ex, 'Не начато', '', '', '', now, user.name, '', '', w.month];
+      ex, 'Не начато', '', '', '', now, user.name, '', '', w.month, safe_(String(w.master || '')), '', '', ''];
     sheet_(SHEET_WORKS).appendRow(row);
     sheet_(SHEET_LOG).appendRow([now, user.name, key, safe_(addr), safe_(work), 'Добавлена работа', '', ex]);
     bumpRev_();
@@ -497,7 +508,8 @@ function workFromRow_(r) {
     ex: EXECUTORS.indexOf(r[10]) >= 0 ? r[10] : 'Не распределено', status: STATUSES.indexOf(r[11]) >= 0 ? r[11] : 'Нет статуса',
     note: String(r[12] || ''), src: String(r[13] || ''), kr: String(r[14] || ''),
     at: r[15] instanceof Date ? r[15].getTime() : null, by: String(r[16] || ''),
-    doneAt: r[17] instanceof Date ? r[17].getTime() : null, act: String(r[18] || ''), month0: monthStr_(r[19]) || monthStr_(r[2])
+    doneAt: r[17] instanceof Date ? r[17].getTime() : null, act: String(r[18] || ''), month0: monthStr_(r[19]) || monthStr_(r[2]),
+    master: String(r[20] || ''), bxStage: String(r[21] || ''), bxDates: String(r[22] || ''), check: String(r[23] || '')
   };
 }
 

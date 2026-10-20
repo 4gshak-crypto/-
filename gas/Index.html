@@ -239,7 +239,7 @@ const DEMO=(function(){
     getRev(t){auth(t);return rev;},
     updateWork(t,key,p){const u=auth(t),it=items.find(x=>x.key===key),adm=u.role==="Администратор";if(!can(u,it))throw new Error("У вас нет прав менять эту работу.");
       const now=Date.now(),DONE=["Выполнено, акта нет","Принято, акт есть"];
-      if(["ex","month","fsum","act"].some(k=>p[k]!=null)&&!adm)throw new Error("Исполнителя, месяц, факт и акт меняет только администратор.");
+      if(["ex","month","fsum","act","master","check"].some(k=>p[k]!=null)&&!adm)throw new Error("Исполнителя, месяц, факт и акт меняет только администратор.");
       if(p.status!=null&&p.status!==it.status){if(!adm&&(ADMIN_ONLY.includes(p.status)||ADMIN_ONLY.includes(it.status)))throw new Error("Принимает работу и снимает её с плана только администратор.");
         L(u,it,"Статус",it.status,p.status);if(DONE.includes(p.status)&&!DONE.includes(it.status))it.doneAt=now;if(!DONE.includes(p.status))it.doneAt=null;it.status=p.status;}
       if(p.note!=null&&p.note.trim()!==it.note){L(u,it,"Комментарий",it.note,p.note.trim());it.note=p.note.trim();}
@@ -247,6 +247,8 @@ const DEMO=(function(){
       if(p.month!=null&&p.month!==it.month){L(u,it,"Перенос срока",it.month,p.month);it.month0=it.month0||it.month;it.month=p.month;}
       if(p.fsum!=null&&String(p.fsum)!==String(it.fsum||"")){L(u,it,"Факт, ₽",it.fsum,p.fsum);it.fsum=p.fsum===""?null:Number(p.fsum);}
       if(p.act!=null&&p.act.trim()!==(it.act||"")){L(u,it,"Акт",it.act,p.act.trim());it.act=p.act.trim();}
+      if(p.master!=null&&p.master.trim()!==(it.master||"")){L(u,it,"Мастер участка",it.master,p.master.trim());it.master=p.master.trim();}
+      if(p.check!=null&&p.check!==(it.check||"")){L(u,it,"Сверка",it.check,p.check||"сверено");it.check=p.check;}
       it.at=now;it.by=u.name;rev++;return it;},
     getHistory(t,key){auth(t);return log.filter(l=>l.key===key);},
     addWork(t,w){const u=auth(t);if(u.role!=="Администратор")throw new Error("Только администратор.");if(!w.addr||!w.work)throw new Error("Укажите адрес и вид работы.");
@@ -261,7 +263,8 @@ const DEMO=(function(){
 
 /* ---------- состояние ---------- */
 let S={token:null,user:null,items:[],issues:[],log:[],rev:0,asof:""};
-let V={tab:"dash",scope:"mine",q:"",month:"",ex:"",grp:"",open:true,addr:"",limit:40,drawer:null};
+let V={tab:"dash",scope:"mine",q:"",month:"",ex:"",grp:"",open:true,addr:"",master:"",chk:false,limit:40,drawer:null};
+const RESET={q:"",month:"",ex:"",grp:"",open:true,addr:"",cat:"",master:"",chk:false,limit:40};
 try{const s=JSON.parse(sessionStorage.getItem("trk")||"null");if(s){S.token=s.token;S.user=s.user;}}catch(e){}
 const saveSess=()=>{try{sessionStorage.setItem("trk",JSON.stringify({token:S.token,user:S.user}));}catch(e){}};
 
@@ -341,9 +344,12 @@ function renderDash(){
     return'<div class="srow" data-go="ex" data-v="'+esc(e)+'"><span class="lbl">'+esc(e)+'</span>'+stackHtml(l)+'<span class="val">'+d+'/'+l.filter(i=>i.g!=="cancel").length+'</span></div>';}).join("");
   const mRows=MONTHS.map(m=>{const l=all.filter(i=>i.month===m[0]);if(!l.length)return"";const d=l.filter(isDone).length;
     return'<div class="srow" data-go="month" data-v="'+m[0]+'"><span class="lbl">'+m[1]+'</span>'+stackHtml(l)+'<span class="val">'+d+'/'+l.filter(i=>i.g!=="cancel").length+'</span></div>';}).join("");
+  const mm={};all.forEach(i=>{const m=i.master||"—";const r=mm[m]=mm[m]||{m,n:0,open:0,od:0,done:0};r.n++;if(!i.closed)r.open++;if(i.overdue)r.od++;if(isDone(i))r.done++;});
+  const mList=Object.values(mm).filter(r=>r.open).sort((a,b)=>b.od-a.od||b.open-a.open).slice(0,9);
+  const chk=all.filter(i=>i.check).length,stale=all.filter(i=>isDone(i)&&i.bxStage==="Запланировано").length,nobx=all.filter(i=>!i.closed&&!i.bxStage&&!i.bxDates).length,nom=all.filter(i=>!i.closed&&!i.master).length;
   const legend='<div class="legend">'+GROUPS.map(g=>'<span><i class="fill g-'+g[0]+'"></i>'+g[1]+'</span>').join("")+'</div>';
   $("view").innerHTML=
-   '<div class="head"><h2>Сводка</h2>'+scopeSeg()+'<span class="faint" style="font-size:12px">план загружен из файла от '+esc(S.asof.split("-").reverse().join("."))+'</span></div>'+
+   '<div class="head"><h2>Сводка</h2>'+scopeSeg()+'<span class="faint" style="font-size:12px">данные сведены '+esc(S.asof.split("-").reverse().join("."))+': план 16.10, исполнители 08.10, Битрикс24 19.10</span></div>'+
    '<div class="tiles">'+
      '<button class="tile done" data-go="grp" data-v="noact" type="button"><div class="l">Выполнено</div><div class="v">'+pct+'%</div><div class="s">'+done+' из '+live.length+(noact?' · '+noact+' без акта':'')+'</div></button>'+
      '<button class="tile" data-go="open" type="button"><div class="l">Открыто</div><div class="v">'+open.length+'</div><div class="s">'+(od?od+' '+plural(od,"просрочена","просрочены","просрочено"):"всё в сроке")+'</div></button>'+
@@ -355,13 +361,21 @@ function renderDash(){
    '<div class="grid2"><section class="card"><h3>Открытые работы по видам <span>'+open.length+'</span></h3>'+
      (catList.length?catList.map(c=>'<div class="hbar" data-go="q" data-v="'+esc(c[0])+'" data-cat="1"><span class="lbl">'+esc(c[0])+'</span><span class="tr"><i style="width:'+(c[1]*100/catMax)+'%"></i></span><span class="val">'+c[1]+'</span></div>').join(""):'<div class="empty">Открытых работ нет</div>')+'</section>'+
      '<section class="card"><h3>Требуют внимания <span>адреса</span></h3>'+
-     (hot.length?'<ul class="alist">'+hot.map(a=>'<li data-go="addr" data-v="'+esc(a.addr)+'"><span class="a">'+esc(a.addr)+'</span><span class="m">'+(a.attn?'<span class="pill g-attn">'+a.attn+' без решения</span> ':"")+a.n+' откр.'+(a.od?' · просрочено '+a.od:"")+'</span></li>').join("")+'</ul>':'<div class="empty">Всё спокойно</div>')+'</section></div>';
+     (hot.length?'<ul class="alist">'+hot.map(a=>'<li data-go="addr" data-v="'+esc(a.addr)+'"><span class="a">'+esc(a.addr)+'</span><span class="m">'+(a.attn?'<span class="pill g-attn">'+a.attn+' без решения</span> ':"")+a.n+' откр.'+(a.od?' · просрочено '+a.od:"")+'</span></li>').join("")+'</ul>':'<div class="empty">Всё спокойно</div>')+'</section></div>'+
+   (V.scope==="mine"&&myEx()?"":'<div class="grid2"><section class="card"><h3>Мастера участков <span>открыто · просрочено</span></h3>'+
+     (mList.length?'<ul class="alist">'+mList.map(r=>'<li data-go="master" data-v="'+esc(r.m)+'"><span class="a">'+esc(r.m==="—"?"Мастер не назначен":r.m)+'</span><span class="m">'+r.open+' откр.'+(r.od?' · <b style="color:var(--c-attn)">'+r.od+' просроч.</b>':"")+' · выполнено '+r.done+'/'+r.n+'</span></li>').join("")+'</ul>':'<div class="empty">Открытых работ нет</div>')+'</section>'+
+     '<section class="card"><h3>Сверка источников <span>план · исполнители · Битрикс24</span></h3><ul class="alist">'+
+       '<li data-go="chk"><span class="a">Требуют сверки</span><span class="m"><span class="pill g-wait">'+chk+'</span></span></li>'+
+       '<li style="cursor:default"><span class="a">Выполнено, а в Битрикс24 «Запланировано»</span><span class="m">'+stale+'</span></li>'+
+       '<li style="cursor:default"><span class="a">Открытые без карточки в Битрикс24</span><span class="m">'+nobx+'</span></li>'+
+       '<li data-go="master" data-v="—"><span class="a">Открытые без мастера</span><span class="m">'+nom+'</span></li></ul></section></div>');
   bindScope();
 }
 document.addEventListener("click",ev=>{const g=ev.target.closest("[data-go]");if(!g||!$("view"))return;
-  const k=g.dataset.go,v=g.dataset.v;Object.assign(V,{q:"",month:"",ex:"",grp:"",open:false,addr:"",cat:"",limit:40});
+  const k=g.dataset.go,v=g.dataset.v;Object.assign(V,RESET,{open:false});
   if(k==="ex")V.ex=v;else if(k==="month")V.month=v;else if(k==="grp")V.grp=v;else if(k==="open")V.open=true;else if(k==="addr")V.addr=v;else if(k==="q"&&g.dataset.cat)V.cat=v;
-  if(k!=="grp")V.open=true; if(k==="ex"&&myEx()&&v!==myEx())V.scope="all";
+  else if(k==="master")V.master=v;else if(k==="chk")V.chk=true;
+  if(k!=="grp"&&k!=="chk")V.open=true; if(k==="ex"&&myEx()&&v!==myEx())V.scope="all";
   V.tab="works";renderView();window.scrollTo(0,0);});
 // подсказки на графиках
 document.addEventListener("mousemove",ev=>{const t=ev.target.closest&&ev.target.closest("[data-tip]"),tip=$("tip");
@@ -371,7 +385,8 @@ document.addEventListener("mousemove",ev=>{const t=ev.target.closest&&ev.target.
 function filtered(){
   const q=V.q.toLowerCase();
   return scoped().filter(i=>(!V.month||i.month===V.month)&&(!V.ex||i.ex===V.ex)&&(!V.grp||i.g===V.grp)&&(!V.open||!i.closed)&&(!V.addr||i.addr===V.addr)&&(!V.cat||i.cat===V.cat)&&
-    (!q||[i.addr,i.work,i.row,i.note,i.src,i.basis,i.act,i.uk].join(" ").toLowerCase().indexOf(q)>=0))
+    (!V.master||(i.master||"—")===V.master)&&(!V.chk||!!i.check)&&
+    (!q||[i.addr,i.work,i.row,i.note,i.src,i.basis,i.act,i.uk,i.master,i.check,i.bxStage].join(" ").toLowerCase().indexOf(q)>=0))
    .sort((a,b)=>(RANK[b.status]-RANK[a.status])||(b.overdue-a.overdue)||a.addr.localeCompare(b.addr,"ru"));
 }
 const opt=(v,l,cur)=>'<option value="'+esc(v)+'"'+(v===cur?" selected":"")+'>'+esc(l)+'</option>';
@@ -383,8 +398,10 @@ function renderWorks(){
   '<select class="ctl" id="fm" aria-label="Месяц">'+opt("","Все месяцы",V.month)+MONTHS.map(m=>opt(m[0],m[1],V.month)).join("")+'</select>'+
   (myEx()&&V.scope==="mine"?"":'<select class="ctl" id="fe" aria-label="Исполнитель">'+opt("","Все исполнители",V.ex)+EXS.map(e=>opt(e,e,V.ex)).join("")+'</select>')+
   '<select class="ctl" id="fg" aria-label="Статус">'+opt("","Все статусы",V.grp)+GROUPS.map(g=>opt(g[0],g[1],V.grp)).join("")+'</select>'+
-  '<label class="chk"><input type="checkbox" id="fo"'+(V.open?" checked":"")+'> Только открытые</label></div>'+
-  '<div class="count"><span>'+list.length+' '+plural(list.length,"работа","работы","работ")+(hiddenClosed?' · <button class="linkbtn" id="showcl" type="button">ещё '+hiddenClosed+' среди закрытых — показать</button>':"")+'</span>'+((V.q||V.month||V.ex||V.grp||V.addr||V.cat||!V.open)?'<button class="linkbtn" id="fr" type="button">Сбросить</button>':"")+'</div>'+
+  '<select class="ctl" id="fma" aria-label="Мастер участка">'+opt("","Все мастера",V.master)+masters().map(m=>opt(m,m==="—"?"Без мастера":m,V.master)).join("")+'</select>'+
+  '<label class="chk"><input type="checkbox" id="fo"'+(V.open?" checked":"")+'> Только открытые</label>'+
+  '<label class="chk"><input type="checkbox" id="fc"'+(V.chk?" checked":"")+'> Требует сверки</label></div>'+
+  '<div class="count"><span>'+list.length+' '+plural(list.length,"работа","работы","работ")+(hiddenClosed?' · <button class="linkbtn" id="showcl" type="button">ещё '+hiddenClosed+' среди закрытых — показать</button>':"")+'</span>'+((V.q||V.month||V.ex||V.grp||V.addr||V.cat||V.master||V.chk||!V.open)?'<button class="linkbtn" id="fr" type="button">Сбросить</button>':"")+'</div>'+
   '<div class="list">'+(list.length?list.slice(0,V.limit).map(rowHtml).join("")+(list.length>V.limit?'<button class="more" id="more" type="button">Показать ещё '+Math.min(40,list.length-V.limit)+'</button>':""):'<div class="empty">Ничего не найдено. Измените фильтры.</div>')+'</div>';
   bindScope();
   let qt;$("fq").oninput=e=>{clearTimeout(qt);qt=setTimeout(()=>{V.q=e.target.value.trim();V.addr="";V.cat="";V.limit=40;renderWorks();const f=$("fq");f.focus();f.setSelectionRange(f.value.length,f.value.length);},200);};
@@ -392,14 +409,17 @@ function renderWorks(){
   if($("fe"))$("fe").onchange=e=>{V.ex=e.target.value;renderWorks();};
   $("fg").onchange=e=>{V.grp=e.target.value;if(["done","noact","cancel","winter"].includes(V.grp))V.open=false;renderWorks();};
   $("fo").onchange=e=>{V.open=e.target.checked;renderWorks();};
-  if($("fr"))$("fr").onclick=()=>{Object.assign(V,{q:"",month:"",ex:"",grp:"",open:true,addr:"",cat:"",limit:40});renderWorks();};
+  $("fc").onchange=e=>{V.chk=e.target.checked;if(V.chk)V.open=false;renderWorks();};
+  $("fma").onchange=e=>{V.master=e.target.value;renderWorks();};
+  if($("fr"))$("fr").onclick=()=>{Object.assign(V,RESET);renderWorks();};
   if($("showcl"))$("showcl").onclick=()=>{V.open=false;renderWorks();};
   if($("more"))$("more").onclick=()=>{V.limit+=40;renderWorks();};
   if($("addw"))$("addw").onclick=()=>{V.drawer={add:true};renderDrawer();};
 }
+function masters(){const c={};S.items.forEach(i=>{const m=i.master||"—";c[m]=(c[m]||0)+1;});return Object.keys(c).sort((a,b)=>a==="—"?1:b==="—"?-1:a.localeCompare(b,"ru"));}
 function rowHtml(i){
   return'<div class="wr g-'+i.g+'" data-key="'+esc(i.key)+'" tabindex="0" role="button"><span class="sev"></span>'+
-   '<div style="min-width:0"><div class="a">'+esc(i.addr)+'</div><div class="w">'+esc(i.work)+'</div></div>'+
+   '<div style="min-width:0"><div class="a">'+esc(i.addr)+(i.check?' <span class="pill g-wait" style="font-size:10px;padding:1px 7px">сверить</span>':"")+'</div><div class="w">'+esc(i.work)+(i.master?' <span class="faint">· '+esc(i.master)+'</span>':"")+'</div></div>'+
    '<div class="r"><span class="pill dot">'+esc(i.status)+'</span><span class="tag '+EX_CLS[i.ex]+'">'+esc(i.ex)+(canEdit(i)?"":' <span class="lock">· просмотр</span>')+'</span>'+(i.overdue?'<span class="od">просрочено '+i.overdue+' дн.</span>':i.moved?'<span class="lock">перенесено из '+esc(mfrom(i.month0))+'</span>':"")+'</div></div>';
 }
 document.addEventListener("click",ev=>{const r=ev.target.closest(".wr");if(r){V.drawer={key:r.dataset.key};renderDrawer();}});
@@ -418,9 +438,12 @@ function renderDrawer(){
    '<div class="dh"><div><div class="muted" style="font-size:12px">'+esc(it.addr)+(it.row?' · строка '+it.row:"")+'</div><h3>'+esc(it.work)+'</h3></div><button class="x" id="dx" type="button" aria-label="Закрыть">×</button></div>'+
    '<div class="db">'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill dot">'+esc(it.status)+'</span><span class="pill '+EX_CLS[it.ex]+'">'+esc(it.ex)+'</span>'+(it.overdue?'<span class="pill g-attn">просрочено '+it.overdue+' дн.</span>':"")+'</div>'+
+    (it.check?'<div class="box g-wait" style="background:var(--cb);border-color:transparent"><div style="font-size:13px"><b>Сверить:</b> '+esc(it.check)+'</div>'+(isAdmin()?'<button class="btn" id="dchk" type="button">Сверено</button>':"")+'</div>':"")+
     '<dl class="dl"><dt>Месяц</dt><dd>'+esc(mname(it.month))+(it.moved?' <span class="faint">(перенесено из '+esc(mfrom(it.month0))+')</span>':"")+'</dd><dt>УК</dt><dd>'+esc(it.uk||"—")+'</dd><dt>Вид работ</dt><dd>'+esc(it.cat||"—")+'</dd>'+
      '<dt>Основание</dt><dd>'+esc(it.basis||"не указано")+'</dd><dt>Оценка</dt><dd class="num">'+money(it.sum)+(it.fsum?' · факт '+money(it.fsum):"")+'</dd>'+
-     (it.src?'<dt>Из файла</dt><dd>'+esc(it.src)+'</dd>':"")+(it.kr?'<dt>Капремонт</dt><dd>'+esc(it.kr)+'</dd>':"")+
+     '<dt>Мастер</dt><dd>'+esc(it.master||"не назначен")+'</dd>'+
+     (it.bxStage||it.bxDates?'<dt>Битрикс24</dt><dd>'+esc([it.bxStage,it.bxDates].filter(Boolean).join(" · "))+'</dd>':'<dt>Битрикс24</dt><dd class="faint">карточки нет</dd>')+
+     (it.src?'<dt>Источники</dt><dd>'+esc(it.src)+'</dd>':"")+(it.kr?'<dt>Капремонт</dt><dd>'+esc(it.kr)+'</dd>':"")+
      (it.doneAt?'<dt>Выполнено</dt><dd>'+when(it.doneAt).split(" ")[0]+'</dd>':"")+(it.act?'<dt>Акт</dt><dd>'+esc(it.act)+'</dd>':"")+
      (it.at?'<dt>Изменено</dt><dd>'+esc(it.by)+', '+when(it.at)+'</dd>':"")+'</dl>'+
     (ed?'<div class="box"><h4>Отметить</h4><label class="field">Статус<select id="ds"'+(stLocked?" disabled":"")+'>'+stOpts+'</select></label>'+
@@ -428,7 +451,8 @@ function renderDrawer(){
        (isAdmin()?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label class="field">Исполнитель<select id="de">'+EXS.map(e=>opt(e,e,it.ex)).join("")+'</select></label>'+
          '<label class="field">Месяц<select id="dm">'+MONTHS.map(m=>opt(m[0],m[1],it.month)).join("")+'</select></label>'+
          '<label class="field">Факт, ₽<input id="df" inputmode="decimal" value="'+(it.fsum||"")+'"></label>'+
-         '<label class="field">Акт (№, дата)<input id="da" maxlength="200" value="'+esc(it.act||"")+'"></label></div>':"")+
+         '<label class="field">Акт (№, дата)<input id="da" maxlength="200" value="'+esc(it.act||"")+'"></label>'+
+         '<label class="field" style="grid-column:1/-1">Мастер участка<input id="dmr" list="mlist" maxlength="80" value="'+esc(it.master||"")+'"></label><datalist id="mlist">'+masters().filter(m=>m!=="—").map(m=>'<option value="'+esc(m)+'">').join("")+'</datalist></div>':"")+
        '<label class="field">Комментарий<textarea id="dn" maxlength="2000" placeholder="Что сделано, что мешает">'+esc(it.note)+'</textarea></label></div>'
      :'<div class="box"><h4>Комментарий</h4><div style="font-size:13px;white-space:pre-wrap">'+(it.note?esc(it.note):'<span class="faint">нет</span>')+'</div><div class="lock">Эту работу отмечает '+(it.ex==="Не распределено"?"администратор":"роль «"+esc(it.ex)+"»")+'.</div></div>')+
     histHtml(D.hist)+
@@ -440,8 +464,10 @@ function renderDrawer(){
   const patch=()=>{const p={};if($("ds").value!==it.status)p.status=$("ds").value;if($("dn").value.trim()!==it.note)p.note=$("dn").value;
     if($("de")&&$("de").value!==it.ex)p.ex=$("de").value;if($("dm")&&$("dm").value!==it.month)p.month=$("dm").value;
     if($("df")){const f=$("df").value.replace(/\s/g,"").replace(",",".");if(f!==String(it.fsum||""))p.fsum=f;}
-    if($("da")&&$("da").value.trim()!==(it.act||""))p.act=$("da").value;return p;};
-  ["ds","dn","de","dm","df","da"].forEach(id=>{const el=$(id);if(el){el.addEventListener("input",dirty);el.addEventListener("change",dirty);}});
+    if($("da")&&$("da").value.trim()!==(it.act||""))p.act=$("da").value;
+    if($("dmr")&&$("dmr").value.trim()!==(it.master||""))p.master=$("dmr").value;return p;};
+  if($("dchk"))$("dchk").onclick=()=>{$("dchk").disabled=true;call("updateWork",S.token,it.key,{check:""}).then(n=>{Object.assign(it,n);enrich(it);toast("Отмечено как сверенное");renderDrawer();load(true);}).catch(e=>{$("dchk").disabled=false;fail(e);});};
+  ["ds","dn","de","dm","df","da","dmr"].forEach(id=>{const el=$(id);if(el){el.addEventListener("input",dirty);el.addEventListener("change",dirty);}});
   $("dsave").onclick=()=>{const p=patch();$("dsave").disabled=true;$("dmsg").textContent="Сохраняем…";
     call("updateWork",S.token,it.key,p).then(n=>{Object.assign(it,n);enrich(it);toast("Сохранено");V.drawer=null;$("dr").innerHTML="";load(true);}).catch(e=>{$("dmsg").textContent="";$("dsave").disabled=false;fail(e);});};
 }
