@@ -53,3 +53,10 @@ bodyhtml = bodyhtml.replace("<script>\n(function(){", inject_show + "<script>\n(
 (here / "meeting.html").write_text("<title>Трекер текущего ремонта</title>\n" + fonts + "\n" + style + "\n" + bodyhtml, encoding="utf-8")
 print("meeting.html:", round((here / "meeting.html").stat().st_size / 1024), "КБ; телефонов скрыто:",
       sum(json.dumps(i, ensure_ascii=False).count("тел. скрыт") for i in show_items))
+
+# --- та же страница отдельным файлом для скачивания: открывается в браузере без интернета (кроме шрифтов)
+d = M["generated"].split("-")
+dl = here.parent / "reports" / ("Трекер текущего ремонта %s.%s.%s.html" % (d[2], d[1], d[0]))
+dl.write_text('<!DOCTYPE html>\n<html lang="ru">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+              "<title>Трекер текущего ремонта</title>\n" + fonts + "\n" + style + "\n</head>\n<body>\n" + bodyhtml + "\n</body>\n</html>\n", encoding="utf-8")
+print(dl.name + ":", round(dl.stat().st_size / 1024), "КБ")
