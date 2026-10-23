@@ -221,6 +221,7 @@ function bootstrap(token) {
     rev: getRev_(),
     asof: SEED.generated,
     items: readWorks_(),
+    ph: photoCounts_(),
     issues: readIssues_(),
     log: readLog_(60)
   };
@@ -345,6 +346,168 @@ function addWork(token, w) {
     sheet_(SHEET_LOG).appendRow([now, user.name, key, safe_(addr), safe_(work), 'Добавлена работа', '', ex]);
     bumpRev_();
     return workFromRow_(row);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/* ---------------- фото «до» и «после» ---------------- */
+// Снимки лежат на Google Диске владельца трекера (папка создаётся сама, доступа у посторонних нет);
+// лист «Фото» хранит, что к какой работе относится, и крошечную миниатюру для быстрого показа.
+
+var SHEET_PHOTOS = 'Фото';
+var PHOTO_COLS = ['ID', 'Ключ работы', 'Тип', 'Файл на Диске', 'Имя файла', 'Кем', 'Когда', 'Размер, КБ', 'Миниатюра'];
+var PHOTO_TYPES = ['до', 'после'];
+var PHOTO_MAX_PER_TYPE = 20;
+var PHOTO_MAX_BYTES = 4 * 1024 * 1024;   // страница сжимает фото до 1600 px, обычно это 200–500 КБ
+var THUMB_MAX_BYTES = 30 * 1024;         // миниатюра хранится в ячейке листа
+
+function photoSheet_(create) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), sh = ss.getSheetByName(SHEET_PHOTOS);
+  if (!sh && create) {
+    sh = ss.insertSheet(SHEET_PHOTOS);
+    sh.getRange(1, 1, 1, PHOTO_COLS.length).setValues([PHOTO_COLS]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+/** Описание всех фото без картинок; row — номер строки на листе. Миниатюры в этот диапазон не входят, чтобы чтение было быстрым. */
+function readPhotos_() {
+  var sh = photoSheet_(false);
+  if (!sh || sh.getLastRow() < 2) return [];
+  var out = [];
+  sh.getRange(2, 1, sh.getLastRow() - 1, 8).getValues().forEach(function (r, i) {
+    if (!r[0]) return;
+    out.push({ row: i + 2, id: String(r[0]), key: String(r[1]), type: String(r[2]), file: String(r[3]), name: String(r[4]), by: String(r[5]),
+      at: r[6] instanceof Date ? r[6].getTime() : null, kb: Number(r[7]) || 0 });
+  });
+  return out;
+}
+
+/** {ключ работы: [фото «до», фото «после»]} */
+function photoCounts_() {
+  var c = {};
+  readPhotos_().forEach(function (p) {
+    var a = c[p.key] = c[p.key] || [0, 0];
+    a[p.type === 'после' ? 1 : 0]++;
+  });
+  return c;
+}
+
+function photoFolder_() {
+  var props = PropertiesService.getScriptProperties(), id = props.getProperty('PHOTO_FOLDER'), f = null;
+  if (id) {
+    try { f = DriveApp.getFolderById(id); if (f.isTrashed()) f = null; } catch (e) { f = null; }
+  }
+  if (!f) {
+    f = DriveApp.createFolder('Трекер текущего ремонта — фото');
+    props.setProperty('PHOTO_FOLDER', f.getId());
+  }
+  return f;
+}
+
+/** Запустите один раз из редактора скриптов: Google попросит разрешить доступ к Диску и создаст папку для фото. */
+function authorizePhotos() {
+  var f = photoFolder_();
+  photoSheet_(true);
+  Logger.log('Папка для фото готова: ' + f.getUrl() + '. Теперь разверните новую версию веб-приложения.');
+}
+
+function driveError_(e) {
+  var m = String((e && e.message) || e);
+  if (/authori|разреш|permission|доступ/i.test(m) && /drive|диск|DriveApp|scope|authori/i.test(m))
+    return new Error('Нужно один раз разрешить доступ к Диску: откройте редактор скриптов, запустите функцию authorizePhotos и разверните новую версию.');
+  return e instanceof Error ? e : new Error(m);
+}
+
+/** Принимает только JPEG (страница сама превращает снимок в JPEG): проверяем сигнатуру и размер. */
+function decodeJpeg_(b64, maxBytes, label) {
+  b64 = String(b64 || '');
+  if (!b64 || b64.length > maxBytes * 1.4) throw new Error(label + ': файл пустой или слишком большой.');
+  var bytes;
+  try { bytes = Utilities.base64Decode(b64); } catch (e) { throw new Error(label + ': не удалось прочитать данные.'); }
+  if (bytes.length > maxBytes) throw new Error(label + ': файл слишком большой.');
+  if (bytes.length < 100 || (bytes[0] & 255) !== 0xFF || (bytes[1] & 255) !== 0xD8 || (bytes[2] & 255) !== 0xFF) throw new Error(label + ': нужен формат JPEG.');
+  return bytes;
+}
+
+function photoMeta_(p) { return { id: p.id, type: p.type, name: p.name, by: p.by, at: p.at, kb: p.kb }; }
+
+function workItem_(key) {
+  var sh = sheet_(SHEET_WORKS), idx = findRow_(sh, key);
+  return idx ? workFromRow_(sh.getRange(idx, 1, 1, WORK_COLS.length).getValues()[0]) : null;
+}
+
+/** Фото работы с миниатюрами. Смотреть может любой вошедший. */
+function listPhotos(token, key) {
+  auth_(token);
+  var sh = photoSheet_(false), out = [];
+  readPhotos_().filter(function (p) { return p.key === String(key); }).forEach(function (p) {
+    var m = photoMeta_(p);
+    m.thumb = String(sh.getRange(p.row, 9).getValue() || '');
+    out.push(m);
+  });
+  return out;
+}
+
+/** Полноразмерное фото по номеру из листа «Фото» (произвольные файлы Диска отдавать нельзя). */
+function getPhoto(token, id) {
+  auth_(token);
+  var p = readPhotos_().filter(function (x) { return x.id === String(id); })[0];
+  if (!p) throw new Error('Фото не найдено — возможно, его уже удалили.');
+  try {
+    return { mime: 'image/jpeg', name: p.name, data: Utilities.base64Encode(DriveApp.getFileById(p.file).getBlob().getBytes()) };
+  } catch (e) {
+    throw driveError_(e);
+  }
+}
+
+/** Добавляет фото к работе. Права те же, что на правку работы: администратор, УК — свои, Подрядчики — свои. */
+function addPhoto(token, key, type, full, thumb, name) {
+  var user = auth_(token);
+  if (PHOTO_TYPES.indexOf(type) < 0) throw new Error('Фото бывает «до» или «после».');
+  var bytes = decodeJpeg_(full, PHOTO_MAX_BYTES, 'Фото');
+  decodeJpeg_(thumb, THUMB_MAX_BYTES, 'Миниатюра');
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var item = workItem_(key);
+    if (!item) throw new Error('Работа не найдена — обновите страницу.');
+    if (!canEditWork_(user, item)) throw new Error('У вас нет прав добавлять фото к этой работе.');
+    var mine = readPhotos_().filter(function (p) { return p.key === item.key && p.type === type; });
+    if (mine.length >= PHOTO_MAX_PER_TYPE) throw new Error('Больше ' + PHOTO_MAX_PER_TYPE + ' фото «' + type + '» к одной работе не добавить. Удалите лишние.');
+    var id = 'p' + Utilities.getUuid().slice(0, 8), now = new Date(), file;
+    try {
+      file = photoFolder_().createFile(Utilities.newBlob(bytes, 'image/jpeg', item.key + '-' + type + '-' + id + '.jpg'));
+    } catch (e) {
+      throw driveError_(e);
+    }
+    var nm = String(name || '').replace(/[^\wа-яА-ЯёЁ .-]/g, '').slice(0, 120);
+    photoSheet_(true).appendRow([id, item.key, type, file.getId(), nm, user.name, now, Math.round(bytes.length / 1024), String(thumb)]);
+    sheet_(SHEET_LOG).appendRow([now, user.name, item.key, safe_(item.addr), safe_(item.work), 'Фото «' + type + '»', '', 'добавлено']);
+    bumpRev_();
+    return { id: id, counts: photoCounts_()[item.key] || [0, 0] };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Удаляет фото: администратор любое, остальные — свои в работах, которые они ведут. */
+function deletePhoto(token, id) {
+  var user = auth_(token);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var p = readPhotos_().filter(function (x) { return x.id === String(id); })[0];
+    if (!p) throw new Error('Фото не найдено — возможно, его уже удалили.');
+    var item = workItem_(p.key), admin = user.role === 'Администратор';
+    if (!admin && !(item && canEditWork_(user, item) && p.by === user.name)) throw new Error('Удалить фото может администратор или тот, кто его добавил.');
+    photoSheet_(false).deleteRow(p.row);
+    try { DriveApp.getFileById(p.file).setTrashed(true); } catch (e) { /* файл уже удалён на Диске — запись всё равно убираем */ }
+    sheet_(SHEET_LOG).appendRow([new Date(), user.name, p.key, item ? safe_(item.addr) : '', item ? safe_(item.work) : '', 'Фото «' + p.type + '»', '', 'удалено']);
+    bumpRev_();
+    return { counts: photoCounts_()[p.key] || [0, 0] };
   } finally {
     lock.releaseLock();
   }

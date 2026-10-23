@@ -220,6 +220,23 @@ main{max-width:1200px;margin:0 auto;padding:20px 16px 48px}
 .df{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
 .df .msg{font-size:12px;color:var(--muted);margin-left:auto}
 .acts{display:flex;gap:8px;flex-wrap:wrap}
+.phcols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.phc h5{margin:0 0 6px;font-size:12px;font-weight:600}
+.phg{display:flex;flex-wrap:wrap;gap:6px}
+.pht{width:64px;height:64px;padding:0;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;background:var(--surface-2);cursor:pointer}
+.pht img{width:100%;height:100%;object-fit:cover;display:block}
+.pha{position:relative;width:64px;height:64px;border:1px dashed var(--line-strong);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:24px;cursor:pointer}
+.pha input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.pha:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.pha.off{opacity:.45;pointer-events:none}
+.lbx{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:12px}
+.lbs{position:absolute;inset:0;background:rgba(10,15,12,.86)}
+.lbx figure{position:relative;margin:0;max-width:min(94vw,980px);max-height:94vh;display:flex;flex-direction:column;gap:10px;align-items:center}
+.lbimg{min-height:100px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px}
+.lbimg img{max-width:100%;max-height:70vh;border-radius:6px;background:#000}
+.lbx figcaption{color:#fff;font-size:13px;text-align:center}
+.lbb{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.lbb a.btn{text-decoration:none;color:inherit}
 .imp-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-top:1px solid var(--line);font-size:13px}
 .imp-row:first-of-type{border-top:0}
 .imp-row small{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:1px}
@@ -947,7 +964,7 @@ const FLAGS={
   actlate:["акт задерживается с прошлых месяцев",i=>i.actlate],
   chk:["требуют сверки источников",i=>!!i.check],
   bxstale:["выполнено, а в Битрикс24 «Запланировано»",i=>isDone(i)&&i.bxStage==="Запланировано"],
-  nobx:["нет карточки в Битрикс24",i=>!i.bxStage&&!i.bxDates]};
+  nobx:["нет карточки в Битрикс24",i=>!i.bxStage&&!i.bxDates],nophoto:["выполнено, а фото «после» нет",i=>isDone(i)&&!phCount(i)[1]]};
 // разрезы таблицы «Кто отстаёт»: заголовок, значение, как показать, подпись вкладки
 const WHO={
   ex:["Исполнитель",i=>i.ex,k=>k,"Исполнители"],
@@ -1000,11 +1017,11 @@ function renderDemoPick(){
 
 /* ---------- загрузка ---------- */
 function load(silent){
-  return call("bootstrap",S.token).then(d=>{S.user=d.user;saveSess();S.items=d.items.map(enrich);buildMonths();S.issues=d.issues;S.log=d.log;S.rev=d.rev;S.asof=d.asof;
+  return call("bootstrap",S.token).then(d=>{S.user=d.user;saveSess();S.items=d.items.map(enrich);S.ph=d.ph||{};buildMonths();S.issues=d.issues;S.log=d.log;S.rev=d.rev;S.asof=d.asof;
     if(!silent||!$("view"))renderShell();else renderView();}).catch(fail);
 }
 setInterval(()=>{if(!S.token||document.hidden)return;
-  call("getRev",S.token).then(r=>{if(r!==S.rev&&!(V.drawer&&V.drawer.dirty))load(true);}).catch(()=>{});},45000);
+  call("getRev",S.token).then(r=>{if(r!==S.rev&&!(V.drawer&&(V.drawer.dirty||V.drawer.phBusy)))load(true);}).catch(()=>{});},45000);
 
 /* ---------- каркас ---------- */
 function tabs(){const t=[["dash","Сводка"],["works","Работы"],["issues","Вопросы"],["log","Журнал"]];if(isAdmin())t.push(["users","Пользователи"]);return t;}
@@ -1040,6 +1057,30 @@ function stackHtml(list,cls){
   return'<div class="'+c+'">'+out+'</div>';
 }
 const dmy=d=>d?d.split("-").reverse().join("."):"";
+/* ---------- расчёты сводки: общие для страницы и выгрузки в Excel ---------- */
+function probList(all,plan,C,OD,open,actlate,mine){
+  return[["todo_od","high",OD.todo,"Не начаты, хотя месяц плана прошёл","Исполнитель и ПТО: начать или перенести срок"],
+    ["prog_od","high",OD.prog,"В работе дольше плана","Мастер: дата завершения и что мешает"],
+    ["attn","high",C.attn,"Работа стоит — нужно решение","Руководство и ПТО: решить или снять с плана"],
+    ["actlate","mid",actlate,"Выполнены, но нет акта с прошлых месяцев","ПТО: оформить и подписать акты"],
+    ["nomaster","mid",open.filter(i=>!i.master).length,"Открытые работы без мастера участка","Назначить ответственного мастера"],
+    ["noex","mid",open.filter(i=>i.ex==="Не распределено").length,"Открытые работы без исполнителя","ПТО: решить, УК или подрядчик"],
+    ["chk","low",all.filter(i=>i.check).length,"Расходятся план, файл исполнителей и Битрикс24","Администратор: сверить и нажать «Сверено»"],
+    ["bxstale","low",plan.filter(FLAGS.bxstale[1]).length,"Выполнено, а в Битрикс24 стадия «Запланировано»","Ответственный за Битрикс24: обновить стадии"]]
+    .filter(p=>p[2]&&(!mine||["todo_od","prog_od","attn","actlate"].includes(p[0])));
+}
+function monthRows(all){
+  const curM=TODAY.slice(0,7);
+  return MONTHS.map(([m,label])=>{const l=all.filter(i=>i.month===m&&i.g!=="cancel");if(!l.length)return null;
+    const d=l.filter(isDone).length,op=l.filter(i=>!i.closed).length,na=l.filter(i=>i.g==="noact").length;
+    const st=m<curM?(op?"late":na?"wait":"ok"):m===curM?"now":"next";
+    return{m,label,l,d,op,na,st,txt:{late:"просрочен",wait:"без акта "+na,ok:"закрыт",now:"идёт сейчас",next:"впереди"}[st]};}).filter(Boolean);
+}
+function whoRows(plan,W){
+  const gm={};
+  plan.forEach(i=>{const k=W[1](i),r=gm[k]=gm[k]||{k,n:0,todo:0,prog:0,noact:0,done:0,winter:0,attn:0,od:0};r.n++;r[i.g]++;if(i.overdue)r.od++;});
+  return Object.values(gm).map(r=>Object.assign(r,{pct:Math.round((r.noact+r.done)*100/r.n)})).sort((a,b)=>b.od-a.od||a.pct-b.pct);
+}
 function renderDash(){
   const all=scoped(),plan=all.filter(i=>i.g!=="cancel"),N=plan.length,cancelN=all.length-N,mine=!!(myEx()&&V.scope==="mine");
   const C={},OD={};ORDER.forEach(k=>{C[k]=plan.filter(i=>i.g===k).length;OD[k]=plan.filter(i=>i.g===k&&i.overdue).length;});
@@ -1066,35 +1107,21 @@ function renderDash(){
     (cancelN?'Снято с плана '+cancelN+' — в проценты не входят. ':'')+'Нажмите на карточку, чтобы открыть список.</p></section>';
 
   // 2. где проблемы
-  const P=[["todo_od","high",OD.todo,"Не начаты, хотя месяц плана прошёл","Исполнитель и ПТО: начать или перенести срок"],
-    ["prog_od","high",OD.prog,"В работе дольше плана","Мастер: дата завершения и что мешает"],
-    ["attn","high",C.attn,"Работа стоит — нужно решение","Руководство и ПТО: решить или снять с плана"],
-    ["actlate","mid",actlate,"Выполнены, но нет акта с прошлых месяцев","ПТО: оформить и подписать акты"],
-    ["nomaster","mid",open.filter(i=>!i.master).length,"Открытые работы без мастера участка","Назначить ответственного мастера"],
-    ["noex","mid",open.filter(i=>i.ex==="Не распределено").length,"Открытые работы без исполнителя","ПТО: решить, УК или подрядчик"],
-    ["chk","low",all.filter(i=>i.check).length,"Расходятся план, файл исполнителей и Битрикс24","Администратор: сверить и нажать «Сверено»"],
-    ["bxstale","low",plan.filter(FLAGS.bxstale[1]).length,"Выполнено, а в Битрикс24 стадия «Запланировано»","Ответственный за Битрикс24: обновить стадии"]]
-    .filter(p=>p[2]&&(!mine||["todo_od","prog_od","attn","actlate"].includes(p[0])));
+  const P=probList(all,plan,C,OD,open,actlate,mine);
   const probs='<section class="card"><h3>Где проблемы <span>по важности</span></h3>'+
     '<div class="sub">Красное срывает сроки, жёлтое копится, серое — порядок в данных. Нажмите на строку, чтобы открыть эти работы.</div>'+
     (P.length?'<ul class="plist">'+P.map(p=>'<li class="sev-'+p[1]+'" data-go="prob" data-v="'+p[0]+'" tabindex="0" role="button"><span class="sv"></span><span class="pn">'+p[2]+'</span>'+
       '<span class="pt"><b>'+esc(p[3])+'</b><span>'+esc(p[4])+'</span></span><span class="pa">Показать →</span></li>').join("")+'</ul>':'<div class="empty">Проблем не найдено</div>')+'</section>';
 
   // 3. по месяцам плана
-  const curM=TODAY.slice(0,7);
-  const mRows=MONTHS.map(([m,label])=>{const l=all.filter(i=>i.month===m&&i.g!=="cancel");if(!l.length)return"";
-    const d=l.filter(isDone).length,op=l.filter(i=>!i.closed).length,na=l.filter(i=>i.g==="noact").length;
-    const b=m<curM?(op?'<em class="mb late">просрочен</em>':na?'<em class="mb wait">без акта '+na+'</em>':'<em class="mb ok">закрыт</em>'):m===curM?'<em class="mb now">идёт сейчас</em>':'<em class="mb next">впереди</em>';
-    return'<div class="mrow" data-go="month" data-v="'+m+'" tabindex="0" role="button" title="'+esc(label)+': открыто '+op+'"><span class="ml">'+esc(label)+b+'</span>'+stackHtml(l)+
-      '<span class="mv"><b>'+Math.round(d*100/l.length)+'%</b><span> · '+d+'/'+l.length+'</span></span></div>';}).join("");
+  const mRows=monthRows(all).map(x=>'<div class="mrow" data-go="month" data-v="'+x.m+'" tabindex="0" role="button" title="'+esc(x.label)+': открыто '+x.op+'"><span class="ml">'+esc(x.label)+'<em class="mb '+x.st+'">'+x.txt+'</em></span>'+stackHtml(x.l)+
+      '<span class="mv"><b>'+Math.round(x.d*100/x.l.length)+'%</b><span> · '+x.d+'/'+x.l.length+'</span></span></div>').join("");
   const legend='<div class="legend">'+ORDER.map(k=>'<span><i class="g-'+k+'"></i>'+SHORT[k]+'</span>').join("")+'</div>';
   const months='<section class="card"><h3>По месяцам плана <span>% выполнено · выполнено / в плане</span></h3>'+
     '<div class="sub">«Просрочен» — месяц закончился, а работы не сделаны. «Без акта» — всё сделано, но не все акты оформлены. «Закрыт» — всё принято с актом.</div>'+mRows+legend+'</section>';
 
   // 4. кто отстаёт
-  const W=WHO[V.who]||WHO.ex,gm={};
-  plan.forEach(i=>{const k=W[1](i),r=gm[k]=gm[k]||{k,n:0,todo:0,prog:0,noact:0,done:0,winter:0,attn:0,od:0};r.n++;r[i.g]++;if(i.overdue)r.od++;});
-  const rows=Object.values(gm).map(r=>Object.assign(r,{pct:Math.round((r.noact+r.done)*100/r.n)})).sort((a,b)=>b.od-a.od||a.pct-b.pct);
+  const W=WHO[V.who]||WHO.ex,rows=whoRows(plan,W);
   const z=n=>n?n:'<span class="z">0</span>';
   const who='<section class="card"><div class="hrow"><h3>Кто отстаёт</h3><div class="seg" role="group" aria-label="Разрез">'+
     Object.entries(WHO).map(([k,w])=>'<button type="button" data-who="'+k+'" aria-pressed="'+(V.who===k)+'">'+w[3]+'</button>').join("")+'</div></div>'+
@@ -1118,10 +1145,11 @@ function renderDash(){
     (cats.length?cats.map(c=>'<div class="hbar" data-go="cat" data-v="'+esc(c[0])+'" tabindex="0" role="button"><span class="lbl">'+esc(c[0])+'</span><span class="tr"><i style="width:'+(c[1]*100/cmax)+'%"></i></span><span class="val">'+c[1]+'</span></div>').join("")
       :'<div class="empty">Просроченных работ нет</div>')+'</section></div>';
 
-  $("view").innerHTML='<div class="head"><h2>Сводка</h2>'+scopeSeg()+'<span class="faint" style="font-size:12px">сведено '+esc(dmy(S.asof))+
+  $("view").innerHTML='<div class="head"><h2>Сводка</h2>'+scopeSeg()+'<button class="btn" id="xlsd" type="button">Скачать Excel</button>'+'<span class="faint" style="font-size:12px">сведено '+esc(dmy(S.asof))+
     ' из плана ПТО (16.10), файла исполнителей (08.10) и Битрикс24 (19.10) · просрочка на '+esc(dmy(TODAY))+'</span></div>'+
     hero+'<div class="grid2">'+probs+months+'</div>'+who+where;
   bindScope();
+  $("xlsd").onclick=()=>exportXlsx("dash");
   document.querySelectorAll("[data-who]").forEach(b=>b.onclick=()=>{V.who=b.dataset.who;renderDash();});
 }
 function goTo(k,v,f){
@@ -1157,12 +1185,12 @@ function renderWorks(){
   const chips=SHOWS.map(([s,l])=>{const n=base.filter(i=>showOK(i,s)).length,dot=s==="od"?"attn":G_NAME[s]?s:"";
     return'<button type="button" class="chip" data-show="'+s+'" aria-pressed="'+(V.show===s)+'">'+(dot?'<i class="g-'+dot+'"></i>':"")+esc(l)+' <b>'+n+'</b></button>';}).join("");
   const pills=[V.addr&&["addr","адрес: "+V.addr],V.cat&&["cat","вид работ: "+V.cat],V.uk&&["uk","упр. компания: "+(V.uk==="—"?"не указана":V.uk)]].filter(Boolean);
-  $("view").innerHTML='<div class="head"><h2>Работы</h2>'+scopeSeg()+(isAdmin()?'<span class="acts">'+(REAL?'<button class="btn" id="impw" type="button">Загрузить обновление</button>':"")+'<button class="btn" id="addw" type="button">+ Добавить работу</button></span>':"")+'</div>'+
+  $("view").innerHTML='<div class="head"><h2>Работы</h2>'+scopeSeg()+'<span class="acts"><button class="btn" id="xlsw" type="button">Скачать Excel</button>'+(isAdmin()?(REAL?'<button class="btn" id="impw" type="button">Загрузить обновление</button>':"")+'<button class="btn" id="addw" type="button">+ Добавить работу</button>':"")+'</span></div>'+
   '<div class="filters"><input class="ctl search" id="fq" type="search" placeholder="Адрес, работа, акт, мастер" value="'+esc(V.q)+'" aria-label="Поиск">'+
   '<select class="ctl" id="fm" aria-label="Месяц">'+opt("","Все месяцы",V.month)+MONTHS.map(m=>opt(m[0],m[1],V.month)).join("")+'</select>'+
   (myEx()&&V.scope==="mine"?"":'<select class="ctl" id="fe" aria-label="Исполнитель">'+opt("","Все исполнители",V.ex)+EXS.map(e=>opt(e,e,V.ex)).join("")+'</select>')+
   '<select class="ctl" id="fma" aria-label="Мастер участка">'+opt("","Все мастера",V.master)+masters().map(m=>opt(m,m==="—"?"Без мастера":m,V.master)).join("")+'</select>'+
-  '<select class="ctl" id="ff" aria-label="Дополнительный отбор">'+opt("","Без доп. отбора",V.flag)+Object.entries(FLAGS).map(([k,f])=>opt(k,f[0].charAt(0).toUpperCase()+f[0].slice(1),V.flag)).join("")+'</select></div>'+
+  '<select class="ctl" id="ff" aria-label="Дополнительный отбор">'+opt("","Без доп. отбора",V.flag)+Object.entries(FLAGS).filter(([k])=>REAL||k!=="nophoto").map(([k,f])=>opt(k,f[0].charAt(0).toUpperCase()+f[0].slice(1),V.flag)).join("")+'</select></div>'+
   '<div class="chips" role="group" aria-label="Стадия">'+chips+'</div>'+
   (pills.length?'<div class="fpills">'+pills.map(p=>'<span class="fpill">'+esc(p[1])+'<button type="button" data-clr="'+p[0]+'" aria-label="Убрать отбор">×</button></span>').join("")+'</div>':"")+
   '<div class="count"><span>'+list.length+' '+plural(list.length,"работа","работы","работ")+(hiddenClosed?' · <button class="linkbtn" id="showcl" type="button">ещё '+hiddenClosed+' среди закрытых — показать</button>':"")+'</span>'+
@@ -1179,6 +1207,7 @@ function renderWorks(){
   if($("fr"))$("fr").onclick=()=>{Object.assign(V,RESET);renderWorks();};
   if($("showcl"))$("showcl").onclick=()=>{V.show="all";renderWorks();};
   if($("more"))$("more").onclick=()=>{V.limit+=40;renderWorks();};
+  $("xlsw").onclick=()=>exportXlsx("works");
   if($("addw"))$("addw").onclick=()=>{V.drawer={add:true};renderDrawer();};
   if($("impw"))$("impw").onclick=()=>{V.drawer={imp:true,dirty:true};renderDrawer();};
 }
@@ -1186,14 +1215,14 @@ function masters(){const c={};S.items.forEach(i=>{const m=i.master||"—";c[m]=(
 function rowHtml(i){
   const late=i.overdue?'<span class="od">просрочено '+i.overdue+' дн.</span>':i.actlate?'<span class="al">без акта с '+esc(mfrom(i.month))+'</span>':i.moved?'<span class="lock">перенесено из '+esc(mfrom(i.month0))+'</span>':"";
   return'<div class="wr g-'+i.g+'" data-key="'+esc(i.key)+'" tabindex="0" role="button"><span class="sev"></span>'+
-   '<div style="min-width:0"><div class="a">'+esc(i.addr)+(i.check?' <span class="chkpill">сверить</span>':"")+'</div><div class="w">'+esc(i.work)+(i.master?' <span class="faint">· '+esc(i.master)+'</span>':"")+'</div></div>'+
+   '<div style="min-width:0"><div class="a">'+esc(i.addr)+(i.check?' <span class="chkpill">сверить</span>':"")+'</div><div class="w">'+esc(i.work)+(i.master?' <span class="faint">· '+esc(i.master)+'</span>':"")+(phCount(i)[0]||phCount(i)[1]?' <span class="faint">· фото: до '+phCount(i)[0]+', после '+phCount(i)[1]+'</span>':"")+'</div></div>'+
    '<div class="r"><span class="pill dot">'+esc(i.status)+'</span><span class="tag '+EX_CLS[i.ex]+'">'+esc(i.ex)+(canEdit(i)?"":' <span class="lock">· просмотр</span>')+'</span>'+late+'</div></div>';
 }
 document.addEventListener("click",ev=>{const r=ev.target.closest(".wr");if(r){V.drawer={key:r.dataset.key};renderDrawer();}});
-document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&V.drawer){closeDrawer();}const r=ev.target.closest&&ev.target.closest(".wr");if(r&&ev.key==="Enter"){V.drawer={key:r.dataset.key};renderDrawer();}});
+document.addEventListener("keydown",ev=>{if(ev.key==="Escape"){const lb=$("lbx");if(lb){lb.remove();return;}if(V.drawer)closeDrawer();}const r=ev.target.closest&&ev.target.closest(".wr");if(r&&ev.key==="Enter"){V.drawer={key:r.dataset.key};renderDrawer();}});
 
 /* ---------- панель работы ---------- */
-function closeDrawer(){V.drawer=null;$("dr").innerHTML="";}
+function closeDrawer(){V.drawer=null;$("dr").innerHTML="";if(S.phDirty){S.phDirty=false;renderView();}}   // фото могли добавить или удалить — обновляем отметки в списке
 function renderDrawer(){
   const D=V.drawer,host=$("dr");if(!D||!host)return;
   if(D.add)return renderAdd(host);
@@ -1213,7 +1242,7 @@ function renderDrawer(){
      (it.bxStage||it.bxDates?'<dt>Битрикс24</dt><dd>'+esc([it.bxStage,it.bxDates].filter(Boolean).join(" · "))+'</dd>':'<dt>Битрикс24</dt><dd class="faint">карточки нет</dd>')+
      (it.src?'<dt>Источники</dt><dd>'+esc(it.src)+'</dd>':"")+(it.kr?'<dt>Капремонт</dt><dd>'+esc(it.kr)+'</dd>':"")+
      (it.doneAt?'<dt>Выполнено</dt><dd>'+when(it.doneAt).split(" ")[0]+'</dd>':"")+(it.act?'<dt>Акт</dt><dd>'+esc(it.act)+'</dd>':"")+
-     (it.at?'<dt>Изменено</dt><dd>'+esc(it.by)+', '+when(it.at)+'</dd>':"")+'</dl>'+
+     (it.at?'<dt>Изменено</dt><dd>'+esc(it.by)+', '+when(it.at)+'</dd>':"")+'</dl>'+phHtml(D,it)+
     (ed?'<div class="box"><h4>Отметить</h4><label class="field">Статус<select id="ds"'+(stLocked?" disabled":"")+'>'+stOpts+'</select></label>'+
        (stLocked?'<div class="lock">Работа принята или снята администратором — статус меняет только он.</div>':!isAdmin()?'<div class="lock">Когда закончите, ставьте «Выполнено, акта нет». Принимает работу администратор.</div>':"")+
        (isAdmin()?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label class="field">Исполнитель<select id="de">'+EXS.map(e=>opt(e,e,it.ex)).join("")+'</select></label>'+
@@ -1226,6 +1255,7 @@ function renderDrawer(){
     histHtml(D.hist)+
    '</div>'+(ed?'<div class="df"><button class="btn primary" id="dsave" type="button" disabled>Сохранить</button><button class="btn" id="dcancel" type="button">Закрыть</button><span class="msg" id="dmsg"></span></div>':"")+'</aside>';
   $("dx").onclick=closeDrawer;$("scrim").onclick=closeDrawer;
+  phBind(D,it);
   if(!ed)return;
   $("dcancel").onclick=closeDrawer;
   const dirty=()=>{const p=patch();D.dirty=Object.keys(p).length>0;$("dsave").disabled=!D.dirty;};
@@ -1284,6 +1314,131 @@ function impPreview(r){
     det("На сверку",r.flagList,x=>'<li>'+esc(x.addr)+' — '+esc(x.work.slice(0,70))+'<br><span class="faint">'+esc(x.text)+'</span></li>')+
     det("Нет в файле",r.missingList,x=>'<li>'+esc(x.addr)+' — '+esc(x.work.slice(0,90))+'</li>');
 }
+/* ---------- фото «до» и «после» ---------- */
+const PH_T=[["до","До"],["после","После"]];
+const PHC={};   // номер фото -> data-URL полного снимка (чтобы не качать повторно)
+// снимок перекладывается на холст и сжимается до JPEG: полный (до 1600 px) и миниатюра (160 px)
+function phScale(im,max,q){
+  const w=im.naturalWidth||im.width,h=im.naturalHeight||im.height,k=Math.min(1,max/Math.max(w,h)),c=document.createElement("canvas");
+  c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));
+  const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);
+  return c.toDataURL("image/jpeg",q).split(",")[1];
+}
+function phPrepare(f){
+  if(!/^image\//.test(f.type)&&!/\.(jpe?g|png|webp|gif|bmp)$/i.test(f.name))return Promise.reject(new Error("«"+f.name+"» — не картинка."));
+  if(f.size>30e6)return Promise.reject(new Error("«"+f.name+"» больше 30 МБ."));
+  return new Promise((res,rej)=>{const u=URL.createObjectURL(f),im=new Image();
+    im.onload=()=>{URL.revokeObjectURL(u);try{res({full:phScale(im,1600,.82),thumb:phScale(im,160,.6),name:f.name});}catch(e){rej(e);}};
+    im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("«"+f.name+"»: не удалось открыть снимок (формат не поддерживается, например HEIC). Сохраните его как JPEG."));};
+    im.src=u;});
+}
+const phFull=id=>PHC[id]?Promise.resolve(PHC[id]):call("getPhoto",S.token,id).then(r=>PHC[id]="data:"+r.mime+";base64,"+r.data);
+function phHtml(D,it){
+  if(!REAL)return"";
+  const ed=canEdit(it),list=D.photos;
+  const col=t=>{const ps=(list||[]).filter(p=>p.type===t[0]);
+    return'<section class="phc"><h5>'+t[1]+' <span class="faint">'+ps.length+'</span></h5><div class="phg">'+
+      ps.map(p=>'<button type="button" class="pht" data-pid="'+esc(p.id)+'" aria-label="Открыть фото «'+t[1].toLowerCase()+'»"><img alt="" src="data:image/jpeg;base64,'+esc(p.thumb)+'"></button>').join("")+
+      (ed?'<label class="pha'+(D.phBusy?" off":"")+'" title="Добавить фото «'+t[1].toLowerCase()+'»"><span aria-hidden="true">+</span><input type="file" accept="image/*" multiple data-pt="'+t[0]+'" aria-label="Добавить фото «'+t[1].toLowerCase()+'»"'+(D.phBusy?" disabled":"")+'></label>':"")+
+      (!ps.length&&!ed?'<span class="faint" style="font-size:12px">нет</span>':"")+'</div></section>';};
+  return'<div class="box" id="dph"><h4>Фото</h4>'+(list==null?'<div class="faint" style="font-size:12px">Загружаю…</div>':'<div class="phcols">'+PH_T.map(col).join("")+'</div>')+
+    (D.phMsg?'<div class="'+(D.phErr?"imp-err":"faint")+'" style="font-size:12px" role="status">'+esc(D.phMsg)+'</div>':"")+'</div>';
+}
+function refreshPh(D,it){const el=$("dph");if(el&&V.drawer===D){el.outerHTML=phHtml(D,it);phBind(D,it);}}
+function phBind(D,it){
+  const root=$("dph");if(!root)return;
+  root.querySelectorAll(".pht").forEach(b=>b.onclick=()=>phOpen(D,it,b.dataset.pid));
+  root.querySelectorAll("input[data-pt]").forEach(inp=>inp.onchange=()=>{if(inp.files.length)phUpload(D,it,inp.dataset.pt,Array.from(inp.files));});
+  if(D.photos===undefined){D.photos=null;
+    call("listPhotos",S.token,it.key).then(l=>{D.photos=l;refreshPh(D,it);}).catch(e=>{D.photos=[];D.phMsg=e.message;D.phErr=true;refreshPh(D,it);});}
+}
+function phUpload(D,it,type,files){
+  const total=files.length,fails=[];let n=0;
+  D.phBusy=true;D.phErr=false;
+  const step=()=>{
+    const f=files.shift();
+    if(!f){D.phBusy=false;D.phErr=fails.length>0;D.phMsg=fails.length?fails.join(" "):"";
+      call("listPhotos",S.token,it.key).then(l=>{D.photos=l;refreshPh(D,it);}).catch(()=>refreshPh(D,it));
+      if(n)toast("Фото добавлено: "+n);return;}
+    D.phMsg="Загружаю "+(n+fails.length+1)+" из "+total+"…";refreshPh(D,it);
+    phPrepare(f).then(x=>call("addPhoto",S.token,it.key,type,x.full,x.thumb,x.name)).then(r=>{S.ph[it.key]=r.counts;S.phDirty=true;n++;})
+      .catch(e=>{if(String(e&&e.message).indexOf("SESSION_EXPIRED")>=0){files.length=0;fail(e);}fails.push((e&&e.message)||String(e));}).then(step);
+  };
+  step();
+}
+function phOpen(D,it,id){
+  const p=(D.photos||[]).find(x=>x.id===id);if(!p||$("lbx"))return;
+  const can=isAdmin()||(canEdit(it)&&p.by===S.user.name),lb=document.createElement("div");
+  lb.id="lbx";lb.className="lbx";lb.setAttribute("role","dialog");lb.setAttribute("aria-label","Фото");
+  lb.innerHTML='<div class="lbs"></div><figure><div class="lbimg" id="lbimg">Загружаю фото…</div><figcaption>'+(p.type==="до"?"До":"После")+' · '+esc(p.by)+', '+when(p.at)+(p.kb?' · '+p.kb+' КБ':"")+'</figcaption>'+
+    '<div class="lbb"><a class="btn" id="lbdl" hidden>Скачать</a>'+(can?'<button class="btn" id="lbdel" type="button">Удалить</button>':"")+'<button class="btn primary" id="lbcl" type="button">Закрыть</button></div></figure>';
+  document.body.appendChild(lb);
+  const close=()=>lb.remove();$("lbcl").onclick=close;lb.querySelector(".lbs").onclick=close;$("lbcl").focus();
+  phFull(id).then(url=>{if(!$("lbimg"))return;$("lbimg").innerHTML='<img alt="Фото">';$("lbimg").firstChild.src=url;const a=$("lbdl");a.href=url;a.download=(p.name||"foto")+(/\.jpe?g$/i.test(p.name||"")?"":".jpg");a.hidden=false;})
+    .catch(e=>{if($("lbimg"))$("lbimg").innerHTML='<span class="imp-err" style="color:#ffb4a8">'+esc((e&&e.message)||String(e))+'</span>';});
+  if(can)$("lbdel").onclick=()=>{if(!confirm("Удалить это фото?"))return;$("lbdel").disabled=true;
+    call("deletePhoto",S.token,id).then(r=>{S.ph[it.key]=r.counts;S.phDirty=true;D.photos=(D.photos||[]).filter(x=>x.id!==id);delete PHC[id];close();refreshPh(D,it);toast("Фото удалено");})
+      .catch(e=>{$("lbdel")&&($("lbdel").disabled=false);fail(e);});};
+}
+
+/* ---------- выгрузка в Excel ---------- */
+const phCount=i=>(S.ph&&S.ph[i.key])||[0,0];
+const worksList=()=>scoped().filter(baseMatch).filter(i=>showOK(i,V.show)).sort(cmpWork);
+function filterText(){
+  const t=[],sh=SHOWS.find(x=>x[0]===V.show);
+  if(sh&&V.show!=="all")t.push(sh[1].toLowerCase());
+  if(V.month)t.push(mname(V.month));
+  if(V.ex)t.push("исполнитель: "+V.ex);
+  if(V.master)t.push("мастер: "+(V.master==="—"?"не назначен":V.master));
+  if(V.uk)t.push("упр. компания: "+(V.uk==="—"?"не указана":V.uk));
+  if(V.addr)t.push("адрес: "+V.addr);
+  if(V.cat)t.push("вид работ: "+V.cat);
+  if(V.flag&&FLAGS[V.flag])t.push(FLAGS[V.flag][0]);
+  if(V.q)t.push("поиск: «"+V.q+"»");
+  return t.length?t.join("; "):"без отбора";
+}
+const xlSerial=iso=>{const p=iso.split("-");return(Date.UTC(+p[0],+p[1]-1,+p[2])-Date.UTC(1899,11,30))/864e5;};
+function exportXlsx(from){
+  const btn=$(from==="dash"?"xlsd":"xlsw"),all=from==="dash"?scoped().slice().sort(cmpWork):worksList(),mine=!!(myEx()&&V.scope==="mine");
+  const desc=from==="dash"?"все работы":filterText();
+  if(btn)btn.disabled=true;
+  loadXlsx().then(X=>{
+    const now=new Date(),stamp=pad(now.getDate())+"."+pad(now.getMonth()+1)+"."+now.getFullYear();
+    // лист «Работы»
+    const H=["№","Месяц плана","Срок (конец месяца)","Адрес","Управляющая компания","Работа","Вид работ","Основание","Оценка, ₽","Факт, ₽","Исполнитель","Мастер участка","Стадия","Статус","Акт",
+      "Просрочено, дней","Дата выполнения","Комментарий","Стадия Битрикс24","Сроки Битрикс24","Сверить","Источники статуса","Фото до","Фото после"];
+    const rows=all.map((i,n)=>[n+1,MN[+i.month.slice(5)-1]+" "+i.month.slice(0,4),xlSerial(mend(i.month)),i.addr,i.uk||"",i.work,i.cat||"",i.basis||"",i.sum||"",i.fsum||"",i.ex,i.master||"",
+      G_NAME[i.g],i.status,i.act||"",i.overdue||"",i.doneAt?xlSerial(isoLocal(i.doneAt)):"",i.note||"",i.bxStage||"",i.bxDates||"",i.check||"",i.src||"",phCount(i)[0]||"",phCount(i)[1]||""]);
+    const ws=X.utils.aoa_to_sheet([H].concat(rows));
+    rows.forEach((r,n)=>{[[2,"dd.mm.yyyy"],[8,"#,##0"],[9,"#,##0"],[16,"dd.mm.yyyy"]].forEach(([c,z])=>{const x=ws[X.utils.encode_cell({r:n+1,c})];if(x&&x.t==="n")x.z=z;});});
+    ws["!cols"]=[5,14,12,26,14,46,20,28,12,12,14,20,18,20,16,11,12,40,16,26,40,50,8,8].map(w=>({wch:w}));
+    ws["!autofilter"]={ref:X.utils.encode_range({s:{r:0,c:0},e:{r:rows.length,c:H.length-1}})};
+    // лист «Сводка»: те же цифры, что на странице
+    const plan=scoped().filter(i=>i.g!=="cancel"),N=plan.length,C={},OD={};
+    ORDER.forEach(k=>{C[k]=plan.filter(i=>i.g===k).length;OD[k]=plan.filter(i=>i.g===k&&i.overdue).length;});
+    const open=plan.filter(i=>!i.closed),actlate=plan.filter(i=>i.actlate).length,pc=n=>N?n/N:0;
+    const sc=scoped(),A=[["Текущий ремонт — выгрузка из трекера"],
+      ["Выгружено "+stamp+" "+pad(now.getHours())+":"+pad(now.getMinutes())+", "+S.user.name+" ("+S.user.role+"). Просрочка считается на "+dmy(TODAY)+"."],
+      ["Работы: "+(mine?"только «"+myEx()+"»":"все")+". Отбор на листе «Работы»: "+desc+" ("+all.length+" "+plural(all.length,"работа","работы","работ")+")."],[],
+      ["ГДЕ МЫ СЕЙЧАС"],["Стадия","Работ","% плана","Из них просрочено"]];
+    ORDER.forEach(k=>A.push([G_NAME[k],C[k],pc(C[k]),k==="todo"||k==="prog"||k==="attn"?OD[k]:k==="noact"?actlate:""]));
+    A.push(["Итого в плане",N,N?1:0,plan.filter(i=>i.overdue).length],["Выполнено (ждёт акта + принято)",C.noact+C.done,pc(C.noact+C.done),""],["Снято с плана (в проценты не входит)",sc.length-N,"",""],[],
+      ["ГДЕ ПРОБЛЕМЫ"],["Проблема","Работ","Важность","Кто решает"]);
+    const SV={high:"срывает сроки",mid:"копится",low:"порядок в данных"};
+    probList(sc,plan,C,OD,open,actlate,mine).forEach(p=>A.push([p[3],p[2],SV[p[1]],p[4]]));
+    A.push([],["ПО МЕСЯЦАМ ПЛАНА"],["Месяц","В плане"].concat(ORDER.map(k=>SHORT[k]),["% выполнено","Состояние"]));
+    monthRows(sc).forEach(x=>A.push([x.label,x.l.length].concat(ORDER.map(k=>x.l.filter(i=>i.g===k).length),[x.d/x.l.length,x.txt])));
+    Object.keys(WHO).forEach(k=>{const W=WHO[k];A.push([],["КТО ОТСТАЁТ: "+W[3].toUpperCase()],[W[0],"В плане"].concat(ORDER.map(g=>SHORT[g]),["Просрочено","% выполнено"]));
+      whoRows(plan,W).forEach(r=>A.push([W[2](r.k),r.n].concat(ORDER.map(g=>r[g]),[r.od,(r.noact+r.done)/r.n])));});
+    const sw=X.utils.aoa_to_sheet(A);
+    A.forEach((r,n)=>r.forEach((v,c)=>{const x=sw[X.utils.encode_cell({r:n,c})];if(x&&x.t==="n"&&typeof v==="number"&&v<=1&&v>=0&&!Number.isInteger(v))x.z="0%";}));
+    sw["!cols"]=[46,10,10,12,12,12,12,12,14,14].map(w=>({wch:w}));
+    const wb=X.utils.book_new();X.utils.book_append_sheet(wb,sw,"Сводка");X.utils.book_append_sheet(wb,ws,"Работы");
+    X.writeFile(wb,"Текущий ремонт "+stamp+".xlsx");
+    toast("Выгружено: "+all.length+" "+plural(all.length,"работа","работы","работ"));
+  }).catch(fail).then(()=>{if(btn)btn.disabled=false;});
+}
+
 const XSRC=[["plan","1. Годовой план ПТО"],["exec","2. Файл исполнителей"],["bx","3. Выгрузка Битрикс24"]];
 const isoLocal=ts=>{const d=new Date(ts),p=n=>(n<10?"0":"")+n;return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate());};
 // библиотека чтения Excel грузится только при открытии окна; сначала с проверкой контрольной суммы, затем запасной адрес
