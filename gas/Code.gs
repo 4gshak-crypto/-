@@ -350,6 +350,188 @@ function addWork(token, w) {
   }
 }
 
+/* ---------------- обновление из выгрузок (администратор) ---------------- */
+
+var IMPORT_FORMAT = 'tracker-import-1';
+var IMPORT_MAX_ITEMS = 3000;
+// стадии по ходу работы: обновление из источников не откатывает работу назад
+var STAGE_RANK = { 'Нужно решение': -1, 'Требует уточнения': -1, 'Нет статуса': -1, 'Вопрос капремонта': -1, 'Голосование ОСС': -1,
+  'Не начато': 0, 'Передано исполнителю': 0, 'В работе': 1, 'На контроле': 1, 'Материал заказан': 1, 'Отложено на зиму': 1,
+  'Выполнено, акта нет': 2, 'Принято, акт есть': 3, 'Снято': 4 };
+
+/**
+ * Обновляет лист «Работы» из файла «Обновление для трекера» (его собирает build.py из трёх выгрузок).
+ * apply=false — только показывает, что изменится; apply=true — записывает.
+ * Отметки сотрудников не стираются: у работы, которую кто-то менял в трекере, статус, исполнитель, мастер, акт, факт и месяц остаются,
+ * а расхождение с источниками попадает в «Сверить». Пустые поля заполняются всегда. Работы, которых нет в файле, не удаляются.
+ */
+function importWorks(token, json, apply) {
+  var user = requireAdmin_(token);
+  var src;
+  try { src = JSON.parse(json); } catch (e) { throw new Error('Файл не читается. Нужен файл «Обновление для трекера … .json».'); }
+  if (!src || src.format !== IMPORT_FORMAT || !Array.isArray(src.items)) throw new Error('Это не файл обновления трекера. Нужен файл «Обновление для трекера … .json».');
+  if (!src.items.length) throw new Error('В файле нет работ.');
+  if (src.items.length > IMPORT_MAX_ITEMS) throw new Error('В файле слишком много работ.');
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    return importWorks_(user, src, !!apply);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function importText_(addr, work) {
+  var n = function (v) { return String(v == null ? '' : v).toLowerCase().replace(/\s+/g, ' ').trim(); };
+  return n(addr) + '|' + n(work);
+}
+
+function importItem_(x) {
+  if (!x || typeof x !== 'object') return 'не объект';
+  var s = function (v, n) { return String(v == null ? '' : v).trim().slice(0, n); };
+  var num = function (v) { v = Number(v); return v > 0 ? v : null; };
+  var it = { key: s(x.key, 40), month: s(x.month, 7), addr: s(x.addr, 300), work: s(x.work, 2000) };
+  if (!it.key) return 'нет ключа';
+  if (!MONTH_RE.test(it.month)) return 'неверный месяц «' + it.month + '»';
+  if (!it.addr || !it.work) return 'нет адреса или работы';
+  it.row = Number(x.row) || null;
+  it.uk = s(x.uk, 80); it.cat = s(x.cat, 80); it.basis = s(x.basis, 500);
+  it.sum = num(x.sum); it.fsum = num(x.fsum);
+  it.ex = EXECUTORS.indexOf(x.ex) >= 0 ? x.ex : 'Не распределено';
+  it.status = STATUSES.indexOf(x.status) >= 0 ? x.status : 'Нет статуса';
+  it.src = s(x.src_note, 2000); it.kr = s(x.kr, 100); it.act = s(x.act, 200); it.master = s(x.master, 80);
+  it.bxStage = s(x.bx_stage, 80); it.bxDates = s(x.bx_dates, 200); it.check = s(x.check, 1000);
+  return it;
+}
+
+function importDate_(iso) {
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+  return m ? m[3] + '.' + m[2] + '.' + m[1] : '';
+}
+
+function importWorks_(user, src, apply) {
+  var N = WORK_COLS.length, sh = sheet_(SHEET_WORKS), now = new Date();
+  var data = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, N).getValues() : [];
+  var byKey = {}, byText = {};
+  data.forEach(function (r, i) {
+    if (r[0]) byKey[String(r[0])] = i;
+    var t = importText_(r[3], r[5]);
+    (byText[t] = byText[t] || []).push(i);
+  });
+  var rep = { generated: String(src.generated || ''), total: src.items.length, invalid: 0, errors: [], matched: 0, viaText: 0, added: 0, updated: 0,
+    kept: 0, flagged: 0, missing: 0, changes: {}, addedList: [], statusList: [], flagList: [], missingList: [], applied: false };
+  var items = [], used = {}, matches = [], rest = [], newRows = [], logRows = [], dirty = false;
+
+  src.items.forEach(function (raw, n) {
+    var it = importItem_(raw);
+    if (typeof it === 'string') {
+      rep.invalid++;
+      if (rep.errors.length < 5) rep.errors.push('Работа ' + (n + 1) + ': ' + it);
+      return;
+    }
+    items.push(it);
+  });
+  // сначала сопоставляем по ключу, затем оставшиеся — по адресу и тексту работы (месяц в плане мог измениться)
+  items.forEach(function (it) {
+    var i = byKey[it.key];
+    if (i !== undefined && !used[i]) { used[i] = true; matches.push([i, it]); } else rest.push(it);
+  });
+  rest.forEach(function (it) {
+    var cand = byText[importText_(it.addr, it.work)] || [], i;
+    for (var c = 0; c < cand.length; c++) if (!used[cand[c]]) { i = cand[c]; break; }
+    if (i !== undefined) { used[i] = true; matches.push([i, it]); rep.viaText++; } else newRows.push(it);
+  });
+  rep.matched = matches.length;
+
+  var count = function (k) { rep.changes[k] = (rep.changes[k] || 0) + 1; };
+  matches.forEach(function (m) {
+    var r = data[m[0]], it = m[1], touched = !!(r[15] || r[16]), meaningful = false, rowLog = [];
+    var blank = function (v) { return v === '' || v == null; };
+    var put = function (idx, val, label, counter) {   // записывает значение, если оно отличается
+      if (String(r[idx]) === String(val)) return false;
+      if (counter) { meaningful = true; count(counter); rowLog.push([label, r[idx], val]); }
+      r[idx] = val; dirty = true;
+      return true;
+    };
+    // что приходит из источников всегда
+    if (it.row) put(1, it.row);
+    if (it.src) put(13, it.src);
+    if (it.bxStage || it.bxDates) {
+      var b1 = it.bxStage && String(r[21]) !== it.bxStage, b2 = it.bxDates && String(r[22]) !== it.bxDates;
+      if (b1) put(21, it.bxStage); if (b2) put(22, it.bxDates);
+      if (b1 || b2) { meaningful = true; count('bx'); }
+    }
+    // что трогает только непомеченные работы; пустое поле заполняется всегда
+    var free = !touched;
+    if (it.basis && (free || blank(r[7]))) put(7, it.basis);
+    if (it.cat && (free || blank(r[6]) || r[6] === 'Добавлено вручную')) put(6, it.cat);
+    if (it.uk && (free || blank(r[4]))) put(4, it.uk, 'Упр. компания', 'uk');
+    if (it.sum && (free || !Number(r[8])) && Number(r[8]) !== it.sum) put(8, it.sum, 'Оценка, ₽', 'sum');
+    if (it.ex !== 'Не распределено' && (free || r[10] === 'Не распределено')) put(10, it.ex, 'Исполнитель', 'ex');
+    if (it.master && (free || blank(r[20]))) put(20, it.master, 'Мастер участка', 'master');
+    if (it.fsum && (free || !Number(r[9])) && Number(r[9]) !== it.fsum) put(9, it.fsum, 'Факт, ₽', 'fsum');
+    if (it.act && (free || blank(r[18]))) put(18, it.act, 'Акт', 'act');
+    var curMonth = monthStr_(r[2]);
+    if (free && it.month !== curMonth) {
+      if (blank(r[19])) r[19] = curMonth;
+      put(2, it.month, 'Перенос срока', 'month');
+    }
+    // статус: вперёд — да, назад — никогда
+    var cur = String(r[11]), rank = function (s) { return STAGE_RANK[s] === undefined ? -1 : STAGE_RANK[s]; }, flag = '';
+    if (it.status !== cur) {
+      if (free) {
+        if (rank(it.status) >= rank(cur)) put(11, it.status, 'Статус', 'status'); else rep.kept++;
+      } else if (it.status === 'Снято' || rank(it.status) > rank(cur)) {
+        flag = 'Обновление от ' + importDate_(src.generated) + ': в источниках «' + it.status + '», в трекере «' + cur + '»';
+      }
+    }
+    if (flag) {
+      if (put(23, flag, 'Сверка', 'check')) {
+        rep.flagged++;
+        if (rep.flagList.length < 12) rep.flagList.push({ addr: String(r[3]), work: String(r[5]), text: flag });
+      }
+    } else if (it.check && it.check !== String(r[23]) && (free || !blank(r[23]))) {
+      put(23, it.check, 'Сверка', 'check');
+    }
+    if (meaningful) rep.updated++;
+    rowLog.forEach(function (c) {
+      if (c[0] === 'Статус' && rep.statusList.length < 12) rep.statusList.push({ addr: String(r[3]), work: String(r[5]), from: String(c[1]), to: String(c[2]) });
+      if (['Статус', 'Исполнитель', 'Мастер участка', 'Перенос срока', 'Сверка', 'Акт', 'Факт, ₽'].indexOf(c[0]) >= 0)
+        logRows.push([now, user.name, String(r[0]), String(r[3]), String(r[5]), 'Импорт: ' + c[0].toLowerCase(), c[1], c[2]]);
+    });
+  });
+
+  rep.added = newRows.length;
+  newRows.forEach(function (it, n) {
+    if (rep.addedList.length < 12) rep.addedList.push({ addr: it.addr, work: it.work, month: it.month });
+    if (n < 100) logRows.push([now, user.name, it.key, it.addr, it.work, 'Импорт: новая работа', '', it.status]);
+  });
+  data.forEach(function (r, i) {
+    if (used[i] || r[6] === 'Добавлено вручную' || /^n[0-9a-f]{8}$/.test(String(r[0]))) return;
+    rep.missing++;
+    if (rep.missingList.length < 12) rep.missingList.push({ addr: String(r[3]), work: String(r[5]) });
+  });
+
+  if (apply && (dirty || newRows.length)) {
+    var pad = function (r) { var o = r.slice(0, N); while (o.length < N) o.push(''); return o.map(safe_); };
+    if (dirty) sh.getRange(2, 1, data.length, N).setValues(data.map(pad));
+    if (newRows.length) {
+      var rows = newRows.map(function (it) {
+        return pad([it.key, it.row || '', it.month, it.addr, it.uk, it.work, it.cat, it.basis, it.sum || '', it.fsum || '', it.ex, it.status, '', it.src,
+          it.kr, '', '', '', it.act, it.month, it.master, it.bxStage, it.bxDates, it.check]);
+      });
+      sh.getRange(sh.getLastRow() + 1, 1, rows.length, N).setValues(rows);
+    }
+    logRows.push([now, user.name, 'импорт', '', 'Обновление от ' + (importDate_(src.generated) || 'без даты'), 'Импорт данных', '',
+      'добавлено ' + rep.added + ', обновлено ' + rep.updated + ', на сверку ' + rep.flagged]);
+    var log = sheet_(SHEET_LOG);
+    log.getRange(log.getLastRow() + 1, 1, logRows.length, 8).setValues(logRows.map(function (r) { return r.map(safe_); }));
+    bumpRev_();
+    rep.applied = true;
+  }
+  return rep;
+}
+
 function addIssue(token, q) {
   var user = auth_(token);
   if (user.role !== 'Администратор') throw new Error('Добавлять вопросы может только администратор.');

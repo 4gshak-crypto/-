@@ -36,6 +36,13 @@ inject = "<script>window.DEMO_SEED=" + json.dumps(demo, ensure_ascii=False, sepa
 (here / "demo.html").write_text(html.replace("<script>\n(function(){", inject + "<script>\n(function(){", 1), encoding="utf-8")
 print(len(items), "работ,", len(issues), "вопросов")
 
+# --- файл для кнопки «Загрузить обновление» в трекере: те же работы, что в Seed.gs, но для уже работающей таблицы
+d = M["generated"].split("-")
+imp = here.parent / "reports" / ("Обновление для трекера %s.%s.%s.json" % (d[2], d[1], d[0]))
+imp.parent.mkdir(exist_ok=True)
+imp.write_text(json.dumps(dict(format="tracker-import-1", generated=M["generated"], sources=M["sources"], items=items), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+print(imp.name + ":", round(imp.stat().st_size / 1024), "КБ,", len(items), "работ")
+
 # --- страница для показа (claude.ai): без входа по PIN, телефоны жильцов скрыты, тема по правилам площадки
 import re
 mask = lambda t: re.sub(r'\(?\s*(?:\+7|8)[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}\s*\)?', '(тел. скрыт)', t) if isinstance(t, str) else t
@@ -55,7 +62,6 @@ print("meeting.html:", round((here / "meeting.html").stat().st_size / 1024), "К
       sum(json.dumps(i, ensure_ascii=False).count("тел. скрыт") for i in show_items))
 
 # --- та же страница отдельным файлом для скачивания: открывается в браузере без интернета (кроме шрифтов)
-d = M["generated"].split("-")
 dl = here.parent / "reports" / ("Трекер текущего ремонта %s.%s.%s.html" % (d[2], d[1], d[0]))
 dl.write_text('<!DOCTYPE html>\n<html lang="ru">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n'
               "<title>Трекер текущего ремонта</title>\n" + fonts + "\n" + style + "\n</head>\n<body>\n" + bodyhtml + "\n</body>\n</html>\n", encoding="utf-8")

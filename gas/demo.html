@@ -219,6 +219,15 @@ main{max-width:1200px;margin:0 auto;padding:20px 16px 48px}
 .hist{list-style:none;margin:0;padding:0;font-size:12px;display:flex;flex-direction:column;gap:6px;color:var(--muted)}
 .df{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
 .df .msg{font-size:12px;color:var(--muted);margin-left:auto}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.imp-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-top:1px solid var(--line);font-size:13px}
+.imp-row:first-of-type{border-top:0}
+.imp-row small{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:1px}
+.imp-row b{font-family:var(--f-display);font-size:18px;font-weight:500;font-variant-numeric:tabular-nums}
+.imp-row.zero,.imp-row.zero small{color:var(--faint)}
+.imp-det{font-size:12px;color:var(--muted)} .imp-det summary{cursor:pointer;color:var(--accent);padding:2px 0}
+.imp-det ul{margin:6px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:5px}
+.imp-err{color:var(--attn-ink);font-size:13px}
 
 /* вопросы, журнал, пользователи */
 .ilist{list-style:none;margin:0;padding:0}
@@ -553,7 +562,7 @@ function renderWorks(){
   const chips=SHOWS.map(([s,l])=>{const n=base.filter(i=>showOK(i,s)).length,dot=s==="od"?"attn":G_NAME[s]?s:"";
     return'<button type="button" class="chip" data-show="'+s+'" aria-pressed="'+(V.show===s)+'">'+(dot?'<i class="g-'+dot+'"></i>':"")+esc(l)+' <b>'+n+'</b></button>';}).join("");
   const pills=[V.addr&&["addr","адрес: "+V.addr],V.cat&&["cat","вид работ: "+V.cat],V.uk&&["uk","упр. компания: "+(V.uk==="—"?"не указана":V.uk)]].filter(Boolean);
-  $("view").innerHTML='<div class="head"><h2>Работы</h2>'+scopeSeg()+(isAdmin()?'<button class="btn" id="addw" type="button">+ Добавить работу</button>':"")+'</div>'+
+  $("view").innerHTML='<div class="head"><h2>Работы</h2>'+scopeSeg()+(isAdmin()?'<span class="acts">'+(REAL?'<button class="btn" id="impw" type="button">Загрузить обновление</button>':"")+'<button class="btn" id="addw" type="button">+ Добавить работу</button></span>':"")+'</div>'+
   '<div class="filters"><input class="ctl search" id="fq" type="search" placeholder="Адрес, работа, акт, мастер" value="'+esc(V.q)+'" aria-label="Поиск">'+
   '<select class="ctl" id="fm" aria-label="Месяц">'+opt("","Все месяцы",V.month)+MONTHS.map(m=>opt(m[0],m[1],V.month)).join("")+'</select>'+
   (myEx()&&V.scope==="mine"?"":'<select class="ctl" id="fe" aria-label="Исполнитель">'+opt("","Все исполнители",V.ex)+EXS.map(e=>opt(e,e,V.ex)).join("")+'</select>')+
@@ -565,7 +574,7 @@ function renderWorks(){
     (isFiltered()?'<button class="linkbtn" id="fr" type="button">Сбросить отборы</button>':"")+'</div>'+
   '<div class="list">'+(list.length?list.slice(0,V.limit).map(rowHtml).join("")+(list.length>V.limit?'<button class="more" id="more" type="button">Показать ещё '+Math.min(40,list.length-V.limit)+'</button>':""):'<div class="empty">Ничего не найдено. Измените отборы.</div>')+'</div>';
   bindScope();
-  let qt;$("fq").oninput=e=>{clearTimeout(qt);qt=setTimeout(()=>{V.q=e.target.value.trim();V.limit=40;renderWorks();const f=$("fq");f.focus();f.setSelectionRange(f.value.length,f.value.length);},200);};
+  let qt;$("fq").oninput=e=>{clearTimeout(qt);qt=setTimeout(()=>{if(V.tab!=="works"||!$("fq"))return;V.q=e.target.value.trim();V.limit=40;renderWorks();const f=$("fq");f.focus();f.setSelectionRange(f.value.length,f.value.length);},200);};
   $("fm").onchange=e=>{V.month=e.target.value;renderWorks();};
   if($("fe"))$("fe").onchange=e=>{V.ex=e.target.value;renderWorks();};
   $("fma").onchange=e=>{V.master=e.target.value;renderWorks();};
@@ -576,6 +585,7 @@ function renderWorks(){
   if($("showcl"))$("showcl").onclick=()=>{V.show="all";renderWorks();};
   if($("more"))$("more").onclick=()=>{V.limit+=40;renderWorks();};
   if($("addw"))$("addw").onclick=()=>{V.drawer={add:true};renderDrawer();};
+  if($("impw"))$("impw").onclick=()=>{V.drawer={imp:true,dirty:true};renderDrawer();};
 }
 function masters(){const c={};S.items.forEach(i=>{const m=i.master||"—";c[m]=(c[m]||0)+1;});return Object.keys(c).sort((a,b)=>a==="—"?1:b==="—"?-1:a.localeCompare(b,"ru"));}
 function rowHtml(i){
@@ -592,6 +602,7 @@ function closeDrawer(){V.drawer=null;$("dr").innerHTML="";}
 function renderDrawer(){
   const D=V.drawer,host=$("dr");if(!D||!host)return;
   if(D.add)return renderAdd(host);
+  if(D.imp)return renderImport(host);
   const it=S.items.find(i=>i.key===D.key);if(!it){closeDrawer();return;}
   const ed=canEdit(it),stLocked=ed&&!isAdmin()&&ADMIN_ONLY.includes(it.status);
   if(!D.hist){D.hist=[];call("getHistory",S.token,it.key).then(h=>{if(V.drawer===D){D.hist=h;const el=$("dhist");if(el)el.outerHTML=histHtml(h);}}).catch(()=>{});}
@@ -656,6 +667,47 @@ function renderAdd(host){
   $("asave").onclick=()=>{const w={addr:$("aa").value.trim(),work:$("aw").value.trim(),month:$("am").value,ex:$("ae").value,uk:$("au").value,sum:$("as").value.replace(/\s/g,"").replace(",","."),basis:$("ab").value.trim()};
     if(!w.addr||!w.work){toast("Укажите адрес и что сделать");return;}
     $("asave").disabled=true;call("addWork",S.token,w).then(()=>{toast("Работа добавлена");closeDrawer();load(true);}).catch(e=>{$("asave").disabled=false;fail(e);});};
+}
+
+/* ---------- загрузка обновления из выгрузок (администратор) ---------- */
+const IMP_LABELS={status:"статус",bx:"Битрикс24",master:"мастер",ex:"исполнитель",month:"месяц",act:"акт",fsum:"факт",sum:"оценка",uk:"упр. компания",check:"сверка"};
+function impPreview(r){
+  const row=(t,n,hint)=>'<div class="imp-row'+(n?"":" zero")+'"><span>'+t+(hint?'<small>'+hint+'</small>':"")+'</span><b>'+n+'</b></div>';
+  const det=(t,l,f)=>l.length?'<details class="imp-det"><summary>'+t+'</summary><ul>'+l.map(f).join("")+'</ul></details>':"";
+  const ch=Object.keys(IMP_LABELS).filter(k=>r.changes[k]).map(k=>IMP_LABELS[k]+" — "+r.changes[k]).join(", ");
+  const none=!r.added&&!r.updated&&!r.flagged;
+  return'<div class="box"><h4>Файл от '+esc(dmy(r.generated))+' · работ в файле: '+r.total+'</h4>'+
+    row("Новые работы",r.added,"появятся в списке")+
+    row("Обновятся",r.updated,ch?"из них: "+esc(ch):"")+
+    row("На сверку",r.flagged,"источники опережают отметку сотрудника, работа получит метку «сверить»")+
+    row("Не откатываем назад",r.kept,"источники отстают от трекера, статус остаётся")+
+    row("Нет в файле",r.missing,"остаются в таблице без изменений")+
+    (r.invalid?row("Не прочитано",r.invalid,esc(r.errors.join("; "))):"")+
+    '</div>'+(none?'<div class="box chkbox">Изменений нет: в таблице уже есть эти данные.</div>':"")+
+    det("Новые работы",r.addedList,x=>'<li>'+esc(x.addr)+' — '+esc(x.work.slice(0,90))+' ('+esc(mname(x.month))+')</li>')+
+    det("Изменятся статусы",r.statusList,x=>'<li>'+esc(x.addr)+' — '+esc(x.work.slice(0,70))+': '+esc(x.from)+' → '+esc(x.to)+'</li>')+
+    det("На сверку",r.flagList,x=>'<li>'+esc(x.addr)+' — '+esc(x.work.slice(0,70))+'<br><span class="faint">'+esc(x.text)+'</span></li>')+
+    det("Нет в файле",r.missingList,x=>'<li>'+esc(x.addr)+' — '+esc(x.work.slice(0,90))+'</li>');
+}
+function renderImport(host){
+  const D=V.drawer,r=D.rep;
+  host.innerHTML='<div class="scrim" id="scrim"></div><aside class="drawer" role="dialog" aria-label="Загрузка обновления"><div class="dh"><h3>Загрузить обновление</h3><button class="x" id="dx" type="button" aria-label="Закрыть">×</button></div>'+
+  '<div class="db"><p class="muted" style="margin:0;font-size:13px">Выберите файл «Обновление для трекера … .json». Отметки сотрудников не стираются: если источники опережают их отметку, работа получит метку «сверить». Работы, которых нет в файле, не удаляются.</p>'+
+  '<label class="field">Файл обновления<input id="impf" type="file" accept=".json,application/json"></label>'+
+  (D.name?'<div class="faint" style="font-size:12px">'+esc(D.name)+(D.busy&&!r?" — проверяю…":"")+'</div>':"")+
+  (D.err?'<div class="imp-err" role="alert">'+esc(D.err)+'</div>':"")+(r?impPreview(r):"")+'</div>'+
+  '<div class="df"><button class="btn primary" id="impgo" type="button"'+(r&&(r.added||r.updated||r.flagged)&&!D.busy?"":" disabled")+'>Применить</button><button class="btn" id="impx" type="button">Закрыть</button><span class="msg" id="impmsg"></span></div></aside>';
+  $("dx").onclick=closeDrawer;$("scrim").onclick=closeDrawer;$("impx").onclick=closeDrawer;
+  const gone=er=>{D.busy=false;if(String((er&&er.message)||er).indexOf("SESSION_EXPIRED")>=0){fail(er);return;}D.err=(er&&er.message)||String(er);if(V.drawer===D)renderImport(host);};
+  $("impf").onchange=e=>{const f=e.target.files[0];if(!f)return;
+    if(f.size>5e6){D.err="Файл больше 5 МБ. Это не файл обновления.";D.rep=null;D.name=f.name;renderImport(host);return;}
+    const rd=new FileReader();
+    rd.onload=()=>{D.text=String(rd.result);D.name=f.name;D.rep=null;D.err="";D.busy=true;renderImport(host);
+      call("importWorks",S.token,D.text,false).then(rep=>{D.rep=rep;D.busy=false;if(V.drawer===D)renderImport(host);}).catch(gone);};
+    rd.onerror=()=>gone(new Error("Не удалось прочитать файл."));
+    rd.readAsText(f,"utf-8");};
+  $("impgo").onclick=()=>{D.busy=true;$("impgo").disabled=true;$("impmsg").textContent="Записываю…";
+    call("importWorks",S.token,D.text,true).then(rep=>{toast("Обновление применено: добавлено "+rep.added+", обновлено "+rep.updated+(rep.flagged?", на сверку "+rep.flagged:""));closeDrawer();load(true);}).catch(gone);};
 }
 
 /* ---------- вопросы, журнал, пользователи ---------- */
