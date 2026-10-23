@@ -230,6 +230,9 @@ main{max-width:1200px;margin:0 auto;padding:20px 16px 48px}
 .imp-det{font-size:12px;color:var(--muted)} .imp-det summary{cursor:pointer;color:var(--accent);padding:2px 0}
 .imp-det ul{margin:6px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:5px}
 .imp-err{color:var(--attn-ink);font-size:13px}
+.xrow{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:10px;align-items:end}
+.xn{font-size:12px;margin:-8px 0 0;min-height:14px;overflow-wrap:anywhere}
+.imp-info{margin:0;padding-left:18px;font-size:13px;display:flex;flex-direction:column;gap:3px}
 
 /* вопросы, журнал, пользователи */
 .ilist{list-style:none;margin:0;padding:0}
@@ -690,25 +693,89 @@ function impPreview(r){
     det("На сверку",r.flagList,x=>'<li>'+esc(x.addr)+' — '+esc(x.work.slice(0,70))+'<br><span class="faint">'+esc(x.text)+'</span></li>')+
     det("Нет в файле",r.missingList,x=>'<li>'+esc(x.addr)+' — '+esc(x.work.slice(0,90))+'</li>');
 }
+const XSRC=[["plan","1. Годовой план ПТО"],["exec","2. Файл исполнителей"],["bx","3. Выгрузка Битрикс24"]];
+const isoLocal=ts=>{const d=new Date(ts),p=n=>(n<10?"0":"")+n;return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate());};
+// библиотека чтения Excel грузится только при открытии окна; сначала с проверкой контрольной суммы, затем запасной адрес
+let xlsxP=null;
+function loadXlsx(){
+  if(window.XLSX)return Promise.resolve(window.XLSX);
+  if(xlsxP)return xlsxP;
+  const add=(src,sri)=>new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;if(sri){s.integrity=sri;s.crossOrigin="anonymous";}s.onload=res;s.onerror=()=>{s.remove();rej(new Error("load"));};document.head.appendChild(s);});
+  xlsxP=add("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js","sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw")
+    .catch(()=>add("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"))
+    .then(()=>{if(!window.XLSX)throw new Error("no lib");return window.XLSX;})
+    .catch(()=>{xlsxP=null;throw new Error("Не удалось загрузить библиотеку чтения Excel. Проверьте подключение к интернету и попробуйте ещё раз.");});
+  return xlsxP;
+}
+function impFail(D,host,er){
+  D.busy=false;
+  if(String((er&&er.message)||er).indexOf("SESSION_EXPIRED")>=0){fail(er);return;}
+  D.err=(er&&er.message)||String(er);if(V.drawer===D)renderImport(host);
+}
+function impInfo(r){
+  const i=r.info,pl=(n,a,b,c)=>n+" "+plural(n,a,b,c);
+  return'<div class="box"><h4>Что прочитано из файлов</h4><ul class="imp-info"><li>Годовой план (лист «'+esc(i.planSheet)+'»): '+pl(i.planRows,"работа","работы","работ")+'</li>'+
+    '<li>Файл исполнителей: '+pl(i.execRows,"работа","работы","работ")+', из пополнений '+i.execAdds+', по листам мастеров '+i.execMasters+'</li>'+
+    '<li>Битрикс24: '+pl(i.bitrixRows-i.bitrixJunk,"карточка","карточки","карточек")+(i.bitrixJunk?' (тестовых и пустых пропущено '+i.bitrixJunk+')':"")+'</li>'+
+    '<li>Сведено работ: <b>'+r.items.length+'</b></li></ul>'+(r.warnings.length?r.warnings.map(w=>'<div class="imp-err" role="alert">'+esc(w)+'</div>').join(""):"")+'</div>';
+}
+function runExcel(host){
+  const D=V.drawer;D.busy=true;D.err="";D.rep=null;D.info=null;D.text="";
+  $("xgo").disabled=true;$("impmsg").textContent="Читаю файлы…";
+  Promise.all([loadXlsx(),D.files.plan.arrayBuffer(),D.files.exec.arrayBuffer(),D.files.bx.arrayBuffer()])
+    .then(a=>new Promise(res=>setTimeout(()=>res(a),30)))   // дать странице отрисовать «Читаю файлы…»
+    .then(a=>{
+      TrackerMerge.setLib(a[0]);
+      const res=TrackerMerge.merge({plan:a[1],exec:a[2],bx:a[3],dates:D.dates,today:isoLocal(Date.now()),
+        canon:S.items.map(i=>i.addr),prev:S.items.map(i=>({addr:i.addr,work:i.work,month:i.month,cat:i.cat}))});
+      D.info=res;D.text=JSON.stringify({format:"tracker-import-1",generated:res.generated,sources:res.sources,items:res.items});
+      return call("importWorks",S.token,D.text,false);})
+    .then(rep=>{D.rep=rep;D.busy=false;if(V.drawer===D){renderImport(host);const b=host.querySelector(".imp-info");if(b)b.closest(".box").scrollIntoView({block:"start"});}})
+    .catch(er=>impFail(D,host,er));
+}
 function renderImport(host){
-  const D=V.drawer,r=D.rep;
+  const D=V.drawer,r=D.rep;D.mode=D.mode||"xls";D.files=D.files||{};D.dates=D.dates||{};D.touched=D.touched||{};
+  const seg='<div class="seg" role="group" aria-label="Откуда данные"><button type="button" data-imode="xls" aria-pressed="'+(D.mode==="xls")+'">Из файлов Excel</button>'+
+    '<button type="button" data-imode="json" aria-pressed="'+(D.mode==="json")+'">Готовый файл .json</button></div>';
+  const src=D.mode==="xls"?
+    '<p class="muted" style="margin:0;font-size:13px">Выберите три свежие выгрузки. Файлы никуда не отправляются: сведение идёт в вашем браузере, на сервер уходит только итог.</p>'+
+    XSRC.map(x=>'<div class="xrow"><label class="field">'+x[1]+'<input type="file" id="xf-'+x[0]+'" accept=".xls,.xlsx"></label>'+
+      '<label class="field">Данные на дату<input type="date" id="xd-'+x[0]+'" value="'+esc(D.dates[x[0]]||"")+'"></label></div>'+
+      '<div class="faint xn" id="xn-'+x[0]+'">'+esc(D.files[x[0]]?D.files[x[0]].name:"")+'</div>').join("")+
+    '<div class="faint" style="font-size:12px">Дата нужна, чтобы при расхождении победила более свежая выгрузка.</div>'+
+    '<button class="btn" id="xgo" type="button" disabled>Свести и показать, что изменится</button>'
+  :
+    '<p class="muted" style="margin:0;font-size:13px">Выберите файл «Обновление для трекера … .json», собранный командой build.py.</p>'+
+    '<label class="field">Файл обновления<input id="impf" type="file" accept=".json,application/json"></label>'+(D.name?'<div class="faint" style="font-size:12px">'+esc(D.name)+(D.busy&&!r?" — проверяю…":"")+'</div>':"");
   host.innerHTML='<div class="scrim" id="scrim"></div><aside class="drawer" role="dialog" aria-label="Загрузка обновления"><div class="dh"><h3>Загрузить обновление</h3><button class="x" id="dx" type="button" aria-label="Закрыть">×</button></div>'+
-  '<div class="db"><p class="muted" style="margin:0;font-size:13px">Выберите файл «Обновление для трекера … .json». Отметки сотрудников не стираются: если источники опережают их отметку, работа получит метку «сверить». Работы, которых нет в файле, не удаляются.</p>'+
-  '<label class="field">Файл обновления<input id="impf" type="file" accept=".json,application/json"></label>'+
-  (D.name?'<div class="faint" style="font-size:12px">'+esc(D.name)+(D.busy&&!r?" — проверяю…":"")+'</div>':"")+
-  (D.err?'<div class="imp-err" role="alert">'+esc(D.err)+'</div>':"")+(r?impPreview(r):"")+'</div>'+
+  '<div class="db">'+seg+src+(D.err?'<div class="imp-err" role="alert">'+esc(D.err)+'</div>':"")+(D.info?impInfo(D.info):"")+(r?impPreview(r):"")+
+  '<p class="muted" style="margin:0;font-size:12px">Отметки сотрудников не стираются: если источники опережают их отметку, работа получит метку «сверить». Работы, которых нет в файлах, не удаляются.</p></div>'+
   '<div class="df"><button class="btn primary" id="impgo" type="button"'+(r&&(r.added||r.updated||r.flagged)&&!D.busy?"":" disabled")+'>Применить</button><button class="btn" id="impx" type="button">Закрыть</button><span class="msg" id="impmsg"></span></div></aside>';
   $("dx").onclick=closeDrawer;$("scrim").onclick=closeDrawer;$("impx").onclick=closeDrawer;
-  const gone=er=>{D.busy=false;if(String((er&&er.message)||er).indexOf("SESSION_EXPIRED")>=0){fail(er);return;}D.err=(er&&er.message)||String(er);if(V.drawer===D)renderImport(host);};
-  $("impf").onchange=e=>{const f=e.target.files[0];if(!f)return;
-    if(f.size>5e6){D.err="Файл больше 5 МБ. Это не файл обновления.";D.rep=null;D.name=f.name;renderImport(host);return;}
-    const rd=new FileReader();
-    rd.onload=()=>{D.text=String(rd.result);D.name=f.name;D.rep=null;D.err="";D.busy=true;renderImport(host);
-      call("importWorks",S.token,D.text,false).then(rep=>{D.rep=rep;D.busy=false;if(V.drawer===D)renderImport(host);}).catch(gone);};
-    rd.onerror=()=>gone(new Error("Не удалось прочитать файл."));
-    rd.readAsText(f,"utf-8");};
+  document.querySelectorAll("[data-imode]").forEach(b=>b.onclick=()=>{if(D.busy||D.mode===b.dataset.imode)return;D.mode=b.dataset.imode;D.rep=null;D.info=null;D.err="";D.text="";renderImport(host);});
+  if(D.mode==="xls"){
+    loadXlsx().catch(()=>{});   // подгружаем заранее
+    const ready=()=>{$("xgo").disabled=D.busy||!(D.files.plan&&D.files.exec&&D.files.bx&&D.dates.plan&&D.dates.exec&&D.dates.bx);};
+    XSRC.forEach(x=>{const k=x[0];
+      $("xf-"+k).onchange=e=>{const f=e.target.files[0];if(!f)return;D.files[k]=f;D.rep=null;D.info=null;$("xn-"+k).textContent=f.name;
+        if(!D.touched[k]){D.dates[k]=isoLocal(f.lastModified);$("xd-"+k).value=D.dates[k];}
+        if(k==="exec")   // дата в названии листа «Тек.Рем (08.10.2026)» точнее даты файла
+          Promise.all([loadXlsx(),f.arrayBuffer()]).then(a=>{const wb=a[0].read(a[1],{type:"array",bookSheets:true}),n=wb.SheetNames.find(s=>/^тек\.?\s*рем/i.test(s)),d=n&&TrackerMerge.dateOfName(n);
+            if(d&&!D.touched.exec&&V.drawer===D){D.dates.exec=d;if($("xd-exec"))$("xd-exec").value=d;ready();}}).catch(()=>{});
+        ready();};
+      $("xd-"+k).onchange=e=>{D.dates[k]=e.target.value;D.touched[k]=true;ready();};});
+    ready();$("xgo").onclick=()=>runExcel(host);
+  }else if($("impf")){
+    $("impf").onchange=e=>{const f=e.target.files[0];if(!f)return;
+      if(f.size>5e6){D.err="Файл больше 5 МБ. Это не файл обновления.";D.rep=null;D.name=f.name;renderImport(host);return;}
+      const rd=new FileReader();
+      rd.onload=()=>{D.text=String(rd.result);D.name=f.name;D.rep=null;D.err="";D.busy=true;renderImport(host);
+        call("importWorks",S.token,D.text,false).then(rep=>{D.rep=rep;D.busy=false;if(V.drawer===D)renderImport(host);}).catch(er=>impFail(D,host,er));};
+      rd.onerror=()=>impFail(D,host,new Error("Не удалось прочитать файл."));
+      rd.readAsText(f,"utf-8");};
+  }
   $("impgo").onclick=()=>{D.busy=true;$("impgo").disabled=true;$("impmsg").textContent="Записываю…";
-    call("importWorks",S.token,D.text,true).then(rep=>{toast("Обновление применено: добавлено "+rep.added+", обновлено "+rep.updated+(rep.flagged?", на сверку "+rep.flagged:""));closeDrawer();load(true);}).catch(gone);};
+    call("importWorks",S.token,D.text,true).then(rep=>{toast("Обновление применено: добавлено "+rep.added+", обновлено "+rep.updated+(rep.flagged?", на сверку "+rep.flagged:""));closeDrawer();load(true);}).catch(er=>impFail(D,host,er));};
 }
 
 /* ---------- вопросы, журнал, пользователи ---------- */
