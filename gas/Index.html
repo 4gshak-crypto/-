@@ -759,8 +759,9 @@ var TrackerMerge = (function () {
 
     var ukByAddr = {};
     works.forEach(function (w) { var k = akStr(ak(w.addr)); if (w.uk && !has(ukByAddr, k)) ukByAddr[k] = w.uk; });
-    var D = { exec: ddmm(dates.exec), per: ddmm(dates.exec), plan: ddmm(dates.plan), add: ddmm(dates.plan), bx: ddmm(dates.bx) };
-    var DFULL = { exec: dates.exec, per: dates.exec, plan: dates.plan, add: dates.plan, bx: dates.bx };
+    var addDate = E.addNames.map(dateOfName).filter(Boolean).sort().pop() || dates.exec;   // пополнения датируются названием листа
+    var D = { exec: ddmm(dates.exec), per: ddmm(dates.exec), plan: ddmm(dates.plan), add: ddmm(addDate), bx: ddmm(dates.bx) };
+    var DFULL = { exec: dates.exec, per: dates.exec, plan: dates.plan, add: addDate, bx: dates.bx };
     var LABEL = { exec: function (d) { return d; }, per: function (d) { return d + ' лист мастера'; }, plan: function (d) { return d; }, add: function (d) { return d + ' пополнение'; }, bx: function (d) { return d + ' Битрикс'; } };
     var DONE = ['Выполнено, акта нет', 'Принято, акт есть'], out = [];
 
@@ -851,7 +852,7 @@ var TrackerMerge = (function () {
     Object.keys(rep).forEach(function (k) { rcount[k] = rep[k].length; });
     return {
       items: out, generated: opts.today,
-      sources: { plan: fmtDate(dates.plan), exec: fmtDate(dates.exec) + ' + пополнения', bitrix: fmtDate(dates.bx) },
+      sources: { plan: fmtDate(dates.plan), exec: fmtDate(dates.exec), adds: fmtDate(addDate), bitrix: fmtDate(dates.bx) },
       info: { planRows: plan.length, planSheet: P.sheet, execRows: E.main.length, execAdds: E.adds.length, execMasters: E.per.length, bitrixRows: bx.length,
         bitrixJunk: bx.filter(function (x) { return x.junk; }).length, execSheet: E.mainName, execSheetDate: dateOfName(E.mainName), colored: P.colored, report: rcount },
       warnings: warnings
@@ -925,7 +926,7 @@ const DEMO=(function(){
     getLoginNames:()=>users.filter(u=>u.active).map(u=>u.name),
     login(name,pin){const u=users.find(x=>x.name===name&&x.active);if(!u||pin!=="1111")throw new Error("Неверное имя или PIN.");const t="t"+Math.random();sess[t]={name:u.name,role:u.role};return{token:t,user:sess[t]};},
     logout(t){delete sess[t];return true;},
-    bootstrap(t){return{user:auth(t),rev,asof:seed.generated,items,issues,log:log.slice(0,60)};},
+    bootstrap(t){return{user:auth(t),rev,asof:seed.generated,sources:seed.sources,items,issues,log:log.slice(0,60)};},
     getRev(t){auth(t);return rev;},
     updateWork(t,key,p){const u=auth(t),it=items.find(x=>x.key===key),adm=u.role==="Администратор";if(!can(u,it))throw new Error("У вас нет прав менять эту работу.");
       const now=Date.now(),DONE=["Выполнено, акта нет","Принято, акт есть"];
@@ -1007,7 +1008,7 @@ function renderDemoPick(){
     ["Филимонов","УК","Отмечает статус и комментарий только в работах УК"],
     ["ПТО (подрядчики)","Подрядчики","Отмечает статус и комментарий только в работах подрядчиков"],
     ["Руководитель","Просмотр","Смотрит сводку и работы, ничего не меняет"]];
-  $("root").innerHTML='<div class="demo">Демонстрация: данные сведены 20.10.2026 из годового плана, файла исполнителей и Битрикс24. Изменения не сохраняются.</div>'+
+  $("root").innerHTML='<div class="demo">Демонстрация: данные сведены '+dmy(window.DEMO_SEED.generated)+' из годового плана, файла исполнителей и Битрикс24. Изменения не сохраняются.</div>'+
   '<div class="login"><div class="login-card" style="max-width:440px"><div><div class="faint" style="font-size:12px">Текущий ремонт · 2026</div><h1>Трекер текущего ремонта</h1></div>'+
   '<div class="muted" style="font-size:13px">Посмотреть трекер глазами:</div>'+
   who.map(w=>'<button class="btn" type="button" data-demo="'+esc(w[0])+'" style="text-align:left;display:flex;flex-direction:column;gap:2px"><b>'+esc(w[1])+'</b><span class="muted" style="font-size:12px;font-weight:400">'+esc(w[2])+'</span></button>').join("")+
@@ -1017,7 +1018,7 @@ function renderDemoPick(){
 
 /* ---------- загрузка ---------- */
 function load(silent){
-  return call("bootstrap",S.token).then(d=>{S.user=d.user;saveSess();S.items=d.items.map(enrich);S.ph=d.ph||{};buildMonths();S.issues=d.issues;S.log=d.log;S.rev=d.rev;S.asof=d.asof;
+  return call("bootstrap",S.token).then(d=>{S.user=d.user;saveSess();S.items=d.items.map(enrich);S.ph=d.ph||{};S.src=d.sources||null;buildMonths();S.issues=d.issues;S.log=d.log;S.rev=d.rev;S.asof=d.asof;
     if(!silent||!$("view"))renderShell();else renderView();}).catch(fail);
 }
 setInterval(()=>{if(!S.token||document.hidden)return;
@@ -1146,7 +1147,7 @@ function renderDash(){
       :'<div class="empty">Просроченных работ нет</div>')+'</section></div>';
 
   $("view").innerHTML='<div class="head"><h2>Сводка</h2>'+scopeSeg()+'<button class="btn" id="xlsd" type="button">Скачать Excel</button>'+'<span class="faint" style="font-size:12px">сведено '+esc(dmy(S.asof))+
-    ' из плана ПТО (16.10), файла исполнителей (08.10) и Битрикс24 (19.10) · просрочка на '+esc(dmy(TODAY))+'</span></div>'+
+    (S.src?' из плана ПТО ('+esc(S.src.plan.slice(0,5))+'), файла исполнителей ('+esc(S.src.exec.slice(0,5))+') и Битрикс24 ('+esc(S.src.bitrix.slice(0,5))+')':"")+' · просрочка на '+esc(dmy(TODAY))+'</span></div>'+
     hero+'<div class="grid2">'+probs+months+'</div>'+who+where;
   bindScope();
   $("xlsd").onclick=()=>exportXlsx("dash");

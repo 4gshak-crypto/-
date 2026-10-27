@@ -484,8 +484,9 @@ var TrackerMerge = (function () {
 
     var ukByAddr = {};
     works.forEach(function (w) { var k = akStr(ak(w.addr)); if (w.uk && !has(ukByAddr, k)) ukByAddr[k] = w.uk; });
-    var D = { exec: ddmm(dates.exec), per: ddmm(dates.exec), plan: ddmm(dates.plan), add: ddmm(dates.plan), bx: ddmm(dates.bx) };
-    var DFULL = { exec: dates.exec, per: dates.exec, plan: dates.plan, add: dates.plan, bx: dates.bx };
+    var addDate = E.addNames.map(dateOfName).filter(Boolean).sort().pop() || dates.exec;   // пополнения датируются названием листа
+    var D = { exec: ddmm(dates.exec), per: ddmm(dates.exec), plan: ddmm(dates.plan), add: ddmm(addDate), bx: ddmm(dates.bx) };
+    var DFULL = { exec: dates.exec, per: dates.exec, plan: dates.plan, add: addDate, bx: dates.bx };
     var LABEL = { exec: function (d) { return d; }, per: function (d) { return d + ' лист мастера'; }, plan: function (d) { return d; }, add: function (d) { return d + ' пополнение'; }, bx: function (d) { return d + ' Битрикс'; } };
     var DONE = ['Выполнено, акта нет', 'Принято, акт есть'], out = [];
 
@@ -576,7 +577,7 @@ var TrackerMerge = (function () {
     Object.keys(rep).forEach(function (k) { rcount[k] = rep[k].length; });
     return {
       items: out, generated: opts.today,
-      sources: { plan: fmtDate(dates.plan), exec: fmtDate(dates.exec) + ' + пополнения', bitrix: fmtDate(dates.bx) },
+      sources: { plan: fmtDate(dates.plan), exec: fmtDate(dates.exec), adds: fmtDate(addDate), bitrix: fmtDate(dates.bx) },
       info: { planRows: plan.length, planSheet: P.sheet, execRows: E.main.length, execAdds: E.adds.length, execMasters: E.per.length, bitrixRows: bx.length,
         bitrixJunk: bx.filter(function (x) { return x.junk; }).length, execSheet: E.mainName, execSheetDate: dateOfName(E.mainName), colored: P.colored, report: rcount },
       warnings: warnings

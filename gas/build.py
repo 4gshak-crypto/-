@@ -33,7 +33,8 @@ issues = [{"text": q["text"] + (" Перечень: %d поз." % q["count"] if 
 
 seed = {"generated": M["generated"], "sources": M["sources"], "items": items, "issues": issues}
 blob = json.dumps(seed, ensure_ascii=False, separators=(",", ":"))
-(here / "Seed.gs").write_text("/** Сводные данные трекера: годовой план 16.10, файл исполнителей 08.10 (+ пополнения 16.10), Битрикс24 19.10. "
+_s = M["sources"]
+(here / "Seed.gs").write_text("/** Сводные данные трекера: годовой план %s, файл исполнителей %s (+ пополнения %s), Битрикс24 %s. " % (_s["plan"], _s["exec"], _s["adds"], _s["bitrix"]) +
                               "Загружаются в таблицу функцией setup(). Сгенерировано build.py. */\nvar SEED = " + blob + ";\n", encoding="utf-8")
 
 demo_items = []
@@ -68,7 +69,8 @@ fonts = re.search(r'<link rel="stylesheet"[^>]+>', page).group(0)
 bodyhtml = page[page.index("<body>") + 6:page.index("</body>")]
 inject_show = "<script>window.DEMO_SEED=" + json.dumps(show, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/") + ";</script>\n"
 bodyhtml = bodyhtml.replace("<script>\n(function(){", inject_show + "<script>\n(function(){", 1)
-(here / "meeting.html").write_text("<title>Трекер текущего ремонта</title>\n" + fonts + "\n" + style + "\n" + bodyhtml, encoding="utf-8")
+# в просмотрщике claude.ai скачивание файлов не работает — кнопку выгрузки прячем (в странице для скачивания она остаётся)
+(here / "meeting.html").write_text("<title>Трекер текущего ремонта</title>\n" + fonts + "\n" + style + "\n<style>#xlsd,#xlsw{display:none!important}</style>\n" + bodyhtml, encoding="utf-8")
 print("meeting.html:", round((here / "meeting.html").stat().st_size / 1024), "КБ; телефонов скрыто:",
       sum(json.dumps(i, ensure_ascii=False).count("тел. скрыт") for i in show_items))
 

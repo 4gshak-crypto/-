@@ -216,10 +216,13 @@ function logout(token) {
 function bootstrap(token) {
   var user = auth_(token);
   ensureKeys_();
+  var meta = {};
+  try { meta = JSON.parse(PropertiesService.getScriptProperties().getProperty('IMPORT_META') || '{}'); } catch (e) { meta = {}; }   // дата и источники последнего обновления
   return {
     user: user,
     rev: getRev_(),
-    asof: SEED.generated,
+    asof: meta.generated || SEED.generated,
+    sources: meta.sources || SEED.sources,
     items: readWorks_(),
     ph: photoCounts_(),
     issues: readIssues_(),
@@ -691,6 +694,11 @@ function importWorks_(user, src, apply) {
     log.getRange(log.getLastRow() + 1, 1, logRows.length, 8).setValues(logRows.map(function (r) { return r.map(safe_); }));
     bumpRev_();
     rep.applied = true;
+  }
+  if (apply && src.generated) {   // «сведено …» на сводке показывает дату последнего обновления, а не первой загрузки
+    var gen = String(src.generated).slice(0, 10), so = src.sources && typeof src.sources === 'object' ? src.sources : null;
+    if (/^\d{4}-\d\d-\d\d$/.test(gen) && so && /^\d\d\.\d\d\.\d{4}$/.test(String(so.plan)) && /^\d\d\.\d\d\.\d{4}$/.test(String(so.exec)) && /^\d\d\.\d\d\.\d{4}$/.test(String(so.bitrix)))
+      PropertiesService.getScriptProperties().setProperty('IMPORT_META', JSON.stringify({ generated: gen, sources: { plan: so.plan, exec: so.exec, adds: String(so.adds || so.exec), bitrix: so.bitrix } }));
   }
   return rep;
 }

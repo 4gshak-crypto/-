@@ -1,6 +1,9 @@
 """Сводит три выгрузки в данные трекера.
 
   python3 tools/merge_sources.py <годовой план .xls> <файл исполнителей .xlsx> <выгрузка Битрикс24 .xlsx>
+         [--plan-date ГГГГ-ММ-ДД] [--exec-date ГГГГ-ММ-ДД] [--bx-date ГГГГ-ММ-ДД] [--today ГГГГ-ММ-ДД]
+  Даты — на какое число актуальна каждая выгрузка; при расхождении источников побеждает более свежая. Не заданы — берутся из даты файла
+  (для файла исполнителей — из названия листа «Тек.Рем (дата)»).
 
 Источники и что из них берётся:
   годовой план (ПТО)   — состав работ, УК, основание, оценка, факт, цвет строки (зелёный = принято, жёлтый = выполнено без акта)
@@ -13,7 +16,7 @@
 «Подрядчики» — в файле исполнителей «ПТО», в пополнении исполнитель «ПТО», в плане серая строка.
 
 Пишет tracker/merged.json (работы и вопросы) и tracker/merge_report.json (расхождения для разбора)."""
-import collections, datetime, hashlib, json, pathlib, re, sys
+import argparse, collections, datetime, hashlib, json, os, pathlib, re, sys
 import openpyxl, xlrd
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from srcnorm import addr_key, work_norm, work_sim
@@ -50,9 +53,13 @@ def master_of(s):
 
 
 # ---------- годовой план ----------
-def read_plan(path):
+def read_plan(path, year='2026'):
     b = xlrd.open_workbook(path, formatting_info=True)
-    s = b.sheet_by_name('2026')
+    names = [x.name for x in b.sheets()]
+    name = year if year in names else max((n for n in names if re.fullmatch(r'\d{4}', n)), default=None)
+    if not name:
+        raise SystemExit('В годовом плане нет листа с годом в названии (например «%s»).' % year)
+    s = b.sheet_by_name(name)
     out, sec = [], None
     for r in range(s.nrows):
         a = sp(s.cell_value(r, 0))
@@ -66,7 +73,7 @@ def read_plan(path):
         fill = '%02X%02X%02X' % col if col else None
         fact = sp(s.cell_value(r, 6)) if s.cell_type(r, 6) != xlrd.XL_CELL_DATE else 'дата ' + xlrd.xldate_as_datetime(s.cell_value(r, 6), b.datemode).strftime('%d.%m.%Y')
         fs = s.cell_value(r, 7)
-        out.append(dict(row=r + 1, month='2026-%02d' % MONTHS_RU[sec], uk=norm_uk(s.cell_value(r, 0)), addr=norm_addr(s.cell_value(r, 1)),
+        out.append(dict(row=r + 1, month='%s-%02d' % (name, MONTHS_RU[sec]), uk=norm_uk(s.cell_value(r, 0)), addr=norm_addr(s.cell_value(r, 1)),
                         work=sp(s.cell_value(r, 2)), basis=sp(s.cell_value(r, 3)), sum=num(s.cell_value(r, 4)),
                         fact=fact, fsum=num(fs), fsum_txt='' if num(fs) else sp(fs), act_col=sp(s.cell_value(r, 8)), fill=fill))
     return out
@@ -124,8 +131,13 @@ def act_state(h):
 
 def read_exec(path):
     wb = openpyxl.load_workbook(path, data_only=True)
+    main_name = next((n for n in wb.sheetnames if re.match(r'^тек\.?\s*рем', n, re.I)), None)
+    if not main_name:
+        raise SystemExit('В файле исполнителей нет листа «Тек.Рем (дата)».')
+    add_names = [n for n in wb.sheetnames if re.match(r'^пополнение', n, re.I)]
+    rest_names = [n for n in wb.sheetnames if n != main_name and n not in add_names]
     main = []
-    for row in wb['Тек.Рем (08.10.2026)'].iter_rows():
+    for row in wb[main_name].iter_rows():
         v = [c.value for c in row[:9]]
         if not (v[0] and v[1]):
             continue
@@ -135,7 +147,7 @@ def read_exec(path):
                          who=sp(v[5]), status_raw=sp(v[6]), status=ex_status(v[6]), act=act_state(h), fsum=num(h),
                          note='' if num(h) or (act_state(h) and len(sp(h)) <= 12) else sp(h)))
     adds = []
-    for name in ('пополнение от 16.10.2026', 'пополнение от 16.10.2026(доп)'):
+    for name in add_names:
         for r in wb[name].iter_rows(min_row=3, values_only=True):
             if not (r[2] and r[3]):
                 continue
@@ -144,7 +156,7 @@ def read_exec(path):
                              sum=num(r[5]), basis=sp(r[6]), master=master_of(r[7]), status_raw=sp(r[8]), status=ex_status(r[8]),
                              executor=sp(r[9]), act=sp(r[10])))
     per = []
-    for name in wb.sheetnames[3:]:
+    for name in rest_names:
         for r in wb[name].iter_rows(values_only=True):
             cells = [c for c in r if c is not None]
             if len(cells) < 4:
@@ -244,8 +256,27 @@ def key_of(addr, work, month):
     return 'w' + h
 
 
-def main(plan_path, exec_path, bx_path):
-    plan = read_plan(plan_path)
+def name_date(names):
+    """Самая поздняя дата в названиях листов («пополнение от 16.10.2026») в виде ГГГГ-ММ-ДД."""
+    ds = [m.group(3) + '-' + m.group(2) + '-' + m.group(1) for n in names for m in [re.search(r'(\d\d)\.(\d\d)\.(\d{4})', n)] if m]
+    return max(ds) if ds else None
+
+
+def file_date(path):
+    return datetime.date.fromtimestamp(os.path.getmtime(path)).isoformat()
+
+
+def main(plan_path, exec_path, bx_path, dates=None, today=None):
+    names = openpyxl.load_workbook(exec_path, read_only=True).sheetnames
+    main_n = next((n for n in names if re.match(r'^тек\.?\s*рем', n, re.I)), '')
+    add_n = [n for n in names if re.match(r'^пополнение', n, re.I)]
+    dates = dict(dates or {})
+    dates.setdefault('plan', file_date(plan_path))
+    dates.setdefault('exec', name_date([main_n]) or file_date(exec_path))
+    dates.setdefault('bx', file_date(bx_path))
+    dates['add'] = name_date(add_n) or dates['exec']
+    today = today or datetime.date.today().isoformat()
+    plan = read_plan(plan_path, dates['plan'][:4])
     ex_main, ex_adds, ex_per = read_exec(exec_path)
     bx = read_bitrix(bx_path)
     prev = json.loads((ROOT / 'tracker' / 'data.json').read_text(encoding='utf-8'))
@@ -329,31 +360,38 @@ def main(plan_path, exec_path, bx_path):
     for w in works:
         S = w['src']
         p, e, a, pe, pr, b = (S.get(k) for k in ('plan', 'exec', 'add', 'per', 'prev', 'bx'))
-        cand = []  # (дата источника, статус)
-        if e and e['status']:
-            cand.append(('08.10', e['status']))
-        if pe and pe['status']:
-            cand.append(('08.10 лист мастера', pe['status']))
+        fmt2 = lambda d: d[8:10] + '.' + d[5:7]
+        ORD = ['exec', 'per', 'plan', 'add', 'bx']
+        SUF = {'exec': '', 'per': ' лист мастера', 'plan': '', 'add': ' пополнение', 'bx': ' Битрикс'}
+        DD = {'exec': dates['exec'], 'per': dates['exec'], 'plan': dates['plan'], 'add': dates['add'], 'bx': dates['bx']}
+        cand = []  # свежая выгрузка — последняя; при равной дате — по порядку источников
+
+        def push(src, status):
+            if status:
+                cand.append(dict(src=src, label=fmt2(DD[src]) + SUF[src], status=status, date=DD[src], ord=ORD.index(src)))
+        if e:
+            push('exec', e['status'])
+        if pe:
+            push('per', pe['status'])
         ps = plan_status(p) if p else None
-        if ps:
-            cand.append(('16.10', ps))
-        if a and a['status']:
-            cand.append(('16.10 пополнение', a['status']))
+        push('plan', ps)
+        if a:
+            push('add', a['status'])
         bs = BX_STAGE.get(b['stage']) if b else None
         if bs == 'Успешно':
             bs = 'Принято, акт есть' if (b['act_file'] or ps == 'Принято, акт есть') else 'Выполнено, акта нет'
-        if bs:
-            cand.append(('19.10 Битрикс', bs))
-        cand = [c for c in cand if c[1]]
+        push('bx', bs)
+        cand.sort(key=lambda c: (c['date'], c['ord']))
         DONE = ('Выполнено, акта нет', 'Принято, акт есть')
-        status = cand[-1][1] if cand else ('Не начато' if (a or (b and b['stage'] == 'Запланировано')) else 'Нет статуса')
+        last = cand[-1] if cand else None
+        status = last['status'] if last else ('Не начато' if (a or (b and b['stage'] == 'Запланировано')) else 'Нет статуса')
         conflict = ''
-        strong_done = [c for c in cand if c[1] in DONE]
-        if status not in DONE and status != 'Снято' and strong_done and cand[-1][0].startswith('19.10'):
-            conflict = 'Битрикс24: «%s», а %s — %s' % (b['stage'], strong_done[-1][0], strong_done[-1][1].lower())
-            status = strong_done[-1][1]
+        strong_done = [c for c in cand if c['status'] in DONE]
+        if status not in DONE and status != 'Снято' and strong_done and last['src'] == 'bx':
+            conflict = 'Битрикс24: «%s», а %s — %s' % (b['stage'], strong_done[-1]['label'], strong_done[-1]['status'].lower())
+            status = strong_done[-1]['status']
         elif status not in DONE and status != 'Снято' and strong_done:
-            conflict = '%s — %s, позже %s — %s' % (strong_done[-1][0], strong_done[-1][1].lower(), cand[-1][0], cand[-1][1].lower())
+            conflict = '%s — %s, позже %s — %s' % (strong_done[-1]['label'], strong_done[-1]['status'].lower(), last['label'], last['status'].lower())
         if status not in DONE and status != 'Снято' and '???' in ((e and e['note']) or '') + ((pe and pe['note']) or ''):
             status = 'Требует уточнения'  # у исполнителя открытый вопрос: «Почему мы???», «где делать кровлю???»
         if ps == 'Принято, акт есть' and status != 'Снято':
@@ -393,7 +431,7 @@ def main(plan_path, exec_path, bx_path):
         if p and p['fact'] and p['fact'].lower() not in ('выполнено', 'выполено'):
             notes.append('План: ' + p['fact'])
         if e and e['note']:
-            notes.append('Исполнитель 08.10: ' + e['note'])
+            notes.append('Исполнитель %s: ' % fmt2(dates['exec']) + e['note'])
         if pe and pe['note']:
             notes.append(pe['master'] + ': ' + pe['note'])
         if a and a['status_raw'] and not a['status']:
@@ -413,9 +451,9 @@ def main(plan_path, exec_path, bx_path):
         if mconf:
             check.append('мастер: у исполнителей — %s, в Битрикс24 — %s' % (master, b['resp']))
         if w.get('only') == 'exec':
-            check.append('работа есть только в файле исполнителей, в годовом плане 16.10 её нет')
+            check.append('работа есть только в файле исполнителей, в годовом плане %s её нет' % fmt2(dates['plan']))
         if w.get('only') == 'bx':
-            check.append('работа есть только в Битрикс24, в годовом плане 16.10 её нет')
+            check.append('работа есть только в Битрикс24, в годовом плане %s её нет' % fmt2(dates['plan']))
         if p and p['fsum'] and e and e['fsum'] and abs(p['fsum'] - e['fsum']) > 1:
             check.append('факт: в плане %s ₽, у исполнителей %s ₽' % (('%.2f' % p['fsum']).replace('.', ','), ('%.2f' % e['fsum']).replace('.', ',')))
         fmt = lambda d: '.'.join(reversed(d.split('-'))) if d else ''
@@ -433,8 +471,8 @@ def main(plan_path, exec_path, bx_path):
                     sum=w['sum'] or (b and b['sum']) or None, fsum=fsum, ex=ex, master=master, status=status, act=act,
                     kr='',
                     bx_stage=b['stage'] if b else '', bx_start=b['start'] if b else '', bx_end=b['end'] if b else '', bx_created=b['created'] if b else '',
-                    in_bx=bool(b), in_exec=bool(e or a or pe), conflict=conflict, history=' → '.join('%s: %s' % c for c in cand),
-                    src_note=' · '.join(([item_hist] if (item_hist := ' → '.join('%s: %s' % c for c in cand)) else []) + notes),
+                    in_bx=bool(b), in_exec=bool(e or a or pe), conflict=conflict, history=' → '.join('%s: %s' % (c['label'], c['status']) for c in cand),
+                    src_note=' · '.join(([item_hist] if (item_hist := ' → '.join('%s: %s' % (c['label'], c['status']) for c in cand)) else []) + notes),
                     master_conflict=b['resp'] if mconf else '', check='; '.join(check), bx_dates=bx_dates,
                     addr_conflict=w.get('addr_conflict', ''), only=w.get('only', ''))
         out.append(item)
@@ -447,8 +485,9 @@ def main(plan_path, exec_path, bx_path):
         if keys[i['key']] > 1:  # одинаковые работы по одному адресу в одном месяце
             i['key'] += '-%s' % (i['row'] or len(out))
     dst = ROOT / 'tracker'
-    (dst / 'merged.json').write_text(json.dumps({'generated': datetime.date.today().isoformat(),
-                                                 'sources': {'plan': '16.10.2026', 'exec': '08.10.2026 + пополнения 16.10', 'bitrix': '19.10.2026'},
+    dmy4 = lambda d: '.'.join(reversed(d.split('-')))
+    (dst / 'merged.json').write_text(json.dumps({'generated': today,
+                                                 'sources': {'plan': dmy4(dates['plan']), 'exec': dmy4(dates['exec']), 'adds': dmy4(dates['add']), 'bitrix': dmy4(dates['bx'])},
                                                  'items': out}, ensure_ascii=False, indent=1), encoding='utf-8')
     (dst / 'merge_report.json').write_text(json.dumps(rep, ensure_ascii=False, indent=1, default=str), encoding='utf-8')
     print(len(out), 'работ;', {k: len(v) for k, v in rep.items()})
@@ -459,4 +498,10 @@ PREV_ST = {'blocked': 'Нужно решение', 'unclear': 'Требует у
            'winter': 'Отложено на зиму', 'cancel': 'Снято'}
 
 if __name__ == '__main__':
-    main(*sys.argv[1:4])
+    ap = argparse.ArgumentParser(description='Сводит годовой план, файл исполнителей и выгрузку Битрикс24 в tracker/merged.json')
+    ap.add_argument('plan'), ap.add_argument('exec'), ap.add_argument('bx')
+    for k in ('plan', 'exec', 'bx'):
+        ap.add_argument('--%s-date' % k, metavar='ГГГГ-ММ-ДД')
+    ap.add_argument('--today', metavar='ГГГГ-ММ-ДД', help='дата сведения (по умолчанию — сегодня)')
+    A = ap.parse_args()
+    main(A.plan, A.exec, A.bx, {k: getattr(A, k + '_date') for k in ('plan', 'exec', 'bx') if getattr(A, k + '_date')}, A.today)
