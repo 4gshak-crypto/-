@@ -1,0 +1,1239 @@
+{
+ "today": "2026-10-27",
+ "saved": "2026-10-26",
+ "total": {
+  "kr": 99489906.44,
+  "bank": 14319933.0
+ },
+ "houses": 29,
+ "legend": {
+  "008000": {
+   "адрес": [
+    0,
+    2,
+    3,
+    5,
+    10,
+    11,
+    12,
+    13,
+    15,
+    16,
+    18,
+    21,
+    22,
+    23
+   ],
+   "решение собственников": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    13,
+    16,
+    18
+   ],
+   "сумма КР": [
+    0
+   ],
+   "аванс из банка": [
+    0
+   ],
+   "график начала": [
+    0
+   ],
+   "срок окончания": [
+    0
+   ]
+  },
+  "00CCFF": {
+   "аванс из банка": [
+    2,
+    3,
+    5,
+    10,
+    11,
+    12,
+    18,
+    21,
+    23
+   ],
+   "решение собственников": [
+    10,
+    11,
+    12,
+    15,
+    21,
+    23
+   ],
+   "сумма КР": [
+    10
+   ],
+   "график начала": [
+    10
+   ],
+   "срок окончания": [
+    10
+   ]
+  },
+  "FF0000": {
+   "адрес": [
+    4,
+    7,
+    8,
+    9,
+    14
+   ],
+   "решение собственников": [
+    4,
+    7,
+    8,
+    9,
+    14
+   ],
+   "сумма КР": [
+    4,
+    7,
+    8,
+    9,
+    14
+   ],
+   "аванс из банка": [
+    4,
+    7,
+    8,
+    9,
+    14
+   ],
+   "график начала": [
+    4,
+    7,
+    8,
+    9,
+    14,
+    17
+   ],
+   "срок окончания": [
+    4,
+    7,
+    8,
+    9,
+    14,
+    17
+   ]
+  }
+ },
+ "positions": [
+  {
+   "id": 0,
+   "row": 6,
+   "addr": "50 лет ВЛКСМ ул, 28",
+   "kr": 3063461.0,
+   "bank": 919038.0,
+   "contractor": "ЖЭУ 3",
+   "executor": "Симонян",
+   "pay": 770000.0,
+   "contract": 2015232.0,
+   "pct": 100.0,
+   "state": "",
+   "start": "2026-06-01",
+   "start_txt": "01.06.2026",
+   "end": "2026-12-31",
+   "end_txt": "4 кв. 2026",
+   "vote": false,
+   "notes": [],
+   "fill": "008000",
+   "lines": [
+    {
+     "row": 6,
+     "work": "Ремонт фасада отмостка",
+     "sum": 1404062.0,
+     "sum_txt": "",
+     "contract": 770000.0,
+     "cancelled": false
+    },
+    {
+     "row": 7,
+     "work": "Цоколь",
+     "sum": 648853.0,
+     "sum_txt": "",
+     "contract": 1245232.0,
+     "cancelled": false
+    },
+    {
+     "row": 8,
+     "work": "Двери",
+     "sum": 596379.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 1,
+   "row": 10,
+   "addr": "50 лет ВЛКСМ ул, 7",
+   "kr": 1400000.0,
+   "bank": null,
+   "contractor": "ЖЭУ 3",
+   "executor": "ЖЭУ 3",
+   "pay": null,
+   "contract": null,
+   "pct": 90.0,
+   "state": "",
+   "start": "2026-05-01",
+   "start_txt": "01.05.2026",
+   "end": "2026-09-30",
+   "end_txt": "3 кв. 2026",
+   "vote": false,
+   "notes": [],
+   "fill": "FFFFFF",
+   "lines": [
+    {
+     "row": 10,
+     "work": "Ремонт электроснабжения",
+     "sum": 1400000.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "row": 11,
+   "addr": "Аблукова ул, 67",
+   "kr": 3800000.0,
+   "bank": 1140000.0,
+   "contractor": "ЖЭУ 3",
+   "executor": "Бердышев",
+   "pay": null,
+   "contract": 2900000.0,
+   "pct": 75.0,
+   "state": "",
+   "start": "2026-07-01",
+   "start_txt": "01.07.2026",
+   "end": "2026-12-31",
+   "end_txt": "4 кв. 2026",
+   "vote": false,
+   "notes": [],
+   "fill": "008000",
+   "lines": [
+    {
+     "row": 11,
+     "work": "Ремонт фасада Двери В/Г",
+     "sum": 2900000.0,
+     "sum_txt": "",
+     "contract": 2900000.0,
+     "cancelled": false
+    },
+    {
+     "row": 12,
+     "work": "Водостоки",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 13,
+     "work": "Отмостка",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 14,
+     "work": "Двери мусорокамер",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "row": 15,
+   "addr": "Артема ул, 28",
+   "kr": 1604300.0,
+   "bank": 481290.0,
+   "contractor": "ЖЭУ 3",
+   "executor": "Сырбаков",
+   "pay": 144000.0,
+   "contract": 1953629.0,
+   "pct": 45.0,
+   "state": "",
+   "start": "2026-05-01",
+   "start_txt": "01.05.2026",
+   "end": "2026-12-31",
+   "end_txt": "4 кв. 2026",
+   "vote": false,
+   "notes": [],
+   "fill": "008000",
+   "lines": [
+    {
+     "row": 15,
+     "work": "Ремонт отмостка",
+     "sum": 258632.0,
+     "sum_txt": "",
+     "contract": 970671.0,
+     "cancelled": false
+    },
+    {
+     "row": 16,
+     "work": "цоколь (п/л)",
+     "sum": 111445.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 17,
+     "work": "крыльца 1-4 подъезды,бетон, плитка",
+     "sum": 317831.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 18,
+     "work": "температурные швы",
+     "sum": 70195.0,
+     "sum_txt": "",
+     "contract": 700195.0,
+     "cancelled": false
+    },
+    {
+     "row": 19,
+     "work": "Двери",
+     "sum": 282763.0,
+     "sum_txt": "",
+     "contract": 282763.0,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "row": 20,
+   "addr": "Октябрьская ул., 33",
+   "kr": 3489294.0,
+   "bank": null,
+   "contractor": "Кузнецов",
+   "executor": "Кузнецов",
+   "pay": null,
+   "contract": 3489294.0,
+   "pct": 100.0,
+   "state": "",
+   "start": "2026-05-01",
+   "start_txt": "01.05.2026",
+   "end": null,
+   "end_txt": "",
+   "vote": false,
+   "notes": [],
+   "fill": "FF0000",
+   "lines": [
+    {
+     "row": 20,
+     "work": "Ремонт фасада",
+     "sum": 3489294.0,
+     "sum_txt": "",
+     "contract": 3489294.0,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "row": 21,
+   "addr": "Пушкарева ул, 56",
+   "kr": 3567544.77,
+   "bank": 1070263.0,
+   "contractor": "ЖЭУ 3",
+   "executor": "Бердышев",
+   "pay": null,
+   "contract": 3056859.0,
+   "pct": 50.0,
+   "state": "",
+   "start": "2026-06-01",
+   "start_txt": "01.06.2026",
+   "end": "2026-12-31",
+   "end_txt": "4 кв. 2026",
+   "vote": false,
+   "notes": [],
+   "fill": "008000",
+   "lines": [
+    {
+     "row": 21,
+     "work": "Ремонт отмостки",
+     "sum": 761648.0,
+     "sum_txt": "",
+     "contract": 3056859.0,
+     "cancelled": false
+    },
+    {
+     "row": 22,
+     "work": "цоколь",
+     "sum": 412005.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 23,
+     "work": "козырьки",
+     "sum": 90624.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 24,
+     "work": "окна",
+     "sum": 1266714.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 25,
+     "work": "двери",
+     "sum": 525868.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "row": 26,
+   "addr": "Гафурова ул, 14",
+   "kr": 1684350.0,
+   "bank": null,
+   "contractor": "ЖЭУ 3",
+   "executor": "ЖЭУ 3",
+   "pay": null,
+   "contract": null,
+   "pct": 90.0,
+   "state": "",
+   "start": "2026-06-01",
+   "start_txt": "01.06.2026",
+   "end": "2026-12-31",
+   "end_txt": "4 кв. 2026",
+   "vote": false,
+   "notes": [],
+   "fill": "FFFFFF",
+   "lines": [
+    {
+     "row": 26,
+     "work": "Ремонт электроснабжения",
+     "sum": 1684350.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "row": 27,
+   "addr": "Гафурова ул, 16",
+   "kr": 700000.0,
+   "bank": null,
+   "contractor": "ЖЭУ 3",
+   "executor": "",
+   "pay": null,
+   "contract": null,
+   "pct": 100.0,
+   "state": "",
+   "start": "2026-07-01",
+   "start_txt": "01.07.2026",
+   "end": null,
+   "end_txt": "",
+   "vote": false,
+   "notes": [],
+   "fill": "FF0000",
+   "lines": [
+    {
+     "row": 27,
+     "work": "Установка прибора учета тепловой энергии",
+     "sum": 700000.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "row": 28,
+   "addr": "Гафурова ул, 16",
+   "kr": 2050000.0,
+   "bank": 615000.0,
+   "contractor": "ЖЭУ 3",
+   "executor": "КОНОПЛЕВА",
+   "pay": null,
+   "contract": 1600000.0,
+   "pct": 100.0,
+   "state": "",
+   "start": "2026-07-01",
+   "start_txt": "01.07.2026",
+   "end": null,
+   "end_txt": "",
+   "vote": false,
+   "notes": [],
+   "fill": "FF0000",
+   "lines": [
+    {
+     "row": 28,
+     "work": "Ремонт фасада",
+     "sum": 1600000.0,
+     "sum_txt": "",
+     "contract": 1600000.0,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "row": 29,
+   "addr": "Минаева ул, 18",
+   "kr": 2748147.0,
+   "bank": null,
+   "contractor": "Кузнецов",
+   "executor": "Кузнецов",
+   "pay": null,
+   "contract": 2748147.0,
+   "pct": 100.0,
+   "state": "",
+   "start": "2026-06-01",
+   "start_txt": "01.06.2026",
+   "end": null,
+   "end_txt": "",
+   "vote": false,
+   "notes": [],
+   "fill": "FF0000",
+   "lines": [
+    {
+     "row": 29,
+     "work": "Ремонт фасада; торцевая стена",
+     "sum": 2748147.0,
+     "sum_txt": "",
+     "contract": 2748147.0,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 10,
+   "row": 30,
+   "addr": "К. Либкхнехта 22",
+   "kr": 10195690.0,
+   "bank": 3058707.0,
+   "contractor": "ЖЭУ 3",
+   "executor": "смартМонтаж",
+   "pay": null,
+   "contract": null,
+   "pct": 80.0,
+   "state": "",
+   "start": null,
+   "start_txt": "",
+   "end": null,
+   "end_txt": "",
+   "vote": false,
+   "notes": [],
+   "fill": "008000",
+   "lines": [
+    {
+     "row": 30,
+     "work": "Электроснабжение",
+     "sum": 10195690.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 11,
+   "row": 31,
+   "addr": "М.Шоссе 100",
+   "kr": 9995864.0,
+   "bank": 2998759.0,
+   "contractor": "ЖЭУ 3",
+   "executor": "смартМонтаж",
+   "pay": null,
+   "contract": null,
+   "pct": 60.0,
+   "state": "",
+   "start": null,
+   "start_txt": "",
+   "end": null,
+   "end_txt": "",
+   "vote": false,
+   "notes": [],
+   "fill": "008000",
+   "lines": [
+    {
+     "row": 31,
+     "work": "Электроснабжение",
+     "sum": 9995864.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 12,
+   "row": 32,
+   "addr": "Нариманова 112",
+   "kr": 2097030.0,
+   "bank": 629109.0,
+   "contractor": "ЖЭУ 3",
+   "executor": "ЖЭУ 3",
+   "pay": null,
+   "contract": null,
+   "pct": 50.0,
+   "state": "",
+   "start": null,
+   "start_txt": "",
+   "end": null,
+   "end_txt": "",
+   "vote": false,
+   "notes": [],
+   "fill": "008000",
+   "lines": [
+    {
+     "row": 32,
+     "work": "Электроснабжение",
+     "sum": 1315860.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 13,
+   "row": 33,
+   "addr": "Верхнеполевая 21",
+   "kr": 5882770.0,
+   "bank": null,
+   "contractor": "Кузнецов",
+   "executor": "Кузнецов",
+   "pay": null,
+   "contract": 5882770.0,
+   "pct": null,
+   "state": "",
+   "start": null,
+   "start_txt": "",
+   "end": "2027-12-31",
+   "end_txt": "2027 г.",
+   "vote": false,
+   "notes": [],
+   "fill": "008000",
+   "lines": [
+    {
+     "row": 33,
+     "work": "Швы",
+     "sum": 3224485.0,
+     "sum_txt": "",
+     "contract": 5882770.0,
+     "cancelled": false
+    },
+    {
+     "row": 34,
+     "work": "отмостка",
+     "sum": 1078329.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 35,
+     "work": "Цоколь окраска",
+     "sum": 166372.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 36,
+     "work": "Входные группы кровля, окраска",
+     "sum": 160951.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 37,
+     "work": "Окна",
+     "sum": 392495.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 14,
+   "row": 38,
+   "addr": "Верхнеполевая 9/2",
+   "kr": 3115156.0,
+   "bank": null,
+   "contractor": "Бердышев",
+   "executor": "Бердышев",
+   "pay": null,
+   "contract": 3115156.0,
+   "pct": null,
+   "state": "",
+   "start": null,
+   "start_txt": "",
+   "end": null,
+   "end_txt": "",
+   "vote": false,
+   "notes": [],
+   "fill": "FF0000",
+   "lines": [
+    {
+     "row": 38,
+     "work": "ремонт фасада",
+     "sum": 3115156.0,
+     "sum_txt": "",
+     "contract": 3115156.0,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 15,
+   "row": 39,
+   "addr": "АЗОВСКАЯ 93",
+   "kr": 648000.0,
+   "bank": 194400.0,
+   "contractor": "",
+   "executor": "",
+   "pay": null,
+   "contract": null,
+   "pct": null,
+   "state": "встали",
+   "start": null,
+   "start_txt": "",
+   "end": "2026-12-31",
+   "end_txt": "4 кв. 2026",
+   "vote": false,
+   "notes": [],
+   "fill": "008000",
+   "lines": [
+    {
+     "row": 39,
+     "work": "цоколь (3 этап)",
+     "sum": 648000.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 16,
+   "row": 40,
+   "addr": "Верхнеполевая 23",
+   "kr": 5838820.0,
+   "bank": null,
+   "contractor": "Кузнецов",
+   "executor": "Кузнецов",
+   "pay": null,
+   "contract": 5838820.0,
+   "pct": null,
+   "state": "",
+   "start": null,
+   "start_txt": "",
+   "end": null,
+   "end_txt": "",
+   "vote": false,
+   "notes": [
+    "сумма по разделу записана текстом: «450т.р+438т.р»"
+   ],
+   "fill": "008000",
+   "lines": [
+    {
+     "row": 40,
+     "work": "окраска балконов",
+     "sum": null,
+     "sum_txt": "",
+     "contract": 5838820.0,
+     "cancelled": false
+    },
+    {
+     "row": 41,
+     "work": "Сетка на балконы",
+     "sum": 85536.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 42,
+     "work": "Входные группы двери, окраска",
+     "sum": 888000.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 43,
+     "work": "керамогранит",
+     "sum": 158100.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 44,
+     "work": "асфальт",
+     "sum": 160000.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 45,
+     "work": "окна",
+     "sum": 1841456.4,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 46,
+     "work": "водостоки",
+     "sum": 48750.0,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 17,
+   "row": 47,
+   "addr": "Л.Шевцовой 54Б к.2",
+   "kr": 1680000.0,
+   "bank": null,
+   "contractor": "ЖЭУ 3",
+   "executor": "ЖЭУ 3",
+   "pay": null,
+   "contract": null,
+   "pct": null,
+   "state": "",
+   "start": "2025-10-01",
+   "start_txt": "4 кв. 2025",
+   "end": null,
+   "end_txt": "",
+   "vote": false,
+   "notes": [],
+   "fill": null,
+   "lines": [
+    {
+     "row": 47,
+     "work": "Ремонт фасада",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 18,
+   "row": 50,
+   "addr": "Маяковского 14/49 (2-ой этап)",
+   "kr": 2411436.14,
+   "bank": 723430.0,
+   "contractor": "ЖЭУ 3",
+   "executor": "ЖЭУ 3",
+   "pay": null,
+   "contract": null,
+   "pct": 50.0,
+   "state": "",
+   "start": null,
+   "start_txt": "",
+   "end": null,
+   "end_txt": "",
+   "vote": true,
+   "notes": [],
+   "fill": "008000",
+   "lines": [
+    {
+     "row": 50,
+     "work": "покраска фасада",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 51,
+     "work": "ремонт цоколя П/лист",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 19,
+   "row": 53,
+   "addr": "ПУШКАРЕВА 40 ??????",
+   "kr": null,
+   "bank": null,
+   "contractor": "",
+   "executor": "ШАЛАЕВ",
+   "pay": null,
+   "contract": null,
+   "pct": null,
+   "state": "",
+   "start": null,
+   "start_txt": "",
+   "end": null,
+   "end_txt": "",
+   "vote": false,
+   "notes": [],
+   "fill": null,
+   "lines": [
+    {
+     "row": 53,
+     "work": "Кровля",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 20,
+   "row": 54,
+   "addr": "З.Бульвар 1",
+   "kr": null,
+   "bank": null,
+   "contractor": "",
+   "executor": "ШАЛАЕВ",
+   "pay": null,
+   "contract": null,
+   "pct": null,
+   "state": "",
+   "start": null,
+   "start_txt": "",
+   "end": null,
+   "end_txt": "",
+   "vote": false,
+   "notes": [],
+   "fill": null,
+   "lines": [
+    {
+     "row": 54,
+     "work": "кровля",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 21,
+   "row": 55,
+   "addr": "Аблукова 43 А",
+   "kr": 820844.0,
+   "bank": 246253.0,
+   "contractor": "ЖЭУ 3",
+   "executor": "Филимонов",
+   "pay": null,
+   "contract": null,
+   "pct": 20.0,
+   "state": "",
+   "start": "2027-06-30",
+   "start_txt": "30.06.2027",
+   "end": "2027-09-30",
+   "end_txt": "3 кв. 2027",
+   "vote": false,
+   "notes": [],
+   "fill": "008000",
+   "lines": [
+    {
+     "row": 55,
+     "work": "Замена теплообменника и розлива ГВС",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 57,
+     "work": "Замена стояков ГВС",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": true
+    }
+   ]
+  },
+  {
+   "id": 22,
+   "row": 59,
+   "addr": "Пушкарева 8а",
+   "kr": 7476500.0,
+   "bank": null,
+   "contractor": "Кузнецов",
+   "executor": "Кузнецов",
+   "pay": null,
+   "contract": 7476500.0,
+   "pct": 50.0,
+   "state": "",
+   "start": null,
+   "start_txt": "",
+   "end": "2026-12-31",
+   "end_txt": "4 кв. 2026",
+   "vote": false,
+   "notes": [],
+   "fill": "008000",
+   "lines": [
+    {
+     "row": 59,
+     "work": "Ремонт кровли",
+     "sum": null,
+     "sum_txt": "",
+     "contract": 7476500.0,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 23,
+   "row": 60,
+   "addr": "Октябрьская 30а",
+   "kr": 7478949.0,
+   "bank": 2243684.0,
+   "contractor": "ЖЭУ 3",
+   "executor": "Филимонов",
+   "pay": null,
+   "contract": null,
+   "pct": null,
+   "state": "",
+   "start": null,
+   "start_txt": "",
+   "end": "2027-09-30",
+   "end_txt": "3 кв. 2027",
+   "vote": false,
+   "notes": [],
+   "fill": "008000",
+   "lines": [
+    {
+     "row": 60,
+     "work": "Замена розлива ЦО подвал",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    },
+    {
+     "row": 62,
+     "work": "Замена стояков ЦО",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": true
+    }
+   ]
+  },
+  {
+   "id": 24,
+   "row": 64,
+   "addr": "Юности 49",
+   "kr": 500000.0,
+   "bank": null,
+   "contractor": "ЖЭУ 3",
+   "executor": "",
+   "pay": null,
+   "contract": null,
+   "pct": null,
+   "state": "",
+   "start": null,
+   "start_txt": "",
+   "end": "2026-12-31",
+   "end_txt": "4 кв. 2026",
+   "vote": false,
+   "notes": [],
+   "fill": "FFFFFF",
+   "lines": [
+    {
+     "row": 64,
+     "work": "Установка прибора учета тепловой энергии",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 25,
+   "row": 65,
+   "addr": "Ульяны Громовой 6",
+   "kr": 9318935.0,
+   "bank": null,
+   "contractor": "ЖЭУ 3",
+   "executor": "",
+   "pay": null,
+   "contract": null,
+   "pct": null,
+   "state": "",
+   "start": null,
+   "start_txt": "",
+   "end": "2028-12-31",
+   "end_txt": "4 кв. 2028",
+   "vote": false,
+   "notes": [],
+   "fill": "FFFFFF",
+   "lines": [
+    {
+     "row": 65,
+     "work": "Ремонт системы ЦО",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 26,
+   "row": 66,
+   "addr": "Карла либкнехта д.2",
+   "kr": 2769646.0,
+   "bank": null,
+   "contractor": "ЖЭУ 3",
+   "executor": "",
+   "pay": null,
+   "contract": null,
+   "pct": null,
+   "state": "",
+   "start": null,
+   "start_txt": "",
+   "end": "2028-12-31",
+   "end_txt": "4 кв. 2028",
+   "vote": false,
+   "notes": [],
+   "fill": "FFFFFF",
+   "lines": [
+    {
+     "row": 66,
+     "work": "Ремонт системы ЦО (1-ый этап)",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 27,
+   "row": 67,
+   "addr": "Пожарского д. 29а",
+   "kr": 500000.0,
+   "bank": null,
+   "contractor": "ЖЭУ 3",
+   "executor": "",
+   "pay": null,
+   "contract": null,
+   "pct": null,
+   "state": "",
+   "start": null,
+   "start_txt": "",
+   "end": "2026-12-31",
+   "end_txt": "4 кв. 2026",
+   "vote": false,
+   "notes": [],
+   "fill": "FFFFFF",
+   "lines": [
+    {
+     "row": 67,
+     "work": "Установка прибора учета тепловой энергии",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 28,
+   "row": 68,
+   "addr": "Розы Люксембург 50",
+   "kr": 2236854.0,
+   "bank": null,
+   "contractor": "Кузнецов",
+   "executor": "Кузнецов",
+   "pay": null,
+   "contract": null,
+   "pct": null,
+   "state": "",
+   "start": null,
+   "start_txt": "",
+   "end": "2027-09-30",
+   "end_txt": "3 кв. 2027",
+   "vote": false,
+   "notes": [],
+   "fill": "FFFFFF",
+   "lines": [
+    {
+     "row": 68,
+     "work": "Ремонт фасада",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  },
+  {
+   "id": 29,
+   "row": 69,
+   "addr": "Нариманова 95",
+   "kr": 2416315.53,
+   "bank": null,
+   "contractor": "ЖЭУ 3",
+   "executor": "",
+   "pay": null,
+   "contract": null,
+   "pct": null,
+   "state": "",
+   "start": null,
+   "start_txt": "",
+   "end": "2027-09-30",
+   "end_txt": "3 кв. 2027",
+   "vote": false,
+   "notes": [],
+   "fill": "FFFFFF",
+   "lines": [
+    {
+     "row": 69,
+     "work": "Электроснабжение",
+     "sum": null,
+     "sum_txt": "",
+     "contract": null,
+     "cancelled": false
+    }
+   ]
+  }
+ ]
+}

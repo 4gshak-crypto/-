@@ -1,0 +1,473 @@
+<title>Капитальный ремонт</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;600&display=swap">
+<style>
+/* Layout: шапка с вкладками; «Сводка» сверху вниз отвечает на вопросы: где мы (стадии) → где проблемы → когда (месяцы) → кто отстаёт → где (адреса, виды работ); «Работы» — список с быстрыми фильтрами по стадиям, детали в боковой панели */
+:root{
+  --bg:#f3f4f2; --surface:#fff; --surface-2:#eceeea; --line:#dde1da; --line-strong:#bcc2b8;
+  --fg:#1d2420; --muted:#5b665f; --faint:#8a948d;
+  --accent:#1f5f8b; --accent-ink:#fff; --accent-soft:#dde9f2;
+  /* стадии: метка на графике · текст · подложка. Палитра проверена на различимость соседних стадий, в том числе при дальтонизме */
+  --todo:#8b939b; --todo-ink:#4f5860; --todo-bg:#eceef0;
+  --prog:#1859a6; --prog-ink:#164f93; --prog-bg:#e1ebf7;
+  --noact:#d29b00; --noact-ink:#7f5b00; --noact-bg:#faf0d2;
+  --done:#2e7d3a; --done-ink:#256b30; --done-bg:#e0f1e2;
+  --winter:#8a5cc2; --winter-ink:#6d45a6; --winter-bg:#efe8f8;
+  --attn:#c0392b; --attn-ink:#a8321f; --attn-bg:#fbe5e1;
+  --cancel:#a3a8a4; --cancel-ink:#6b716d; --cancel-bg:#eceeec;
+  --ex-pto:#4f5f6b; --ex-own:#a9530b; --ex-none:#8a948d;
+  --banner:#fbefd6;
+  --shadow:0 10px 40px rgba(20,30,25,.18);
+  --f-display:"Unbounded","Golos Text",system-ui,sans-serif;
+  --f-body:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141917; --surface:#1c2320; --surface-2:#252d29; --line:#2f3833; --line-strong:#47524b;
+  --fg:#e5ebe7; --muted:#a3ada7; --faint:#77827b; --accent:#6fb0de; --accent-ink:#0d1b25; --accent-soft:#1d3342;
+  --todo:#5d6772; --todo-ink:#b4bcc4; --todo-bg:#2a3036; --prog:#4893e3; --prog-ink:#8ec0f5; --prog-bg:#1b2f47;
+  --noact:#cfa22e; --noact-ink:#f0cc6a; --noact-bg:#3a2f12; --done:#2a8040; --done-ink:#7fd08c; --done-bg:#1b3520;
+  --winter:#8f74d8; --winter-ink:#c4b2f2; --winter-bg:#2c2540; --attn:#d95a49; --attn-ink:#ff9b8c; --attn-bg:#3d1f1b;
+  --cancel:#6f7672; --cancel-ink:#a4aba7; --cancel-bg:#2a302c; --ex-pto:#a9b8c3; --ex-own:#f3a35e; --ex-none:#77827b;
+  --banner:#3a2d12; --shadow:0 10px 40px rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141917; --surface:#1c2320; --surface-2:#252d29; --line:#2f3833; --line-strong:#47524b;
+  --fg:#e5ebe7; --muted:#a3ada7; --faint:#77827b; --accent:#6fb0de; --accent-ink:#0d1b25; --accent-soft:#1d3342;
+  --todo:#5d6772; --todo-ink:#b4bcc4; --todo-bg:#2a3036; --prog:#4893e3; --prog-ink:#8ec0f5; --prog-bg:#1b2f47;
+  --noact:#cfa22e; --noact-ink:#f0cc6a; --noact-bg:#3a2f12; --done:#2a8040; --done-ink:#7fd08c; --done-bg:#1b3520;
+  --winter:#8f74d8; --winter-ink:#c4b2f2; --winter-bg:#2c2540; --attn:#d95a49; --attn-ink:#ff9b8c; --attn-bg:#3d1f1b;
+  --cancel:#6f7672; --cancel-ink:#a4aba7; --cancel-bg:#2a302c; --ex-pto:#a9b8c3; --ex-own:#f3a35e; --ex-none:#77827b;
+  --banner:#3a2d12; --shadow:0 10px 40px rgba(0,0,0,.5); color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:14px/1.45 var(--f-body)}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
+[hidden]{display:none!important}
+
+/* shell */
+.bar{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar-in{max-width:1200px;margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:16px;min-height:56px}
+.brand{font-family:var(--f-display);font-weight:600;font-size:15px;white-space:nowrap}
+.tabs{display:flex;gap:2px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none}
+.tabs button{border:0;background:none;padding:18px 12px 16px;cursor:pointer;color:var(--muted);font-weight:500;border-bottom:2px solid transparent;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--fg)}
+.who{display:flex;align-items:center;gap:10px;white-space:nowrap;font-size:13px}
+.role{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
+.linkbtn{border:0;background:none;color:var(--accent);cursor:pointer;padding:2px;font-size:13px}
+main{max-width:1200px;margin:0 auto;padding:20px 16px 48px}
+@media (max-width:720px){.brand{display:none}.who .nm,.who .role{display:none}.bar-in{gap:8px}.tabs button{padding:18px 9px 16px}}
+
+.btn{border:1px solid var(--line-strong);background:var(--surface);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:500}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.field{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);min-width:0}
+.field input,.field select,.field textarea,.ctl{padding:8px 10px;border:1px solid var(--line-strong);border-radius:8px;background:var(--bg);color:var(--fg);width:100%;min-width:0}
+.field textarea{min-height:84px;resize:vertical}
+
+/* login */
+.login{min-height:100vh;display:grid;place-items:center;padding:16px}
+.login-card{width:100%;max-width:360px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:14px}
+.login h1{font-family:var(--f-display);font-weight:600;font-size:20px;margin:0;line-height:1.2}
+.err{color:var(--attn-ink);font-size:13px;min-height:18px}
+.hint{font-size:12px;color:var(--faint)}
+
+/* цвета стадий и исполнителей: --c метка, --ci текст, --cb подложка */
+.g-todo{--c:var(--todo);--ci:var(--todo-ink);--cb:var(--todo-bg)} .g-prog{--c:var(--prog);--ci:var(--prog-ink);--cb:var(--prog-bg)}
+.g-noact{--c:var(--noact);--ci:var(--noact-ink);--cb:var(--noact-bg)} .g-done{--c:var(--done);--ci:var(--done-ink);--cb:var(--done-bg)}
+.g-winter{--c:var(--winter);--ci:var(--winter-ink);--cb:var(--winter-bg)} .g-attn{--c:var(--attn);--ci:var(--attn-ink);--cb:var(--attn-bg)}
+.g-cancel{--c:var(--cancel);--ci:var(--cancel-ink);--cb:var(--cancel-bg)}
+.e-pto{--ci:var(--ex-pto)} .e-own{--ci:var(--ex-own)} .e-none{--ci:var(--ex-none)}
+.fill{background:var(--c)}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap;color:var(--ci);background:var(--cb)}
+.pill.dot::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c)}
+.tag{font-size:11px;font-weight:600;color:var(--ci)}
+.chkpill{font-size:10px;font-weight:600;border:1px dashed var(--line-strong);color:var(--muted);border-radius:999px;padding:0 7px;white-space:nowrap}
+.bad{color:var(--attn-ink);font-weight:600}
+
+/* сводка */
+.head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:16px}
+.head h2{font-family:var(--f-display);font-weight:500;font-size:20px;margin:0}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:6px 12px;cursor:pointer;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.card+.card,.grid2+.card,.card+.grid2,.grid2+.grid2{margin-top:12px}
+.card h3{margin:0;font-size:15px;font-weight:600;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 12px}
+.card h3 span{font-weight:400;color:var(--muted);font-size:12px}
+.card .sub{font-size:12px;color:var(--muted);margin:2px 0 12px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.grid2>.card{margin-top:0}
+@media (max-width:860px){.grid2{grid-template-columns:1fr}}
+.hero-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:8px 20px;margin:10px 0 14px}
+.hero-l{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.hero-big{font-family:var(--f-display);font-size:34px;font-weight:500;line-height:1;font-variant-numeric:tabular-nums}
+.hero-txt{font-size:14px;max-width:60ch}
+.money{font-size:12px;color:var(--muted)}
+.pipe{display:flex;gap:2px;height:28px}
+.pipe span{min-width:4px;background:var(--c)}
+.pipe span:first-child{border-radius:6px 0 0 6px} .pipe span:last-child{border-radius:0 6px 6px 0}
+.pipe .gap{flex:0 0 8px;background:transparent;min-width:0}
+.stages{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) repeat(2,minmax(0,.85fr));column-gap:22px;row-gap:10px;margin-top:12px}
+.stage{position:relative;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:1px;min-width:0}
+.stage:hover{border-color:var(--c)}
+.stage.side{border-style:dashed}
+.stage.arrow::after{content:"→";position:absolute;right:-18px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:15px}
+.stage .sh{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ci)}
+.stage .sh i{width:10px;height:10px;border-radius:3px;background:var(--c);flex:none}
+.stage .sn{font-family:var(--f-display);font-size:24px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2}
+.stage .sp{font-size:12px;color:var(--muted)}
+.stage .sx{font-size:12px;font-weight:600;color:var(--attn-ink);min-height:18px}
+.stage .sx.ok{color:var(--muted);font-weight:400}
+@media (max-width:900px){.stages{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:10px}.stage.arrow::after{display:none}}
+.note{font-size:12px;color:var(--faint);margin:10px 0 0}
+.plist{list-style:none;margin:0;padding:0}
+.plist li{display:grid;grid-template-columns:4px 56px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 10px 10px 0;border-top:1px solid var(--line);cursor:pointer}
+.plist li:first-child{border-top:0}
+.plist li:hover{background:var(--surface-2)}
+.plist .sv{align-self:stretch;border-radius:2px;background:var(--c)}
+.plist .pn{font-family:var(--f-display);font-size:20px;font-weight:500;text-align:right;font-variant-numeric:tabular-nums}
+.plist .pt{min-width:0} .plist .pt b{display:block;font-size:13px;font-weight:600} .plist .pt span{font-size:12px;color:var(--muted)}
+.plist .pa{font-size:12px;color:var(--accent);white-space:nowrap}
+.sev-high{--c:var(--attn)} .sev-mid{--c:var(--noact)} .sev-low{--c:var(--todo)}
+@media (max-width:560px){.plist .pa{display:none}.plist li{grid-template-columns:4px 44px minmax(0,1fr);gap:10px}}
+.mrow{display:grid;grid-template-columns:168px minmax(0,1fr) 104px;gap:10px;align-items:center;padding:6px 4px;cursor:pointer;border-radius:6px}
+.mrow:hover{background:var(--surface-2)}
+.mrow .ml{font-size:13px;display:flex;align-items:center;gap:6px;white-space:nowrap;min-width:0}
+.mb{font-size:10px;font-weight:600;padding:1px 7px;border-radius:999px;font-style:normal}
+.mb.late{color:var(--attn-ink);background:var(--attn-bg)} .mb.now{color:var(--prog-ink);background:var(--prog-bg)}
+.mb.ok{color:var(--done-ink);background:var(--done-bg)} .mb.next{color:var(--muted);background:var(--surface-2)} .mb.wait{color:var(--noact-ink);background:var(--noact-bg)}
+.mrow .mv{font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+@media (max-width:560px){.mrow{grid-template-columns:120px minmax(0,1fr) 72px}.mrow .mv span{display:none}}
+.stack{display:flex;gap:2px;height:14px}
+.stack span{height:100%;min-width:3px;background:var(--c)}
+.stack span:first-child{border-radius:4px 0 0 4px} .stack span:last-child{border-radius:0 4px 4px 0} .stack span:only-child{border-radius:4px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:10px;font-size:11px;color:var(--muted)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px;background:var(--c)}
+.tscroll{overflow-x:auto;margin:0 -4px}
+.wt{width:100%;border-collapse:collapse;font-size:13px;min-width:780px}
+.wt th{font-size:11px;font-weight:600;color:var(--muted);text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:bottom}
+.wt th i{display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--c);margin-right:4px}
+.wt th:first-child,.wt td:first-child{text-align:left}
+.wt td{padding:8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.wt tbody tr{cursor:pointer} .wt tbody tr:hover{background:var(--surface-2)}
+.wt .z{color:var(--faint)}
+@media (max-width:640px){.wt{min-width:0}.wt .st{display:none}.wt th,.wt td{padding:8px 5px}.wt th,.wt td:first-child{white-space:normal}.wt .pbar{gap:6px}.wt .pbar i{width:30px}}
+.pbar{display:inline-flex;align-items:center;gap:8px} .pbar i{display:inline-block;width:64px;height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.pbar i b{display:block;height:100%;background:var(--done)}
+.hbar{display:grid;grid-template-columns:minmax(0,170px) minmax(0,1fr) 34px;gap:10px;align-items:center;padding:5px 0;cursor:pointer}
+.hbar .lbl{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbar:hover .lbl{color:var(--accent)}
+.hbar .tr{height:10px}
+.hbar .tr i{display:block;height:100%;background:var(--attn);border-radius:0 4px 4px 0;min-width:3px}
+.hbar .val{font-size:12px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+.alist{list-style:none;margin:0;padding:0}
+.alist li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);cursor:pointer;align-items:center}
+.alist li:first-child{border-top:0}
+.alist li:hover .a{color:var(--accent)}
+.alist .a{font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alist .m{font-size:12px;color:var(--muted);white-space:nowrap}
+@media (max-width:560px){.hbar{grid-template-columns:minmax(0,120px) minmax(0,1fr) 30px}.alist li{flex-direction:column;align-items:flex-start;gap:4px}.alist .a{max-width:100%}}
+.tip{position:fixed;z-index:30;pointer-events:none;background:var(--fg);color:var(--bg);font-size:12px;padding:5px 8px;border-radius:6px;white-space:nowrap}
+
+.hrow{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 12px}
+
+/* работы */
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.filters .ctl{width:auto;flex:0 1 auto}
+.filters .search{flex:1 1 220px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-strong);background:var(--surface);border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--fg)}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.chip b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)} .chip[aria-pressed="true"] b{color:var(--bg)}
+.fpills{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.fpill{display:inline-flex;align-items:center;gap:4px;font-size:12px;background:var(--accent-soft);color:var(--fg);border-radius:999px;padding:3px 4px 3px 10px}
+.fpill button{border:0;background:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;padding:0 5px}
+.chk{display:inline-flex;gap:6px;align-items:center;font-size:13px;cursor:pointer;user-select:none}
+.count{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:8px}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.wr{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 14px 10px 0;border-top:1px solid var(--line);cursor:pointer}
+.wr:first-child{border-top:0}
+.wr:hover{background:var(--surface-2)}
+.wr .sev{align-self:stretch;background:var(--c)}
+.wr .a{font-weight:600;font-size:13px}
+.wr .w{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wr .r{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.wr .od{font-size:11px;color:var(--attn-ink);font-weight:600}
+.wr .al{font-size:11px;color:var(--noact-ink);font-weight:600}
+.lock{font-size:11px;color:var(--faint)}
+.more{display:block;width:100%;padding:12px;border:0;border-top:1px solid var(--line);background:none;color:var(--accent);cursor:pointer;font-weight:500}
+.empty{padding:32px;text-align:center;color:var(--muted)}
+
+/* панель работы */
+.scrim{position:fixed;inset:0;background:rgba(10,15,12,.35);z-index:20}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,100%);background:var(--surface);z-index:21;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.dh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line)}
+.dh h3{margin:0;font-size:16px;line-height:1.3}
+.dh .x{border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--muted);padding:0 4px}
+.db{padding:18px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;flex:1}
+.steps{display:flex;list-style:none;margin:0;padding:0;gap:4px}
+.steps li{flex:1;font-size:11px;color:var(--faint);text-align:center;position:relative;padding-top:12px}
+.steps li::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;border-radius:3px;background:var(--surface-2)}
+.steps li.past::before,.steps li.cur::before{background:var(--c)}
+.steps li.cur{color:var(--fg);font-weight:600}
+.stop{border-radius:10px;padding:10px 12px;font-size:13px;background:var(--cb);color:var(--ci)}
+.dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 12px;font-size:13px;margin:0}
+.dl dt{color:var(--muted)} .dl dd{margin:0;word-break:break-word}
+.box{border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.box.chkbox{border-style:dashed;border-color:var(--line-strong);background:var(--surface-2)}
+.box h4{margin:0;font-size:13px}
+.hist{list-style:none;margin:0;padding:0;font-size:12px;display:flex;flex-direction:column;gap:6px;color:var(--muted)}
+.df{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
+.df .msg{font-size:12px;color:var(--muted);margin-left:auto}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.phcols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.phc h5{margin:0 0 6px;font-size:12px;font-weight:600}
+.phg{display:flex;flex-wrap:wrap;gap:6px}
+.pht{width:64px;height:64px;padding:0;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;background:var(--surface-2);cursor:pointer}
+.pht img{width:100%;height:100%;object-fit:cover;display:block}
+.pha{position:relative;width:64px;height:64px;border:1px dashed var(--line-strong);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:24px;cursor:pointer}
+.pha input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.pha:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.pha.off{opacity:.45;pointer-events:none}
+.lbx{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:12px}
+.lbs{position:absolute;inset:0;background:rgba(10,15,12,.86)}
+.lbx figure{position:relative;margin:0;max-width:min(94vw,980px);max-height:94vh;display:flex;flex-direction:column;gap:10px;align-items:center}
+.lbimg{min-height:100px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px}
+.lbimg img{max-width:100%;max-height:70vh;border-radius:6px;background:#000}
+.lbx figcaption{color:#fff;font-size:13px;text-align:center}
+.lbb{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.lbb a.btn{text-decoration:none;color:inherit}
+.imp-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-top:1px solid var(--line);font-size:13px}
+.imp-row:first-of-type{border-top:0}
+.imp-row small{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:1px}
+.imp-row b{font-family:var(--f-display);font-size:18px;font-weight:500;font-variant-numeric:tabular-nums}
+.imp-row.zero,.imp-row.zero small{color:var(--faint)}
+.imp-det{font-size:12px;color:var(--muted)} .imp-det summary{cursor:pointer;color:var(--accent);padding:2px 0}
+.imp-det ul{margin:6px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:5px}
+.imp-err{color:var(--attn-ink);font-size:13px}
+.xrow{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:10px;align-items:end}
+.xn{font-size:12px;margin:-8px 0 0;min-height:14px;overflow-wrap:anywhere}
+.imp-info{margin:0;padding-left:18px;font-size:13px;display:flex;flex-direction:column;gap:3px}
+
+/* вопросы, журнал, пользователи */
+.ilist{list-style:none;margin:0;padding:0}
+.ilist li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;padding:14px 16px;border-top:1px solid var(--line)}
+.ilist li:first-child{border-top:0}
+.ilist .t{font-size:13px}
+.ilist .done .t{color:var(--faint);text-decoration:line-through}
+.ilist .meta{font-size:12px;color:var(--muted);margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 12px}
+.loglist li{grid-template-columns:minmax(0,1fr)}
+.utable{width:100%;border-collapse:collapse;font-size:13px}
+.utable th,.utable td{text-align:left;padding:10px 14px;border-top:1px solid var(--line)}
+.utable th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-top:0}
+.uform{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) auto;gap:10px;align-items:end;margin-top:12px}
+@media (max-width:760px){.uform,#qf{grid-template-columns:1fr 1fr!important}}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:40}
+.demo{background:var(--banner);color:var(--fg);font-size:12px;text-align:center;padding:6px 16px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>
+.kr-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:16px}
+.kr-head h2{font-family:var(--f-display);font-weight:500;font-size:20px;margin:0}
+@media (max-width:720px){.kr-bar-in .brand{display:block}}
+.kr-bar-in{max-width:1200px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:56px}
+.stages.s4{grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,.85fr)}
+@media (max-width:900px){.stages.s4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.mny{display:grid;grid-template-columns:minmax(0,230px) minmax(0,1fr) 150px;gap:10px;align-items:center;padding:6px 0;font-size:13px}
+.mny .tr{height:14px;background:var(--surface-2);border-radius:7px;overflow:hidden}
+.mny .tr i{display:block;height:100%;background:var(--c);border-radius:7px;min-width:3px}
+.mny .v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mny .v small{color:var(--muted);font-size:12px}
+@media (max-width:640px){.mny{grid-template-columns:minmax(0,1fr) 110px}.mny .tr{grid-column:1/-1;order:3}}
+.krow{display:grid;grid-template-columns:150px minmax(0,1fr) 200px;gap:10px;align-items:center;padding:6px 4px;cursor:pointer;border-radius:6px;width:100%;border:0;background:none;text-align:left}
+.krow:hover{background:var(--surface-2)}
+.krow .ml{font-size:13px;display:flex;align-items:center;gap:6px;white-space:nowrap;min-width:0}
+.krow .mv{font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.krow .mv b{color:var(--fg)}
+@media (max-width:560px){.krow{grid-template-columns:104px minmax(0,1fr) 44px}.krow .mv span{display:none}}
+.stk{display:flex;gap:2px;height:16px}
+.stk span{min-width:4px;background:var(--c)}
+.stk span:first-child{border-radius:4px 0 0 4px} .stk span:last-child{border-radius:0 4px 4px 0}
+.pos{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;padding:10px 10px 10px 0;cursor:pointer}
+.pos:hover{background:var(--surface-2)}
+.pos .sev{align-self:stretch;border-radius:2px;background:var(--c)}
+.pos .a{font-weight:600}
+.pos .w{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.pos .r{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:12px;white-space:nowrap}
+.pos .fl{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.pd{padding:6px 0 16px 16px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:12px}
+.kv{display:grid;grid-template-columns:170px minmax(0,1fr);gap:4px 12px;margin:0;font-size:13px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;overflow-wrap:anywhere}
+@media (max-width:560px){.kv{grid-template-columns:120px minmax(0,1fr)}}
+.pbar2{display:inline-flex;align-items:center;gap:8px}
+.pbar2 i{display:inline-block;width:120px;height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.pbar2 i b{display:block;height:100%;background:var(--c)}
+.lt{width:100%;border-collapse:collapse;font-size:13px}
+.lt th{font-size:11px;font-weight:600;color:var(--muted);text-align:left;padding:4px 8px;border-bottom:1px solid var(--line)}
+.lt td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.lt td.n,.lt th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.lt .x{color:var(--faint);text-decoration:line-through}
+.kfilters{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.kfilters .ctl{flex:1 1 200px}
+.qlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.qlist b{font-weight:600}
+@media print{.bar{position:static}}
+</style>
+
+<header class="bar"><div class="kr-bar-in"><span class="brand">Капитальный ремонт</span><span class="faint" id="kr-when" style="font-size:12px"></span></div></header>
+<main id="kr"></main>
+<script>
+window.KR={"today":"2026-10-27","saved":"2026-10-26","total":{"kr":99489906.44,"bank":14319933.0},"houses":29,"legend":{"008000":{"адрес":[0,2,3,5,10,11,12,13,15,16,18,21,22,23],"решение собственников":[0,1,2,3,5,13,16,18],"сумма КР":[0],"аванс из банка":[0],"график начала":[0],"срок окончания":[0]},"00CCFF":{"аванс из банка":[2,3,5,10,11,12,18,21,23],"решение собственников":[10,11,12,15,21,23],"сумма КР":[10],"график начала":[10],"срок окончания":[10]},"FF0000":{"адрес":[4,7,8,9,14],"решение собственников":[4,7,8,9,14],"сумма КР":[4,7,8,9,14],"аванс из банка":[4,7,8,9,14],"график начала":[4,7,8,9,14,17],"срок окончания":[4,7,8,9,14,17]}},"positions":[{"id":0,"row":6,"addr":"50 лет ВЛКСМ ул, 28","kr":3063461.0,"bank":919038.0,"contractor":"ЖЭУ 3","executor":"Симонян","pay":770000.0,"contract":2015232.0,"pct":100.0,"state":"","start":"2026-06-01","start_txt":"01.06.2026","end":"2026-12-31","end_txt":"4 кв. 2026","vote":false,"notes":[],"fill":"008000","lines":[{"row":6,"work":"Ремонт фасада отмостка","sum":1404062.0,"sum_txt":"","contract":770000.0,"cancelled":false},{"row":7,"work":"Цоколь","sum":648853.0,"sum_txt":"","contract":1245232.0,"cancelled":false},{"row":8,"work":"Двери","sum":596379.0,"sum_txt":"","contract":null,"cancelled":false}]},{"id":1,"row":10,"addr":"50 лет ВЛКСМ ул, 7","kr":1400000.0,"bank":null,"contractor":"ЖЭУ 3","executor":"ЖЭУ 3","pay":null,"contract":null,"pct":90.0,"state":"","start":"2026-05-01","start_txt":"01.05.2026","end":"2026-09-30","end_txt":"3 кв. 2026","vote":false,"notes":[],"fill":"FFFFFF","lines":[{"row":10,"work":"Ремонт электроснабжения","sum":1400000.0,"sum_txt":"","contract":null,"cancelled":false}]},{"id":2,"row":11,"addr":"Аблукова ул, 67","kr":3800000.0,"bank":1140000.0,"contractor":"ЖЭУ 3","executor":"Бердышев","pay":null,"contract":2900000.0,"pct":75.0,"state":"","start":"2026-07-01","start_txt":"01.07.2026","end":"2026-12-31","end_txt":"4 кв. 2026","vote":false,"notes":[],"fill":"008000","lines":[{"row":11,"work":"Ремонт фасада Двери В/Г","sum":2900000.0,"sum_txt":"","contract":2900000.0,"cancelled":false},{"row":12,"work":"Водостоки","sum":null,"sum_txt":"","contract":null,"cancelled":false},{"row":13,"work":"Отмостка","sum":null,"sum_txt":"","contract":null,"cancelled":false},{"row":14,"work":"Двери мусорокамер","sum":null,"sum_txt":"","contract":null,"cancelled":false}]},{"id":3,"row":15,"addr":"Артема ул, 28","kr":1604300.0,"bank":481290.0,"contractor":"ЖЭУ 3","executor":"Сырбаков","pay":144000.0,"contract":1953629.0,"pct":45.0,"state":"","start":"2026-05-01","start_txt":"01.05.2026","end":"2026-12-31","end_txt":"4 кв. 2026","vote":false,"notes":[],"fill":"008000","lines":[{"row":15,"work":"Ремонт отмостка","sum":258632.0,"sum_txt":"","contract":970671.0,"cancelled":false},{"row":16,"work":"цоколь (п/л)","sum":111445.0,"sum_txt":"","contract":null,"cancelled":false},{"row":17,"work":"крыльца 1-4 подъезды,бетон, плитка","sum":317831.0,"sum_txt":"","contract":null,"cancelled":false},{"row":18,"work":"температурные швы","sum":70195.0,"sum_txt":"","contract":700195.0,"cancelled":false},{"row":19,"work":"Двери","sum":282763.0,"sum_txt":"","contract":282763.0,"cancelled":false}]},{"id":4,"row":20,"addr":"Октябрьская ул., 33","kr":3489294.0,"bank":null,"contractor":"Кузнецов","executor":"Кузнецов","pay":null,"contract":3489294.0,"pct":100.0,"state":"","start":"2026-05-01","start_txt":"01.05.2026","end":null,"end_txt":"","vote":false,"notes":[],"fill":"FF0000","lines":[{"row":20,"work":"Ремонт фасада","sum":3489294.0,"sum_txt":"","contract":3489294.0,"cancelled":false}]},{"id":5,"row":21,"addr":"Пушкарева ул, 56","kr":3567544.77,"bank":1070263.0,"contractor":"ЖЭУ 3","executor":"Бердышев","pay":null,"contract":3056859.0,"pct":50.0,"state":"","start":"2026-06-01","start_txt":"01.06.2026","end":"2026-12-31","end_txt":"4 кв. 2026","vote":false,"notes":[],"fill":"008000","lines":[{"row":21,"work":"Ремонт отмостки","sum":761648.0,"sum_txt":"","contract":3056859.0,"cancelled":false},{"row":22,"work":"цоколь","sum":412005.0,"sum_txt":"","contract":null,"cancelled":false},{"row":23,"work":"козырьки","sum":90624.0,"sum_txt":"","contract":null,"cancelled":false},{"row":24,"work":"окна","sum":1266714.0,"sum_txt":"","contract":null,"cancelled":false},{"row":25,"work":"двери","sum":525868.0,"sum_txt":"","contract":null,"cancelled":false}]},{"id":6,"row":26,"addr":"Гафурова ул, 14","kr":1684350.0,"bank":null,"contractor":"ЖЭУ 3","executor":"ЖЭУ 3","pay":null,"contract":null,"pct":90.0,"state":"","start":"2026-06-01","start_txt":"01.06.2026","end":"2026-12-31","end_txt":"4 кв. 2026","vote":false,"notes":[],"fill":"FFFFFF","lines":[{"row":26,"work":"Ремонт электроснабжения","sum":1684350.0,"sum_txt":"","contract":null,"cancelled":false}]},{"id":7,"row":27,"addr":"Гафурова ул, 16","kr":700000.0,"bank":null,"contractor":"ЖЭУ 3","executor":"","pay":null,"contract":null,"pct":100.0,"state":"","start":"2026-07-01","start_txt":"01.07.2026","end":null,"end_txt":"","vote":false,"notes":[],"fill":"FF0000","lines":[{"row":27,"work":"Установка прибора учета тепловой энергии","sum":700000.0,"sum_txt":"","contract":null,"cancelled":false}]},{"id":8,"row":28,"addr":"Гафурова ул, 16","kr":2050000.0,"bank":615000.0,"contractor":"ЖЭУ 3","executor":"КОНОПЛЕВА","pay":null,"contract":1600000.0,"pct":100.0,"state":"","start":"2026-07-01","start_txt":"01.07.2026","end":null,"end_txt":"","vote":false,"notes":[],"fill":"FF0000","lines":[{"row":28,"work":"Ремонт фасада","sum":1600000.0,"sum_txt":"","contract":1600000.0,"cancelled":false}]},{"id":9,"row":29,"addr":"Минаева ул, 18","kr":2748147.0,"bank":null,"contractor":"Кузнецов","executor":"Кузнецов","pay":null,"contract":2748147.0,"pct":100.0,"state":"","start":"2026-06-01","start_txt":"01.06.2026","end":null,"end_txt":"","vote":false,"notes":[],"fill":"FF0000","lines":[{"row":29,"work":"Ремонт фасада; торцевая стена","sum":2748147.0,"sum_txt":"","contract":2748147.0,"cancelled":false}]},{"id":10,"row":30,"addr":"К. Либкхнехта 22","kr":10195690.0,"bank":3058707.0,"contractor":"ЖЭУ 3","executor":"смартМонтаж","pay":null,"contract":null,"pct":80.0,"state":"","start":null,"start_txt":"","end":null,"end_txt":"","vote":false,"notes":[],"fill":"008000","lines":[{"row":30,"work":"Электроснабжение","sum":10195690.0,"sum_txt":"","contract":null,"cancelled":false}]},{"id":11,"row":31,"addr":"М.Шоссе 100","kr":9995864.0,"bank":2998759.0,"contractor":"ЖЭУ 3","executor":"смартМонтаж","pay":null,"contract":null,"pct":60.0,"state":"","start":null,"start_txt":"","end":null,"end_txt":"","vote":false,"notes":[],"fill":"008000","lines":[{"row":31,"work":"Электроснабжение","sum":9995864.0,"sum_txt":"","contract":null,"cancelled":false}]},{"id":12,"row":32,"addr":"Нариманова 112","kr":2097030.0,"bank":629109.0,"contractor":"ЖЭУ 3","executor":"ЖЭУ 3","pay":null,"contract":null,"pct":50.0,"state":"","start":null,"start_txt":"","end":null,"end_txt":"","vote":false,"notes":[],"fill":"008000","lines":[{"row":32,"work":"Электроснабжение","sum":1315860.0,"sum_txt":"","contract":null,"cancelled":false}]},{"id":13,"row":33,"addr":"Верхнеполевая 21","kr":5882770.0,"bank":null,"contractor":"Кузнецов","executor":"Кузнецов","pay":null,"contract":5882770.0,"pct":null,"state":"","start":null,"start_txt":"","end":"2027-12-31","end_txt":"2027 г.","vote":false,"notes":[],"fill":"008000","lines":[{"row":33,"work":"Швы","sum":3224485.0,"sum_txt":"","contract":5882770.0,"cancelled":false},{"row":34,"work":"отмостка","sum":1078329.0,"sum_txt":"","contract":null,"cancelled":false},{"row":35,"work":"Цоколь окраска","sum":166372.0,"sum_txt":"","contract":null,"cancelled":false},{"row":36,"work":"Входные группы кровля, окраска","sum":160951.0,"sum_txt":"","contract":null,"cancelled":false},{"row":37,"work":"Окна","sum":392495.0,"sum_txt":"","contract":null,"cancelled":false}]},{"id":14,"row":38,"addr":"Верхнеполевая 9/2","kr":3115156.0,"bank":null,"contractor":"Бердышев","executor":"Бердышев","pay":null,"contract":3115156.0,"pct":null,"state":"","start":null,"start_txt":"","end":null,"end_txt":"","vote":false,"notes":[],"fill":"FF0000","lines":[{"row":38,"work":"ремонт фасада","sum":3115156.0,"sum_txt":"","contract":3115156.0,"cancelled":false}]},{"id":15,"row":39,"addr":"АЗОВСКАЯ 93","kr":648000.0,"bank":194400.0,"contractor":"","executor":"","pay":null,"contract":null,"pct":null,"state":"встали","start":null,"start_txt":"","end":"2026-12-31","end_txt":"4 кв. 2026","vote":false,"notes":[],"fill":"008000","lines":[{"row":39,"work":"цоколь (3 этап)","sum":648000.0,"sum_txt":"","contract":null,"cancelled":false}]},{"id":16,"row":40,"addr":"Верхнеполевая 23","kr":5838820.0,"bank":null,"contractor":"Кузнецов","executor":"Кузнецов","pay":null,"contract":5838820.0,"pct":null,"state":"","start":null,"start_txt":"","end":null,"end_txt":"","vote":false,"notes":["сумма по разделу записана текстом: «450т.р+438т.р»"],"fill":"008000","lines":[{"row":40,"work":"окраска балконов","sum":null,"sum_txt":"","contract":5838820.0,"cancelled":false},{"row":41,"work":"Сетка на балконы","sum":85536.0,"sum_txt":"","contract":null,"cancelled":false},{"row":42,"work":"Входные группы двери, окраска","sum":888000.0,"sum_txt":"","contract":null,"cancelled":false},{"row":43,"work":"керамогранит","sum":158100.0,"sum_txt":"","contract":null,"cancelled":false},{"row":44,"work":"асфальт","sum":160000.0,"sum_txt":"","contract":null,"cancelled":false},{"row":45,"work":"окна","sum":1841456.4,"sum_txt":"","contract":null,"cancelled":false},{"row":46,"work":"водостоки","sum":48750.0,"sum_txt":"","contract":null,"cancelled":false}]},{"id":17,"row":47,"addr":"Л.Шевцовой 54Б к.2","kr":1680000.0,"bank":null,"contractor":"ЖЭУ 3","executor":"ЖЭУ 3","pay":null,"contract":null,"pct":null,"state":"","start":"2025-10-01","start_txt":"4 кв. 2025","end":null,"end_txt":"","vote":false,"notes":[],"fill":null,"lines":[{"row":47,"work":"Ремонт фасада","sum":null,"sum_txt":"","contract":null,"cancelled":false}]},{"id":18,"row":50,"addr":"Маяковского 14/49 (2-ой этап)","kr":2411436.14,"bank":723430.0,"contractor":"ЖЭУ 3","executor":"ЖЭУ 3","pay":null,"contract":null,"pct":50.0,"state":"","start":null,"start_txt":"","end":null,"end_txt":"","vote":true,"notes":[],"fill":"008000","lines":[{"row":50,"work":"покраска фасада","sum":null,"sum_txt":"","contract":null,"cancelled":false},{"row":51,"work":"ремонт цоколя П/лист","sum":null,"sum_txt":"","contract":null,"cancelled":false}]},{"id":19,"row":53,"addr":"ПУШКАРЕВА 40 ??????","kr":null,"bank":null,"contractor":"","executor":"ШАЛАЕВ","pay":null,"contract":null,"pct":null,"state":"","start":null,"start_txt":"","end":null,"end_txt":"","vote":false,"notes":[],"fill":null,"lines":[{"row":53,"work":"Кровля","sum":null,"sum_txt":"","contract":null,"cancelled":false}]},{"id":20,"row":54,"addr":"З.Бульвар 1","kr":null,"bank":null,"contractor":"","executor":"ШАЛАЕВ","pay":null,"contract":null,"pct":null,"state":"","start":null,"start_txt":"","end":null,"end_txt":"","vote":false,"notes":[],"fill":null,"lines":[{"row":54,"work":"кровля","sum":null,"sum_txt":"","contract":null,"cancelled":false}]},{"id":21,"row":55,"addr":"Аблукова 43 А","kr":820844.0,"bank":246253.0,"contractor":"ЖЭУ 3","executor":"Филимонов","pay":null,"contract":null,"pct":20.0,"state":"","start":"2027-06-30","start_txt":"30.06.2027","end":"2027-09-30","end_txt":"3 кв. 2027","vote":false,"notes":[],"fill":"008000","lines":[{"row":55,"work":"Замена теплообменника и розлива ГВС","sum":null,"sum_txt":"","contract":null,"cancelled":false},{"row":57,"work":"Замена стояков ГВС","sum":null,"sum_txt":"","contract":null,"cancelled":true}]},{"id":22,"row":59,"addr":"Пушкарева 8а","kr":7476500.0,"bank":null,"contractor":"Кузнецов","executor":"Кузнецов","pay":null,"contract":7476500.0,"pct":50.0,"state":"","start":null,"start_txt":"","end":"2026-12-31","end_txt":"4 кв. 2026","vote":false,"notes":[],"fill":"008000","lines":[{"row":59,"work":"Ремонт кровли","sum":null,"sum_txt":"","contract":7476500.0,"cancelled":false}]},{"id":23,"row":60,"addr":"Октябрьская 30а","kr":7478949.0,"bank":2243684.0,"contractor":"ЖЭУ 3","executor":"Филимонов","pay":null,"contract":null,"pct":null,"state":"","start":null,"start_txt":"","end":"2027-09-30","end_txt":"3 кв. 2027","vote":false,"notes":[],"fill":"008000","lines":[{"row":60,"work":"Замена розлива ЦО подвал","sum":null,"sum_txt":"","contract":null,"cancelled":false},{"row":62,"work":"Замена стояков ЦО","sum":null,"sum_txt":"","contract":null,"cancelled":true}]},{"id":24,"row":64,"addr":"Юности 49","kr":500000.0,"bank":null,"contractor":"ЖЭУ 3","executor":"","pay":null,"contract":null,"pct":null,"state":"","start":null,"start_txt":"","end":"2026-12-31","end_txt":"4 кв. 2026","vote":false,"notes":[],"fill":"FFFFFF","lines":[{"row":64,"work":"Установка прибора учета тепловой энергии","sum":null,"sum_txt":"","contract":null,"cancelled":false}]},{"id":25,"row":65,"addr":"Ульяны Громовой 6","kr":9318935.0,"bank":null,"contractor":"ЖЭУ 3","executor":"","pay":null,"contract":null,"pct":null,"state":"","start":null,"start_txt":"","end":"2028-12-31","end_txt":"4 кв. 2028","vote":false,"notes":[],"fill":"FFFFFF","lines":[{"row":65,"work":"Ремонт системы ЦО","sum":null,"sum_txt":"","contract":null,"cancelled":false}]},{"id":26,"row":66,"addr":"Карла либкнехта д.2","kr":2769646.0,"bank":null,"contractor":"ЖЭУ 3","executor":"","pay":null,"contract":null,"pct":null,"state":"","start":null,"start_txt":"","end":"2028-12-31","end_txt":"4 кв. 2028","vote":false,"notes":[],"fill":"FFFFFF","lines":[{"row":66,"work":"Ремонт системы ЦО (1-ый этап)","sum":null,"sum_txt":"","contract":null,"cancelled":false}]},{"id":27,"row":67,"addr":"Пожарского д. 29а","kr":500000.0,"bank":null,"contractor":"ЖЭУ 3","executor":"","pay":null,"contract":null,"pct":null,"state":"","start":null,"start_txt":"","end":"2026-12-31","end_txt":"4 кв. 2026","vote":false,"notes":[],"fill":"FFFFFF","lines":[{"row":67,"work":"Установка прибора учета тепловой энергии","sum":null,"sum_txt":"","contract":null,"cancelled":false}]},{"id":28,"row":68,"addr":"Розы Люксембург 50","kr":2236854.0,"bank":null,"contractor":"Кузнецов","executor":"Кузнецов","pay":null,"contract":null,"pct":null,"state":"","start":null,"start_txt":"","end":"2027-09-30","end_txt":"3 кв. 2027","vote":false,"notes":[],"fill":"FFFFFF","lines":[{"row":68,"work":"Ремонт фасада","sum":null,"sum_txt":"","contract":null,"cancelled":false}]},{"id":29,"row":69,"addr":"Нариманова 95","kr":2416315.53,"bank":null,"contractor":"ЖЭУ 3","executor":"","pay":null,"contract":null,"pct":null,"state":"","start":null,"start_txt":"","end":"2027-09-30","end_txt":"3 кв. 2027","vote":false,"notes":[],"fill":"FFFFFF","lines":[{"row":69,"work":"Электроснабжение","sum":null,"sum_txt":"","contract":null,"cancelled":false}]}]};
+(function(){
+"use strict";
+const D=window.KR,P=D.positions,T=D.today,$=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const dmy=d=>d?d.split("-").reverse().join("."):"";
+const plural=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&&(h<12||h>14)?b:c;};
+const rub=n=>Math.round(n).toLocaleString("ru-RU")+" ₽";
+const mln=n=>(n/1e6).toLocaleString("ru-RU",{maximumFractionDigits:1})+" млн ₽";
+const gen=n=>n+" "+(n%10===1&&n%100!==11?"позиции":"позиций"),dat=n=>n+" "+(n%10===1&&n%100!==11?"позиции":"позициям");
+const sum=(l,f)=>l.reduce((s,p)=>s+(f(p)||0),0);
+const day=iso=>Date.UTC(+iso.slice(0,4),+iso.slice(5,7)-1,+iso.slice(8,10))/864e5;
+
+/* этапы по проценту выполнения: статуса в файле нет */
+const ST=[["todo","Процент не указан","нет данных о ходе работ"],["prog","В работе","процент от 1 до 99"],["done","Выполнено","процент 100"],["stop","Встали","в файле отметка «встали»"]];
+const SN=Object.fromEntries(ST.map(s=>[s[0],s[1]])),G={todo:"todo",prog:"prog",done:"done",stop:"attn"};
+const stageOf=p=>p.state?"stop":p.pct===100?"done":p.pct>0?"prog":"todo";
+P.forEach(p=>{p.g=stageOf(p);p.w=(p.kr||0)*(p.pct||0)/100;
+  p.elapsed=p.start&&p.end&&p.start<p.end?Math.max(0,Math.min(100,(day(T)-day(p.start))/(day(p.end)-day(p.start))*100)):null;});
+
+/* проблемы: что проверяется и кто решает */
+const FL=[
+ ["stop","high","Работа встала","Подрядчик и УК: причина простоя и новый срок",p=>!!p.state],
+ ["endlate","high","Срок окончания прошёл, а выполнено меньше 100%","Подрядчик: новый срок или закрыть работу",p=>p.end&&p.end<T&&(p.pct||0)<100&&!p.state],
+ ["behind","high","Выполнение отстаёт от графика (на 15 пунктов и больше)","Подрядчик: что мешает и как наверстать",p=>p.elapsed!=null&&p.end>=T&&p.pct!=null&&p.elapsed-p.pct>=15&&p.pct<100],
+ ["latenopct","high","График начала прошёл, а процента выполнения нет","Исполнитель: начата ли работа и сколько сделано",p=>p.start&&p.start<T&&p.pct==null&&!p.state],
+ ["vote","high","Нужно переголосование собственников","УК: провести переголосование",p=>p.vote],
+ ["nocontract","mid","Работа идёт или закончена, а суммы договора в файле нет","ПТО: оформить договор или внести его сумму",p=>p.pct>0&&!p.contract],
+ ["noend","mid","Нет срока окончания","ПТО: внести срок",p=>!p.end],
+ ["noexec","mid","Не назначен исполнитель по плану","ПТО: назначить исполнителя",p=>!p.executor],
+ ["nocontr","mid","Нет основного подрядчика","ПТО: указать подрядчика",p=>!p.contractor],
+ ["nostart","low","Нет графика начала работ","ПТО: внести дату начала",p=>!p.start],
+ ["shortc","low","Сумма договора меньше суммы КР","ПТО: сверить договор с суммой КР",p=>p.contract&&p.kr&&p.contract<p.kr*.99],
+ ["nokr","low","Нет суммы КР","ПТО: внести сумму",p=>!p.kr]];
+const SEV={high:"красное срывает сроки",mid:"жёлтое копится",low:"серое — порядок в данных"};
+P.forEach(p=>{p.fl=FL.filter(f=>f[4](p)).map(f=>f[0]);p.bad=p.fl.some(k=>FL.find(f=>f[0]===k)[1]==="high");});
+const FLN=Object.fromEntries(FL.map(f=>[f[0],f]));
+const SHORTFL={stop:"встали",endlate:"срок прошёл",behind:"отстаёт",latenopct:"старт прошёл",vote:"переголосование",nocontract:"нет договора",noend:"нет срока",noexec:"нет исполнителя",nocontr:"нет подрядчика",nostart:"нет старта",shortc:"договор < КР",nokr:"нет суммы КР"};
+
+/* состояние отбора */
+let V={q:"",stage:"",flag:"",term:"",who:"contractor",whoKey:null,open:{}};
+const list=()=>P.filter(p=>(!V.stage||p.g===V.stage)&&(!V.flag||p.fl.includes(V.flag))&&(!V.term||termKey(p)===V.term)&&
+  (V.whoKey==null||whoVal(p,V.who)===V.whoKey)&&(!V.q||(p.addr+" "+p.lines.map(l=>l.work).join(" ")+" "+p.contractor+" "+p.executor).toLowerCase().includes(V.q.toLowerCase())));
+const termKey=p=>p.end?p.end_txt:"—";
+const whoVal=(p,w)=>(w==="executor"?p.executor:p.contractor)||"—";
+const stack=(l,w)=>{const t=l.length;if(!t)return'<div class="stk"></div>';
+  return'<div class="stk">'+ST.map(s=>{const n=l.filter(p=>p.g===s[0]).length;return n?'<span class="g-'+G[s[0]]+'" style="flex:'+n+'" title="'+esc(s[1])+': '+n+'"></span>':"";}).join("")+'</div>';};
+const wavg=l=>{const k=sum(l,p=>p.kr);return k?Math.round(sum(l,p=>p.w)*100/k):0;};
+
+function render(){
+  const N=P.length,KR=sum(P,p=>p.kr),WP=wavg(P),by=Object.fromEntries(ST.map(s=>[s[0],P.filter(p=>p.g===s[0])]));
+  $("kr-when").textContent="сроки посчитаны на "+dmy(T);
+  const noPctLate=FL[3][4];
+  /* 1. где мы сейчас */
+  const card=(k,cls,extra)=>{const l=by[k];return'<button type="button" class="stage g-'+G[k]+' '+cls+'" data-stage="'+k+'"><span class="sh"><i></i>'+esc(SN[k])+'</span><span class="sn">'+l.length+'</span><span class="sp">'+mln(sum(l,p=>p.kr))+' · '+(KR?Math.round(sum(l,p=>p.kr)*100/KR):0)+'% суммы</span>'+extra+'</button>';};
+  const sx=(n,bad,ok)=>n?'<span class="sx">'+bad+'</span>':'<span class="sx ok">'+ok+'</span>';
+  const pipe='<div class="pipe">'+ST.map((s,i)=>{const v=sum(by[s[0]],p=>p.kr);return v?(s[0]==="stop"&&i?'<span class="gap"></span>':"")+'<span class="g-'+G[s[0]]+'" style="flex:'+v+'" data-tip="'+esc(s[1])+': '+mln(v)+'"></span>':"";}).join("")+'</div>';
+  const hero='<section class="card"><h3>Где мы сейчас <span>позиции перечня по проценту выполнения</span></h3><div class="hero-top"><div class="hero-l"><span class="hero-big">'+WP+'%</span>'+
+    '<span class="hero-txt">выполнено по сумме КР. Всего '+mln(KR)+': '+D.houses+' '+plural(D.houses,"дом","дома","домов")+', '+N+' '+plural(N,"позиция","позиции","позиций")+'. На 100% закрыто '+by.done.length+', в работе '+by.prog.length+', процент не указан у '+gen(by.todo.length)+(by.stop.length?', встали '+by.stop.length:"")+'.</span></div>'+
+    '<span class="money">Аванс из банка '+mln(sum(P,p=>p.bank))+' · по договорам '+mln(sum(P,p=>p.contract))+'</span></div>'+pipe+
+    '<div class="stages s4">'+
+      card("todo","flow arrow",sx(by.todo.filter(noPctLate).length,by.todo.filter(noPctLate).length+" — график начала прошёл","срок начала не наступил или не указан"))+
+      card("prog","flow arrow",sx(P.filter(p=>p.fl.includes("behind")||p.fl.includes("endlate")).length,P.filter(p=>p.fl.includes("behind")||p.fl.includes("endlate")).length+" — отстают от графика или срок прошёл","по графику"))+
+      card("done","flow",'<span class="sx ok">100% по файлу</span>')+
+      card("stop","side",sx(by.stop.length,"причина и срок не указаны","нет"))+
+    '</div><p class="note">Этап определён по проценту выполнения: отдельного статуса в файле нет. «Выполнено по сумме КР» — это сумма КР × процент выполнения по каждой позиции. Нажмите на карточку, чтобы открыть список.</p></section>';
+
+  /* 2. где проблемы */
+  const rows=FL.map(f=>{const l=P.filter(p=>p.fl.includes(f[0]));return l.length?'<li class="sev-'+f[1]+'" data-flag="'+f[0]+'" tabindex="0" role="button"><span class="sv"></span><span class="pn">'+l.length+'</span><span class="pt"><b>'+esc(f[2])+'</b><span>'+esc(f[3])+(sum(l,p=>p.kr)?' · КР '+mln(sum(l,p=>p.kr)):"")+'</span></span><span class="pa">Показать →</span></li>':"";}).join("");
+  const probs='<section class="card"><h3>Где проблемы <span>по важности</span></h3><div class="sub">'+SEV.high+', '+SEV.mid+', '+SEV.low+'. Нажмите на строку, чтобы открыть эти позиции.</div><ul class="plist">'+rows+'</ul></section>';
+
+  /* 3. по срокам окончания */
+  const gt={};P.forEach(p=>{const k=termKey(p);(gt[k]=gt[k]||{k,end:p.end,l:[]}).l.push(p);});
+  const terms=Object.values(gt).sort((a,b)=>(a.end||"9999")<(b.end||"9999")?-1:1);
+  const trows=terms.map(g=>{const badge=!g.end?'<em class="mb next">срок не указан</em>':g.end<T?(g.l.some(p=>p.pct!==100)?'<em class="mb late">срок прошёл</em>':'<em class="mb ok">закрыт</em>'):g.l.length&&/кв/.test(g.k)&&gQuarterNow(g.k)?'<em class="mb now">идёт сейчас</em>':'<em class="mb next">впереди</em>';
+    return'<button type="button" class="krow" data-term="'+esc(g.k)+'"><span class="ml">'+esc(g.k==="—"?"Без срока":g.k)+badge+'</span>'+stack(g.l)+'<span class="mv"><b>'+wavg(g.l)+'%</b><span> · '+g.l.length+' поз. · '+mln(sum(g.l,p=>p.kr))+'</span></span></button>';}).join("");
+  const legend='<div class="legend">'+ST.map(s=>'<span><i class="g-'+G[s[0]]+'" style="background:var(--c)"></i>'+esc(s[1])+'</span>').join("")+'</div>';
+  const termCard='<section class="card"><h3>По срокам окончания <span>% выполнено · позиций · сумма КР</span></h3><div class="sub">«Срок прошёл» — срок окончания позади, а выполнено меньше 100%. Процент — по сумме КР в группе.</div>'+trows+legend+'</section>';
+
+  /* 4. деньги */
+  const bars=[["Сумма КР по перечню",KR,"todo",""],["Аванс из банка",sum(P,p=>p.bank),"prog",KR?Math.round(sum(P,p=>p.bank)*100/KR)+"% суммы КР":""],
+    ["Сумма договоров с подрядчиками",sum(P,p=>p.contract),"noact",KR?Math.round(sum(P,p=>p.contract)*100/KR)+"% суммы КР":""],
+    ["Выполнено по проценту (КР × %)",sum(P,p=>p.w),"done",WP+"% суммы КР"],
+    ["Оплачено («Аванс/расчёт»)",sum(P,p=>p.pay),"winter",KR?(sum(P,p=>p.pay)*100/KR).toLocaleString("ru-RU",{maximumFractionDigits:1})+"% суммы КР":""]];
+  const money='<section class="card"><h3>Деньги <span>по данным перечня</span></h3><div class="sub">Сколько заложено, сколько под договором и сколько сделано.</div>'+
+    bars.map(b=>'<div class="mny g-'+b[2]+'"><span>'+esc(b[0])+'</span><span class="tr"><i style="width:'+(KR?Math.max(.5,b[1]*100/KR):0)+'%"></i></span><span class="v">'+mln(b[1])+(b[3]?'<br><small>'+b[3]+'</small>':"")+'</span></div>').join("")+'</section>';
+
+  /* 5. кто выполняет */
+  const gw={};P.forEach(p=>{const k=whoVal(p,V.who);(gw[k]=gw[k]||{k,l:[]}).l.push(p);});
+  const wrows=Object.values(gw).sort((a,b)=>b.l.filter(p=>p.bad).length-a.l.filter(p=>p.bad).length||sum(b.l,p=>p.kr)-sum(a.l,p=>p.kr));
+  const who='<section class="card"><div class="hrow"><h3>Кто выполняет</h3><div class="seg" role="group" aria-label="Разрез"><button type="button" data-who="contractor" aria-pressed="'+(V.who==="contractor")+'">Основной подрядчик</button><button type="button" data-who="executor" aria-pressed="'+(V.who==="executor")+'">Исполнитель по плану</button></div></div>'+
+    '<div class="sub">Сначала — у кого больше позиций с серьёзными проблемами. Нажмите на строку, чтобы открыть позиции.</div><div class="tscroll"><table class="wt" style="min-width:0"><thead><tr><th>'+(V.who==="executor"?"Исполнитель":"Подрядчик")+'</th><th>Позиций</th><th>Сумма КР</th><th>Этапы</th><th>С проблемами</th><th>% выполнено</th></tr></thead><tbody>'+
+    wrows.map(g=>{const pc=wavg(g.l),bad=g.l.filter(p=>p.bad).length;return'<tr data-whokey="'+esc(g.k)+'" tabindex="0"><td>'+esc(g.k==="—"?"Не указан":g.k)+'</td><td>'+g.l.length+'</td><td>'+mln(sum(g.l,p=>p.kr))+'</td><td style="min-width:120px">'+stack(g.l)+'</td><td'+(bad?' class="bad"':"")+'>'+(bad||'<span class="z">0</span>')+'</td><td><span class="pbar"><i><b style="width:'+pc+'%"></b></i>'+pc+'%</span></td></tr>';}).join("")+'</tbody></table></div></section>';
+
+  /* 6. позиции */
+  const L=list(),act=[V.stage&&["stage","этап: "+SN[V.stage]],V.flag&&["flag","проблема: "+FLN[V.flag][2]],V.term&&["term","срок: "+(V.term==="—"?"не указан":V.term)],V.whoKey!=null&&["whoKey",(V.who==="executor"?"исполнитель: ":"подрядчик: ")+(V.whoKey==="—"?"не указан":V.whoKey)]].filter(Boolean);
+  const chips=['<button type="button" class="chip" data-stg="" aria-pressed="'+(!V.stage)+'">Все <b>'+N+'</b></button>'].concat(ST.map(s=>'<button type="button" class="chip" data-stg="'+s[0]+'" aria-pressed="'+(V.stage===s[0])+'"><i class="g-'+G[s[0]]+'"></i>'+esc(s[1])+' <b>'+by[s[0]].length+'</b></button>')).join("");
+  const item=p=>{const o=V.open[p.id];
+    return'<div><button type="button" class="pos g-'+G[p.g]+'" data-pos="'+p.id+'" aria-expanded="'+!!o+'"><span class="sev"></span><span><span class="a">'+esc(p.addr)+'</span><span class="w" style="display:block">'+esc(p.lines.filter(l=>!l.cancelled).map(l=>l.work).join(" · ")||"—")+'</span>'+
+      (p.fl.length?'<span class="fl">'+p.fl.map(k=>'<span class="chkpill'+(FLN[k][1]==="high"?" bad":"")+'">'+SHORTFL[k]+'</span>').join("")+'</span>':"")+'</span>'+
+      '<span class="r"><span class="pill dot">'+(p.state?esc(p.state):p.pct!=null?p.pct+"%":"процент не указан")+'</span><span class="num">'+(p.kr?mln(p.kr):"нет суммы")+'</span><span class="faint">'+esc(p.contractor||"—")+'</span></span></button>'+(o?detail(p):"")+'</div>';};
+  const pos='<section class="card" id="poslist"><h3>Позиции <span>'+L.length+' '+plural(L.length,"позиция","позиции","позиций")+'</span></h3>'+
+    '<div class="kfilters"><input class="ctl" id="kq" type="search" placeholder="Адрес, работа, подрядчик" value="'+esc(V.q)+'" aria-label="Поиск"></div><div class="chips" role="group" aria-label="Этап">'+chips+'</div>'+
+    (act.length?'<div class="fpills">'+act.map(a=>'<span class="fpill">'+esc(a[1])+'<button type="button" data-clr="'+a[0]+'" aria-label="Убрать отбор">×</button></span>').join("")+'</div>':"")+
+    '<div style="margin-top:8px">'+(L.length?L.map(item).join(""):'<div class="empty">Ничего не найдено</div>')+'</div></section>';
+
+  /* 7. что уточнить */
+  const cnt=a=>a.length+" "+plural(a.length,"позиция","позиции","позиций");
+  const q=[];
+  const red=P.filter(p=>p.fill==="FF0000"),green=P.filter(p=>p.fill==="008000");
+  q.push("<b>Цвета заливки в файле не расшифрованы.</b> Красная у адреса: "+cnt(red)+(red.length?" ("+red.map(p=>esc(p.addr)+(p.pct!=null?", "+p.pct+"%":", процента нет")).join("; ")+")":"")+"; зелёная: "+cnt(green)+". Если это статусы, подскажите, что означает каждый цвет, и страница это покажет.");
+  const nop=by.todo;q.push("<b>Процент выполнения не указан</b> у "+gen(nop.length)+" на "+mln(sum(nop,p=>p.kr))+". Проставьте процент (0% — тоже ответ) или дату начала работ, иначе по таким позициям нельзя понять, начаты ли они.");
+  const pay=P.filter(p=>p.pay);q.push("<b>Колонка «Аванс/расчёт»:</b> заполнена у "+gen(pay.length)+" на "+mln(sum(pay,p=>p.pay))+", тогда как аванс из банка — "+mln(sum(P,p=>p.bank))+" по "+dat(P.filter(p=>p.bank).length)+". Это выплаты подрядчикам? Остальные выплаты в файле не отражены.");
+  const odd=[];P.forEach(p=>p.lines.forEach(l=>{if(l.sum&&l.contract&&l.contract>5*l.sum)odd.push(esc(p.addr)+", «"+esc(l.work)+"»: договор "+rub(l.contract)+" при сумме раздела "+rub(l.sum));}));
+  if(odd.length)q.push("<b>Возможная опечатка в сумме договора:</b> "+odd.join("; ")+".");
+  const canc=[];P.forEach(p=>p.lines.filter(l=>l.cancelled).forEach(l=>canc.push(esc(p.addr)+", «"+esc(l.work)+"»")));
+  if(canc.length)q.push("<b>Строки с пометкой «отмена»</b> (сумма 0): "+canc.join("; ")+". Исключить из перечня?");
+  const bad=P.filter(p=>/\?/.test(p.addr));if(bad.length)q.push("<b>В адресе вопросительные знаки:</b> "+bad.map(p=>esc(p.addr)).join("; ")+". Уточнить адрес, сумму и подрядчика.");
+  const nok=P.filter(p=>!p.kr);if(nok.length)q.push("<b>Нет суммы КР:</b> "+nok.map(p=>esc(p.addr)).join("; ")+".");
+  const stp=P.filter(p=>p.state);if(stp.length)q.push("<b>Отметка «"+esc(stp[0].state)+"»:</b> "+stp.map(p=>esc(p.addr)).join("; ")+". Причина и новый срок не указаны.");
+  const vt=P.filter(p=>p.vote);if(vt.length)q.push("<b>«Переголосовывать»:</b> "+vt.map(p=>esc(p.addr)).join("; ")+". Когда и кто проводит переголосование?");
+  const quest='<section class="card"><h3>Что уточнить по файлу <span>без этого страница показывает не всё</span></h3><ol class="qlist">'+q.map(x=>"<li>"+x+"</li>").join("")+'</ol></section>';
+
+  $("kr").innerHTML='<div class="kr-head"><h2>Сводка</h2><span class="faint" style="font-size:12px">по перечню работ, сохранённому '+esc(dmy(D.saved))+'</span></div>'+hero+'<div class="grid2">'+probs+'<div style="display:flex;flex-direction:column;gap:12px;min-width:0">'+termCard+money+'</div></div>'+who+pos+quest;
+  bind();
+}
+function gQuarterNow(k){const m=/(\d) кв\. (\d{4})/.exec(k);if(!m)return false;const q=+m[1],y=+m[2],s=y+"-"+String(q*3-2).padStart(2,"0")+"-01",e=new Date(Date.UTC(y,q*3,0)).toISOString().slice(0,10);return s<=T&&T<=e;}
+function detail(p){
+  const mon=n=>n?rub(n):"—",pc=p.pct==null?"не указан":p.pct+"%";
+  const kv=[["Основной подрядчик",p.contractor||"не указан"],["Исполнитель по плану",p.executor||"не указан"],["График начала",p.start_txt||"не указан"],["Срок окончания",p.end_txt||"не указан"],
+    ["Процент выполнения",{html:p.state?esc(p.state):'<span class="pbar2 g-'+G[p.g]+'"><i><b style="width:'+(p.pct||0)+'%"></b></i>'+pc+'</span>'+(p.elapsed!=null?' <span class="faint">· по времени прошло '+Math.round(p.elapsed)+'%</span>':"")}],
+    ["Сумма КР",mon(p.kr)],["Аванс из банка",mon(p.bank)],["Сумма договора",mon(p.contract)],["Аванс/расчёт",mon(p.pay)],["Выполнено по проценту",mon(p.w)]];
+  const lines='<table class="lt"><thead><tr><th>Работа (решение собственников)</th><th class="n">Сумма по разделу</th><th class="n">Договор по строке</th></tr></thead><tbody>'+
+    p.lines.map(l=>'<tr><td'+(l.cancelled?' class="x"':"")+'>'+esc(l.work)+(l.cancelled?" — отмена":"")+'</td><td class="n">'+(l.sum?rub(l.sum):l.sum_txt?esc(l.sum_txt):"—")+'</td><td class="n">'+(l.contract?rub(l.contract):"—")+'</td></tr>').join("")+'</tbody></table>';
+  return'<div class="pd"><dl class="kv">'+kv.map(x=>'<dt>'+esc(x[0])+'</dt><dd>'+(x[1]&&x[1].html!=null?x[1].html:esc(x[1]))+'</dd>').join("")+'</dl>'+lines+
+    (p.fl.length?'<div style="font-size:13px"><b>Что не так:</b> '+p.fl.map(k=>esc(FLN[k][2])).join("; ")+'</div>':"")+(p.notes.length?'<div class="faint" style="font-size:12px">'+p.notes.map(esc).join("; ")+'</div>':"")+'<div class="faint" style="font-size:12px">Строка '+p.row+' в файле</div></div>';
+}
+function bind(){
+  const go=()=>{render();const el=$("poslist");if(el)el.scrollIntoView({behavior:"smooth",block:"start"});};
+  document.querySelectorAll("[data-stage]").forEach(b=>b.onclick=()=>{V=Object.assign(V,{stage:b.dataset.stage,flag:"",term:"",whoKey:null,q:""});go();});
+  document.querySelectorAll("[data-flag]").forEach(b=>{const f=()=>{V=Object.assign(V,{flag:b.dataset.flag,stage:"",term:"",whoKey:null,q:""});go();};b.onclick=f;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}};});
+  document.querySelectorAll("[data-term]").forEach(b=>b.onclick=()=>{V=Object.assign(V,{term:b.dataset.term,stage:"",flag:"",whoKey:null,q:""});go();});
+  document.querySelectorAll("[data-whokey]").forEach(b=>{const f=()=>{V=Object.assign(V,{whoKey:b.dataset.whokey,stage:"",flag:"",term:"",q:""});go();};b.onclick=f;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}};});
+  document.querySelectorAll("[data-who]").forEach(b=>b.onclick=()=>{V.who=b.dataset.who;V.whoKey=null;render();});
+  document.querySelectorAll("[data-stg]").forEach(b=>b.onclick=()=>{V.stage=b.dataset.stg;render();});
+  document.querySelectorAll("[data-clr]").forEach(b=>b.onclick=()=>{const k=b.dataset.clr;if(k==="whoKey")V.whoKey=null;else V[k]="";render();});
+  document.querySelectorAll("[data-pos]").forEach(b=>b.onclick=()=>{const id=b.dataset.pos;V.open[id]=!V.open[id];const y=window.scrollY;render();window.scrollTo(0,y);});
+  const q=$("kq");if(q){let t;q.oninput=()=>{clearTimeout(t);t=setTimeout(()=>{V.q=q.value.trim();render();const n=$("kq");n.focus();n.setSelectionRange(n.value.length,n.value.length);},200);};}
+}
+render();
+})();
+</script>
