@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Протокол совещания</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232457c5'/%3E%3Cpath d='M9 10h14M9 16h14M9 22h9' stroke='%23fff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --text: #1d2129; --muted: #6b7280; --line: #e3e6ea;
+    --accent: #2457c5; --accent-soft: #e8eefb; --ok: #1f8a4c; --err: #c2392b; --warn-bg: #fff6e0; --warn: #8a5a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15181d; --panel: #1e2229; --text: #e6e8eb; --muted: #9aa3ad; --line: #2e343c;
+      --accent: #7aa2f7; --accent-soft: #24304a; --ok: #4cc77a; --err: #ef6b5c; --warn-bg: #3a2f12; --warn: #f0c060;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15181d; --panel: #1e2229; --text: #e6e8eb; --muted: #9aa3ad; --line: #2e343c;
+    --accent: #7aa2f7; --accent-soft: #24304a; --ok: #4cc77a; --err: #ef6b5c; --warn-bg: #3a2f12; --warn: #f0c060;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  header { padding: 18px 16px 0; max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+  header h1 { font-size: 20px; margin: 0; }
+  header .cfg { color: var(--muted); font-size: 13px; }
+  main { max-width: 1200px; margin: 0 auto; padding: 16px; display: grid; grid-template-columns: 320px 1fr; gap: 16px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  h3 { font-size: 15px; margin: 18px 0 6px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  input[type=text], textarea, select { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
+  textarea { min-height: 64px; resize: vertical; }
+  .drop { border: 2px dashed var(--line); border-radius: 10px; padding: 18px; text-align: center; color: var(--muted); cursor: pointer; transition: border-color .15s, background .15s; }
+  .drop.over, .drop:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .drop strong { color: var(--text); display: block; word-break: break-all; }
+  .drop input { display: none; }
+  button { font: inherit; border: 0; border-radius: 8px; padding: 9px 14px; cursor: pointer; background: var(--accent); color: #fff; }
+  button:disabled { opacity: .5; cursor: default; }
+  button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+  button.danger { background: transparent; color: var(--err); border: 1px solid var(--line); }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .check { display: flex; gap: 8px; align-items: center; margin: 12px 0; font-size: 14px; }
+  .warn { background: var(--warn-bg); color: var(--warn); padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-top: 12px; }
+  .err { color: var(--err); font-size: 13px; margin-top: 8px; white-space: pre-wrap; }
+  .history { list-style: none; margin: 0; padding: 0; }
+  .history li { padding: 10px 8px; border-top: 1px solid var(--line); cursor: pointer; border-radius: 6px; }
+  .history li:hover, .history li.active { background: var(--accent-soft); }
+  .history .t { font-weight: 600; font-size: 14px; }
+  .history .m { color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; gap: 8px; }
+  .status { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--muted); }
+  .status.done { background: var(--ok); } .status.error { background: var(--err); } .status.running { background: var(--accent); animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .3; } }
+  .bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; margin: 10px 0 6px; }
+  .bar div { height: 100%; background: var(--accent); width: 0; transition: width .4s; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+  .tabs button { background: transparent; color: var(--muted); border-radius: 8px 8px 0 0; padding: 8px 12px; }
+  .tabs button.active { color: var(--text); border-bottom: 2px solid var(--accent); }
+  .downloads a { display: inline-block; margin: 4px 8px 4px 0; color: var(--accent); text-decoration: none; font-size: 14px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+  .downloads a:hover { background: var(--accent-soft); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; }
+  .transcript p { margin: 0 0 8px; }
+  .transcript .ts { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; margin-right: 6px; }
+  .empty { color: var(--muted); }
+  .muted { color: var(--muted); font-size: 13px; }
+  ol, ul { padding-left: 22px; } li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Протокол совещания</h1>
+  <div class="cfg" id="cfg"></div>
+</header>
+<main>
+  <aside>
+    <section class="panel">
+      <h2>Новая запись</h2>
+      <form id="form">
+        <div class="drop" id="drop">
+          <input type="file" id="file" name="file">
+          <span id="dropText">Перетащите сюда запись совещания или нажмите, чтобы выбрать.<br><span class="muted">Аудио, видео или готовая расшифровка (.txt, .srt)</span></span>
+        </div>
+        <label for="title">Название совещания</label>
+        <input type="text" id="title" name="title" placeholder="Планёрка по текущему ремонту">
+        <label for="date">Дата</label>
+        <input type="text" id="date" name="date" placeholder="07.10.2026">
+        <label for="context">Подсказка для протокола</label>
+        <textarea id="context" name="context" placeholder="Участники, повестка, как правильно пишутся фамилии и адреса…"></textarea>
+        <label for="language">Язык речи</label>
+        <select id="language" name="language">
+          <option value="ru" selected>Русский</option>
+          <option value="en">English</option>
+          <option value="kk">Қазақша</option>
+          <option value="uk">Українська</option>
+          <option value="">Определить автоматически</option>
+        </select>
+        <div class="check"><input type="checkbox" id="summarize" checked> <label for="summarize" style="margin:0;color:var(--text)">Составить протокол (Claude)</label></div>
+        <div class="row"><button type="submit" id="submit" disabled>Загрузить и обработать</button></div>
+        <div class="err" id="formError"></div>
+      </form>
+      <div class="warn" id="noKey" hidden>Ключ Claude API не задан: будет только расшифровка. Укажите <code>ANTHROPIC_API_KEY</code> в файле <code>.env</code> и перезапустите сервер.</div>
+    </section>
+    <section class="panel" style="margin-top:16px">
+      <h2>История</h2>
+      <ul class="history" id="history"></ul>
+      <p class="empty" id="historyEmpty">Пока пусто.</p>
+    </section>
+  </aside>
+
+  <section class="panel" id="view">
+    <p class="empty">Загрузите запись слева. Расшифровка идёт на этом компьютере и занимает примерно от четверти до половины длительности записи, протокол готовится ещё около минуты.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const fileInput = $('file'), drop = $('drop'), dropText = $('dropText'), submit = $('submit'), form = $('form');
+  const view = $('view'), history = $('history'), historyEmpty = $('historyEmpty');
+  let config = {}, jobs = [], currentId = null, pollTimer = null;
+
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmtTime = (sec) => { sec = Math.max(0, Math.floor(sec)); const h = Math.floor(sec/3600), m = Math.floor(sec%3600/60), s = sec%60; return [h,m,s].map(x => String(x).padStart(2,'0')).join(':'); };
+  const fmtDate = (ts) => new Date(ts*1000).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+  const fmtDur = (sec) => !sec ? '' : sec < 60 ? Math.round(sec) + ' с' : sec >= 3600 ? Math.floor(sec/3600) + ' ч ' + Math.round(sec%3600/60) + ' мин' : Math.round(sec/60) + ' мин';
+  const FILE_LABELS = [
+    ['protocol_docx', 'Протокол (Word)'], ['summary_md', 'Протокол (Markdown)'], ['summary_json', 'Протокол (JSON)'],
+    ['transcript_txt', 'Расшифровка (TXT)'], ['transcript_srt', 'Субтитры (SRT)'], ['transcript_json', 'Расшифровка (JSON)'],
+  ];
+
+  async function api(url, opts) {
+    const r = await fetch(url, opts);
+    if (!r.ok) { let msg = r.statusText; try { msg = (await r.json()).detail || msg; } catch (_) {} throw new Error(msg); }
+    return r.json();
+  }
+
+  async function loadConfig() {
+    config = await api('/api/health');
+    $('cfg').textContent = `Whisper: ${config.whisper_model} · Claude: ${config.claude_model}`;
+    $('noKey').hidden = config.has_api_key;
+    if (!config.has_api_key) { $('summarize').checked = false; $('summarize').disabled = true; }
+  }
+
+  function setFile(f) {
+    if (!f) return;
+    const ext = '.' + f.name.split('.').pop().toLowerCase();
+    if (!config.formats || !config.formats.includes(ext)) { $('formError').textContent = `Формат ${ext} не поддерживается.`; return; }
+    $('formError').textContent = '';
+    const dt = new DataTransfer(); dt.items.add(f); fileInput.files = dt.files;
+    dropText.innerHTML = `<strong>${esc(f.name)}</strong><span class="muted">${(f.size/1048576).toFixed(1)} МБ</span>`;
+    submit.disabled = false;
+  }
+  drop.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
+  ['dragenter','dragover'].forEach(e => drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave','drop'].forEach(e => drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', (ev) => setFile(ev.dataTransfer.files[0]));
+
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    if (!fileInput.files[0]) return;
+    submit.disabled = true; submit.textContent = 'Загружаю…'; $('formError').textContent = '';
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    fd.append('title', $('title').value); fd.append('date', $('date').value);
+    fd.append('context', $('context').value); fd.append('language', $('language').value);
+    fd.append('summarize', $('summarize').checked ? '1' : '0');
+    try {
+      const job = await api('/api/jobs', { method: 'POST', body: fd });
+      form.reset(); if (!config.has_api_key) $('summarize').checked = false;
+      dropText.innerHTML = 'Перетащите сюда запись совещания или нажмите, чтобы выбрать.<br><span class="muted">Аудио, видео или готовая расшифровка (.txt, .srt)</span>';
+      currentId = job.id;
+      await refresh();
+    } catch (e) {
+      $('formError').textContent = e.message; submit.disabled = false;
+    } finally { submit.textContent = 'Загрузить и обработать'; }
+  });
+
+  async function refresh() {
+    jobs = await api('/api/jobs');
+    renderHistory();
+    if (!currentId && jobs.length) currentId = jobs[0].id;
+    if (currentId) await showJob(currentId);
+    const busy = jobs.some(j => j.status === 'queued' || j.status === 'running');
+    clearTimeout(pollTimer);
+    if (busy) pollTimer = setTimeout(refresh, 2000);
+  }
+
+  function renderHistory() {
+    historyEmpty.hidden = jobs.length > 0;
+    history.innerHTML = jobs.map(j => `
+      <li data-id="${j.id}" class="${j.id === currentId ? 'active' : ''}">
+        <div class="t"><span class="status ${esc(j.status)}"></span>${esc(j.meeting_title || j.source_name)}</div>
+        <div class="m"><span>${fmtDate(j.created_at)}</span><span>${j.status === 'done' ? fmtDur(j.duration) : esc(j.message)}</span></div>
+      </li>`).join('');
+    history.querySelectorAll('li').forEach(li => li.addEventListener('click', () => { currentId = li.dataset.id; renderHistory(); showJob(currentId); }));
+  }
+
+  async function showJob(id) {
+    let job;
+    try { job = await api('/api/jobs/' + id); } catch (e) { view.innerHTML = `<p class="err">${esc(e.message)}</p>`; return; }
+    const head = `<h2>${esc(job.meeting_title || job.source_name)}</h2>
+      <p class="muted">${esc(job.source_name)}${job.meeting_date ? ' · ' + esc(job.meeting_date) : ''}${job.duration ? ' · ' + fmtDur(job.duration) : ''} · загружено ${fmtDate(job.created_at)}</p>`;
+
+    if (job.status === 'queued' || job.status === 'running') {
+      view.innerHTML = head + `<div class="bar"><div style="width:${Math.round(job.progress*100)}%"></div></div>
+        <p>${esc(job.message)}</p><p class="muted">Страницу можно закрыть: результат появится в истории.</p>`;
+      return;
+    }
+    const downloads = FILE_LABELS.filter(([k]) => (job.files || []).includes(k))
+      .map(([k, label]) => `<a href="/api/jobs/${job.id}/files/${k}">${label}</a>`).join('');
+    const del = `<button class="danger" id="del">Удалить</button>`;
+
+    if (job.status === 'error') {
+      view.innerHTML = head + `<p class="err">${esc(job.error)}</p><div class="downloads">${downloads}</div><p>${del}</p>`;
+      $('del').onclick = () => removeJob(job.id);
+      return;
+    }
+
+    const s = job.summary, t = job.transcript;
+    const summaryHtml = s ? renderSummary(s) : '<p class="empty">Протокол не составлялся: только расшифровка.</p>';
+    const transcriptHtml = renderTranscript(t);
+    view.innerHTML = head + `<div class="downloads">${downloads}</div>
+      <div class="tabs"><button class="active" data-tab="summary">Протокол</button><button data-tab="transcript">Расшифровка</button></div>
+      <div id="tab-summary">${summaryHtml}</div><div id="tab-transcript" hidden>${transcriptHtml}</div>
+      <p style="margin-top:20px">${del}</p>`;
+    view.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+      view.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
+      $('tab-summary').hidden = b.dataset.tab !== 'summary'; $('tab-transcript').hidden = b.dataset.tab !== 'transcript';
+    });
+    $('del').onclick = () => removeJob(job.id);
+  }
+
+  function renderSummary(s) {
+    const list = (arr, ordered) => arr && arr.length ? `<${ordered ? 'ol' : 'ul'}>${arr.map(x => `<li>${esc(x)}</li>`).join('')}</${ordered ? 'ol' : 'ul'}>` : '<p class="empty">—</p>';
+    const actions = s.action_items && s.action_items.length ? `<table><thead><tr><th>№</th><th>Задача</th><th>Ответственный</th><th>Срок</th></tr></thead><tbody>
+      ${s.action_items.map((a, i) => `<tr><td>${i+1}</td><td>${esc(a.task)}${a.context ? `<div class="muted">${esc(a.context)}</div>` : ''}</td><td>${esc(a.owner)}</td><td>${esc(a.due)}</td></tr>`).join('')}</tbody></table>` : '<p class="empty">—</p>';
+    return `${s.participants && s.participants.length ? `<p class="muted">Участники: ${esc(s.participants.join(', '))}</p>` : ''}
+      <h3>Кратко</h3><p>${esc(s.summary)}</p>
+      ${s.topics && s.topics.length ? `<h3>Обсуждали</h3>${s.topics.map((t, i) => `<p><strong>${i+1}. ${esc(t.title)}.</strong> ${esc(t.discussion)}</p>`).join('')}` : ''}
+      <h3>Решения</h3>${list(s.decisions, true)}
+      <h3>Поручения</h3>${actions}
+      <h3>Открытые вопросы</h3>${list(s.open_questions, false)}
+      ${s.next_steps ? `<h3>Дальше</h3><p>${esc(s.next_steps)}</p>` : ''}`;
+  }
+
+  function renderTranscript(t) {
+    if (!t || !t.segments || !t.segments.length) return '<p class="empty">Речь не распознана.</p>';
+    const hasTime = t.segments.some(x => x.end > 0);
+    return `<div class="transcript">${t.segments.map(x => `<p>${hasTime ? `<span class="ts">${fmtTime(x.start)}</span>` : ''}${esc(x.text)}</p>`).join('')}</div>`;
+  }
+
+  async function removeJob(id) {
+    if (!confirm('Удалить запись, расшифровку и протокол?')) return;
+    try { await api('/api/jobs/' + id, { method: 'DELETE' }); } catch (e) { alert(e.message); return; }
+    currentId = null;
+    view.innerHTML = '<p class="empty">Выберите запись в истории или загрузите новую.</p>';
+    await refresh();
+  }
+
+  loadConfig().then(refresh).catch(e => { view.innerHTML = `<p class="err">${esc(e.message)}</p>`; });
+})();
+</script>
+</body>
+</html>
