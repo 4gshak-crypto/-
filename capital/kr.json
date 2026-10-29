@@ -1,5 +1,5 @@
 {
- "today": "2026-10-27",
+ "today": "2026-10-29",
  "saved": "2026-10-26",
  "total": {
   "kr": 99489906.44,
@@ -124,6 +124,21 @@
    ]
   }
  },
+ "flood": {
+  "updated": "28.10.2026",
+  "period_start": "01.04.2026",
+  "period_end": "28.10.2026",
+  "register_addresses": 111,
+  "register_total": 406,
+  "register_pending": 23,
+  "cats": {
+   "done": "Устранено",
+   "done_blame": "Вина на УК/жителей (в т.ч. после устранения)",
+   "refuse": "Отказ: «проблемы нет» / не по существу",
+   "plan": "Работы запланированы, срок не назван",
+   "third": "Причина у третьих лиц"
+  }
+ },
  "positions": [
   {
    "id": 0,
@@ -144,6 +159,46 @@
    "vote": false,
    "notes": [],
    "fill": "008000",
+   "hk": "50 лет влксм|28",
+   "flood": {
+    "name": "50 лет ВЛКСМ 28",
+    "total": 5,
+    "ads": 5,
+    "gis": 3,
+    "gis_answered": 2,
+    "gis_pending": 1,
+    "first": "26.05.2026",
+    "last": "19.10.2026",
+    "orgs": [
+     {
+      "key": "vodokanal",
+      "name": "Водоканал",
+      "sent": 2,
+      "answered": 2,
+      "withdrawn": 0,
+      "pending": 0
+     },
+     {
+      "key": "gzhi",
+      "name": "ГЖИ",
+      "sent": 1,
+      "answered": 0,
+      "withdrawn": 0,
+      "pending": 1
+     }
+    ],
+    "cats": {
+     "done": 2
+    },
+    "repeat": null,
+    "actions": [
+     {
+      "prio": 4,
+      "group": "Контроль ответов",
+      "text": "Жалоба в ГЖИ №40010 (срок 19.11). Водоканал ответил 26.10 — приложить ответ к материалам жалобы."
+     }
+    ]
+   },
    "lines": [
     {
      "row": 6,
@@ -190,6 +245,38 @@
    "vote": false,
    "notes": [],
    "fill": "FFFFFF",
+   "hk": "50 лет влксм|7",
+   "flood": {
+    "name": "50 лет ВЛКСМ 7",
+    "total": 2,
+    "ads": 2,
+    "gis": 2,
+    "gis_answered": 2,
+    "gis_pending": 0,
+    "first": "28.08.2026",
+    "last": "01.10.2026",
+    "orgs": [
+     {
+      "key": "vodokanal",
+      "name": "Водоканал",
+      "sent": 2,
+      "answered": 2,
+      "withdrawn": 0,
+      "pending": 0
+     }
+    ],
+    "cats": {
+     "done_blame": 2
+    },
+    "repeat": null,
+    "actions": [
+     {
+      "prio": 3,
+      "group": "Ответ получен — выполнить работы УК",
+      "text": "№36041: Водоканал ответил, что цоколь — зона ответственности УК и согласование герметизации ввода ХВС не требуется. Запланировать герметизацию силами УК."
+     }
+    ]
+   },
    "lines": [
     {
      "row": 10,
@@ -220,6 +307,48 @@
    "vote": false,
    "notes": [],
    "fill": "008000",
+   "hk": "аблукова|67",
+   "flood": {
+    "name": "Аблукова 67",
+    "total": 15,
+    "ads": 15,
+    "gis": 7,
+    "gis_answered": 6,
+    "gis_pending": 1,
+    "first": "04.08.2026",
+    "last": "26.10.2026",
+    "orgs": [
+     {
+      "key": "vodokanal",
+      "name": "Водоканал",
+      "sent": 5,
+      "answered": 4,
+      "withdrawn": 0,
+      "pending": 1
+     },
+     {
+      "key": "uzhkh",
+      "name": "Управление ЖКХ",
+      "sent": 1,
+      "answered": 1,
+      "withdrawn": 0,
+      "pending": 0
+     },
+     {
+      "key": "gzhi",
+      "name": "ГЖИ",
+      "sent": 1,
+      "answered": 1,
+      "withdrawn": 0,
+      "pending": 0
+     }
+    ],
+    "cats": {
+     "done": 4
+    },
+    "repeat": null,
+    "actions": []
+   },
    "lines": [
     {
      "row": 11,
@@ -274,6 +403,8 @@
    "vote": false,
    "notes": [],
    "fill": "008000",
+   "hk": "артема|28",
+   "flood": null,
    "lines": [
     {
      "row": 15,
@@ -336,6 +467,8 @@
    "vote": false,
    "notes": [],
    "fill": "FF0000",
+   "hk": "октябрьская|33",
+   "flood": null,
    "lines": [
     {
      "row": 20,
@@ -366,6 +499,8 @@
    "vote": false,
    "notes": [],
    "fill": "008000",
+   "hk": "пушкарева|56",
+   "flood": null,
    "lines": [
     {
      "row": 21,
@@ -428,6 +563,39 @@
    "vote": false,
    "notes": [],
    "fill": "FFFFFF",
+   "hk": "гафурова|14",
+   "flood": {
+    "name": "Гафурова 14",
+    "total": 6,
+    "ads": 6,
+    "gis": 3,
+    "gis_answered": 3,
+    "gis_pending": 0,
+    "first": "17.07.2026",
+    "last": "20.10.2026",
+    "orgs": [
+     {
+      "key": "vodokanal",
+      "name": "Водоканал",
+      "sent": 3,
+      "answered": 3,
+      "withdrawn": 0,
+      "pending": 0
+     }
+    ],
+    "cats": {
+     "done_blame": 2,
+     "done": 1
+    },
+    "repeat": null,
+    "actions": [
+     {
+      "prio": 3,
+      "group": "Вина переложена на УК — подготовить возражения",
+      "text": "№38009, №38872: «засор устранён 13.10; причина — сброс отходов в зоне ответственности УК/собственников». Запросить акт с фото."
+     }
+    ]
+   },
    "lines": [
     {
      "row": 26,
@@ -458,6 +626,21 @@
    "vote": false,
    "notes": [],
    "fill": "FF0000",
+   "hk": "гафурова|16",
+   "flood": {
+    "name": "Гафурова 16",
+    "total": 2,
+    "ads": 2,
+    "gis": 0,
+    "gis_answered": 0,
+    "gis_pending": 0,
+    "first": "27.07.2026",
+    "last": "30.07.2026",
+    "orgs": [],
+    "cats": {},
+    "repeat": null,
+    "actions": []
+   },
    "lines": [
     {
      "row": 27,
@@ -488,6 +671,21 @@
    "vote": false,
    "notes": [],
    "fill": "FF0000",
+   "hk": "гафурова|16",
+   "flood": {
+    "name": "Гафурова 16",
+    "total": 2,
+    "ads": 2,
+    "gis": 0,
+    "gis_answered": 0,
+    "gis_pending": 0,
+    "first": "27.07.2026",
+    "last": "30.07.2026",
+    "orgs": [],
+    "cats": {},
+    "repeat": null,
+    "actions": []
+   },
    "lines": [
     {
      "row": 28,
@@ -518,6 +716,8 @@
    "vote": false,
    "notes": [],
    "fill": "FF0000",
+   "hk": "минаева|18",
+   "flood": null,
    "lines": [
     {
      "row": 29,
@@ -548,6 +748,54 @@
    "vote": false,
    "notes": [],
    "fill": "008000",
+   "hk": "карла либкнехта|22",
+   "flood": {
+    "name": "Карла Либкнехта 22",
+    "total": 7,
+    "ads": 7,
+    "gis": 6,
+    "gis_answered": 6,
+    "gis_pending": 0,
+    "first": "19.08.2026",
+    "last": "02.10.2026",
+    "orgs": [
+     {
+      "key": "vodokanal",
+      "name": "Водоканал",
+      "sent": 6,
+      "answered": 6,
+      "withdrawn": 0,
+      "pending": 0
+     }
+    ],
+    "cats": {
+     "done_blame": 1,
+     "done": 2,
+     "refuse": 3
+    },
+    "repeat": {
+     "cycles": 1,
+     "fix_date": "23.08.2026",
+     "days": 11,
+     "blame": true,
+     "last_signal": {
+      "date": "28.09.2026",
+      "kind": "gis"
+     }
+    },
+    "actions": [
+     {
+      "prio": 2,
+      "group": "Повтор после «устранено» — эскалация",
+      "text": "Водоканал сообщил об устранении 23.08.2026, после этого 4 сигнала, первый через 11 дн. Акт совместного обследования с фото/видео; претензия в Водоканал и обращение в ГЖИ с приложением ответа и фактов повтора."
+     },
+     {
+      "prio": 3,
+      "group": "Ответ не по существу — оценить «неудовлетворительно»",
+      "text": "№35605: «засор отсутствует, отведение осуществляется»; ранее №36215 — ссылка на ошибку в адресе. По подтоплению подвала ответа нет. Акт осмотра подвала с фото и повторное обращение."
+     }
+    ]
+   },
    "lines": [
     {
      "row": 30,
@@ -578,6 +826,47 @@
    "vote": false,
    "notes": [],
    "fill": "008000",
+   "hk": "московское|100",
+   "flood": {
+    "name": "Московское шоссе 100",
+    "total": 6,
+    "ads": 6,
+    "gis": 3,
+    "gis_answered": 2,
+    "gis_pending": 1,
+    "first": "12.05.2026",
+    "last": "26.10.2026",
+    "orgs": [
+     {
+      "key": "vodokanal",
+      "name": "Водоканал",
+      "sent": 3,
+      "answered": 2,
+      "withdrawn": 0,
+      "pending": 1
+     }
+    ],
+    "cats": {
+     "done": 2
+    },
+    "repeat": {
+     "cycles": 1,
+     "fix_date": "13.10.2026",
+     "days": 11,
+     "blame": false,
+     "last_signal": {
+      "date": "26.10.2026",
+      "kind": "gis"
+     }
+    },
+    "actions": [
+     {
+      "prio": 2,
+      "group": "Повтор после «устранено» — эскалация",
+      "text": "Водоканал сообщил об устранении 13.10.2026, после этого 2 сигнала, первый через 11 дн. Акт совместного обследования с фото/видео; претензия в Водоканал и обращение в ГЖИ с приложением ответа и фактов повтора."
+     }
+    ]
+   },
    "lines": [
     {
      "row": 31,
@@ -608,6 +897,8 @@
    "vote": false,
    "notes": [],
    "fill": "008000",
+   "hk": "нариманова|112",
+   "flood": null,
    "lines": [
     {
      "row": 32,
@@ -638,6 +929,30 @@
    "vote": false,
    "notes": [],
    "fill": "008000",
+   "hk": "верхнеполевая|21",
+   "flood": {
+    "name": "Верхнеполевая 21",
+    "total": 1,
+    "ads": 1,
+    "gis": 1,
+    "gis_answered": 0,
+    "gis_pending": 1,
+    "first": "26.10.2026",
+    "last": "26.10.2026",
+    "orgs": [
+     {
+      "key": "vodokanal",
+      "name": "Водоканал",
+      "sent": 1,
+      "answered": 0,
+      "withdrawn": 0,
+      "pending": 1
+     }
+    ],
+    "cats": {},
+    "repeat": null,
+    "actions": []
+   },
    "lines": [
     {
      "row": 33,
@@ -700,6 +1015,8 @@
    "vote": false,
    "notes": [],
    "fill": "FF0000",
+   "hk": "верхнеполевая|9/2",
+   "flood": null,
    "lines": [
     {
      "row": 38,
@@ -730,6 +1047,40 @@
    "vote": false,
    "notes": [],
    "fill": "008000",
+   "hk": "азовская|93",
+   "flood": {
+    "name": "Азовская 93",
+    "total": 16,
+    "ads": 16,
+    "gis": 3,
+    "gis_answered": 3,
+    "gis_pending": 0,
+    "first": "12.05.2026",
+    "last": "18.08.2026",
+    "orgs": [
+     {
+      "key": "vodokanal",
+      "name": "Водоканал",
+      "sent": 2,
+      "answered": 2,
+      "withdrawn": 0,
+      "pending": 0
+     },
+     {
+      "key": "gzhi",
+      "name": "ГЖИ",
+      "sent": 1,
+      "answered": 1,
+      "withdrawn": 0,
+      "pending": 0
+     }
+    ],
+    "cats": {
+     "done_blame": 2
+    },
+    "repeat": null,
+    "actions": []
+   },
    "lines": [
     {
      "row": 39,
@@ -762,6 +1113,8 @@
     "сумма по разделу записана текстом: «450т.р+438т.р»"
    ],
    "fill": "008000",
+   "hk": "верхнеполевая|23",
+   "flood": null,
    "lines": [
     {
      "row": 40,
@@ -840,6 +1193,32 @@
    "vote": false,
    "notes": [],
    "fill": null,
+   "hk": "шевцовой|54бк2",
+   "flood": {
+    "name": "Шевцовой 54бк2-2п",
+    "total": 2,
+    "ads": 2,
+    "gis": 1,
+    "gis_answered": 1,
+    "gis_pending": 0,
+    "first": "13.08.2026",
+    "last": "14.08.2026",
+    "orgs": [
+     {
+      "key": "vodokanal",
+      "name": "Водоканал",
+      "sent": 1,
+      "answered": 1,
+      "withdrawn": 0,
+      "pending": 0
+     }
+    ],
+    "cats": {
+     "done": 1
+    },
+    "repeat": null,
+    "actions": []
+   },
    "lines": [
     {
      "row": 47,
@@ -870,6 +1249,30 @@
    "vote": true,
    "notes": [],
    "fill": "008000",
+   "hk": "маяковского|14/49",
+   "flood": {
+    "name": "Маяковского 14/49",
+    "total": 1,
+    "ads": 1,
+    "gis": 1,
+    "gis_answered": 0,
+    "gis_pending": 1,
+    "first": "26.10.2026",
+    "last": "26.10.2026",
+    "orgs": [
+     {
+      "key": "vodokanal",
+      "name": "Водоканал",
+      "sent": 1,
+      "answered": 0,
+      "withdrawn": 0,
+      "pending": 1
+     }
+    ],
+    "cats": {},
+    "repeat": null,
+    "actions": []
+   },
    "lines": [
     {
      "row": 50,
@@ -908,6 +1311,8 @@
    "vote": false,
    "notes": [],
    "fill": null,
+   "hk": "пушкарева|40",
+   "flood": null,
    "lines": [
     {
      "row": 53,
@@ -938,6 +1343,68 @@
    "vote": false,
    "notes": [],
    "fill": null,
+   "hk": "западный|1",
+   "flood": {
+    "name": "Западный бульвар 1",
+    "total": 28,
+    "ads": 28,
+    "gis": 14,
+    "gis_answered": 14,
+    "gis_pending": 0,
+    "first": "20.05.2026",
+    "last": "12.10.2026",
+    "orgs": [
+     {
+      "key": "vodokanal",
+      "name": "Водоканал",
+      "sent": 7,
+      "answered": 7,
+      "withdrawn": 0,
+      "pending": 0
+     },
+     {
+      "key": "uzhkh",
+      "name": "Управление ЖКХ",
+      "sent": 5,
+      "answered": 5,
+      "withdrawn": 0,
+      "pending": 0
+     },
+     {
+      "key": "gzhi",
+      "name": "ГЖИ",
+      "sent": 2,
+      "answered": 2,
+      "withdrawn": 0,
+      "pending": 0
+     }
+    ],
+    "cats": {
+     "done": 7
+    },
+    "repeat": {
+     "cycles": 2,
+     "fix_date": "16.10.2026",
+     "days": 11,
+     "blame": false,
+     "last_signal": {
+      "date": "27.10.2026",
+      "kind": "asu"
+     }
+    },
+    "actions": [
+     {
+      "prio": 1,
+      "group": "«Стоят колодцы» без обращения в ГИС ЖКХ — направить",
+      "text": "Заявки АДС: 27.10 «Стоят колодцы.». Направить обращение в Водоканал через ГИС ЖКХ. Обращение — только от ООО «ДОМ ОК» (дом в его управлении)."
+     },
+     {
+      "prio": 2,
+      "group": "Повтор после «устранено» — эскалация",
+      "text": "Повтор уже 2-й раз. Водоканал сообщил об устранении 16.10.2026, после этого 1 сигнал, первый через 11 дн. Акт совместного обследования с фото/видео; претензия в Водоканал и обращение в ГЖИ с приложением ответа и фактов повтора."
+     }
+    ]
+   },
    "lines": [
     {
      "row": 54,
@@ -968,6 +1435,21 @@
    "vote": false,
    "notes": [],
    "fill": "008000",
+   "hk": "аблукова|43а",
+   "flood": {
+    "name": "Аблукова 43а",
+    "total": 2,
+    "ads": 2,
+    "gis": 0,
+    "gis_answered": 0,
+    "gis_pending": 0,
+    "first": "09.07.2026",
+    "last": "16.07.2026",
+    "orgs": [],
+    "cats": {},
+    "repeat": null,
+    "actions": []
+   },
    "lines": [
     {
      "row": 55,
@@ -1006,6 +1488,21 @@
    "vote": false,
    "notes": [],
    "fill": "008000",
+   "hk": "пушкарева|8а",
+   "flood": {
+    "name": "Пушкарёва 8а",
+    "total": 5,
+    "ads": 5,
+    "gis": 0,
+    "gis_answered": 0,
+    "gis_pending": 0,
+    "first": "27.05.2026",
+    "last": "02.08.2026",
+    "orgs": [],
+    "cats": {},
+    "repeat": null,
+    "actions": []
+   },
    "lines": [
     {
      "row": 59,
@@ -1036,6 +1533,8 @@
    "vote": false,
    "notes": [],
    "fill": "008000",
+   "hk": "октябрьская|30а",
+   "flood": null,
    "lines": [
     {
      "row": 60,
@@ -1074,6 +1573,8 @@
    "vote": false,
    "notes": [],
    "fill": "FFFFFF",
+   "hk": "юности|49",
+   "flood": null,
    "lines": [
     {
      "row": 64,
@@ -1104,6 +1605,32 @@
    "vote": false,
    "notes": [],
    "fill": "FFFFFF",
+   "hk": "громовой|6",
+   "flood": {
+    "name": "Улица Громовой 6",
+    "total": 2,
+    "ads": 2,
+    "gis": 1,
+    "gis_answered": 1,
+    "gis_pending": 0,
+    "first": "19.08.2026",
+    "last": "20.08.2026",
+    "orgs": [
+     {
+      "key": "vodokanal",
+      "name": "Водоканал",
+      "sent": 1,
+      "answered": 1,
+      "withdrawn": 0,
+      "pending": 0
+     }
+    ],
+    "cats": {
+     "done": 1
+    },
+    "repeat": null,
+    "actions": []
+   },
    "lines": [
     {
      "row": 65,
@@ -1134,6 +1661,8 @@
    "vote": false,
    "notes": [],
    "fill": "FFFFFF",
+   "hk": "карла либкнехта|2",
+   "flood": null,
    "lines": [
     {
      "row": 66,
@@ -1164,6 +1693,21 @@
    "vote": false,
    "notes": [],
    "fill": "FFFFFF",
+   "hk": "пожарского|29а",
+   "flood": {
+    "name": "Пожарского 29а",
+    "total": 3,
+    "ads": 3,
+    "gis": 0,
+    "gis_answered": 0,
+    "gis_pending": 0,
+    "first": "07.07.2026",
+    "last": "16.07.2026",
+    "orgs": [],
+    "cats": {},
+    "repeat": null,
+    "actions": []
+   },
    "lines": [
     {
      "row": 67,
@@ -1194,6 +1738,8 @@
    "vote": false,
    "notes": [],
    "fill": "FFFFFF",
+   "hk": "розы люксембург|50",
+   "flood": null,
    "lines": [
     {
      "row": 68,
@@ -1224,6 +1770,8 @@
    "vote": false,
    "notes": [],
    "fill": "FFFFFF",
+   "hk": "нариманова|95",
+   "flood": null,
    "lines": [
     {
      "row": 69,
