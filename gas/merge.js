@@ -584,7 +584,7 @@ var TrackerMerge = (function () {
     };
   }
 
-  return { setLib: setLib, merge: merge, addrKey: addrKey, workNorm: workNorm, workSim: workSim, ratio: ratio, sha1hex: sha1hex, keyOf: keyOf, catOf: catOf, normAddr: normAddr, normUk: normUk,
+  return { setLib: setLib, open: open, Sheet: Sheet, sp: sp, pstr: pstr, num: num, merge: merge, addrKey: addrKey, workNorm: workNorm, workSim: workSim, ratio: ratio, sha1hex: sha1hex, keyOf: keyOf, catOf: catOf, normAddr: normAddr, normUk: normUk,
     dateOfName: dateOfName };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = TrackerMerge;

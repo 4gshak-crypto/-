@@ -1,0 +1,55 @@
+/* Вкладка и страница «Капитальный ремонт» (gas/kr.js). Вставляется в Index.html между метками kr-css:start и kr-css:end. */
+.kr-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:16px}
+.kr-head h2{font-family:var(--f-display);font-weight:500;font-size:20px;margin:0}
+.kr-head .kacts-h{display:flex;gap:8px;flex-wrap:wrap}
+.stages.s4{grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,.85fr)}
+@media (max-width:900px){.stages.s4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.fkpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:10px 0 14px}
+.fkpi>div{border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+.fkpi .n{font-family:var(--f-display);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2}
+.fkpi .t{font-size:12px;color:var(--muted)}
+.fkpi .bad .n{color:var(--attn-ink)}
+@media (max-width:760px){.fkpi{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.wt tr[data-fh]{cursor:pointer}
+@media (max-width:640px){.fh-t th,.fh-t td{padding:8px 4px;font-size:12px}.fh-t th:last-child,.fh-t td:last-child{white-space:normal;text-align:right}.fh-t th{white-space:normal}}
+.pdf{border-top:1px dashed var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.pdf h4{margin:0;font-size:13px}
+.kacts li{margin:2px 0}
+.mny{display:grid;grid-template-columns:minmax(0,230px) minmax(0,1fr) 150px;gap:10px;align-items:center;padding:6px 0;font-size:13px}
+.mny .tr{height:14px;background:var(--surface-2);border-radius:7px;overflow:hidden}
+.mny .tr i{display:block;height:100%;background:var(--c);border-radius:7px;min-width:3px}
+.mny .v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mny .v small{color:var(--muted);font-size:12px}
+@media (max-width:640px){.mny{grid-template-columns:minmax(0,1fr) 110px}.mny .tr{grid-column:1/-1;order:3}}
+.krow{display:grid;grid-template-columns:150px minmax(0,1fr) 200px;gap:10px;align-items:center;padding:6px 4px;cursor:pointer;border-radius:6px;width:100%;border:0;background:none;text-align:left}
+.krow:hover{background:var(--surface-2)}
+.krow .ml{font-size:13px;display:flex;align-items:center;gap:6px;white-space:nowrap;min-width:0}
+.krow .mv{font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.krow .mv b{color:var(--fg)}
+@media (max-width:560px){.krow{grid-template-columns:104px minmax(0,1fr) 44px}.krow .mv span{display:none}}
+.stk{display:flex;gap:2px;height:16px}
+.stk span{min-width:4px;background:var(--c)}
+.stk span:first-child{border-radius:4px 0 0 4px} .stk span:last-child{border-radius:0 4px 4px 0}
+.pos{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;padding:10px 10px 10px 0;cursor:pointer}
+.pos:hover{background:var(--surface-2)}
+.pos .sev{align-self:stretch;border-radius:2px;background:var(--c)}
+.pos .a{font-weight:600}
+.pos .w{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.pos .r{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:12px;white-space:nowrap}
+.pos .fl{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.pd{padding:6px 0 16px 16px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:12px}
+.kv{display:grid;grid-template-columns:170px minmax(0,1fr);gap:4px 12px;margin:0;font-size:13px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;overflow-wrap:anywhere}
+@media (max-width:560px){.kv{grid-template-columns:120px minmax(0,1fr)}}
+.pbar2{display:inline-flex;align-items:center;gap:8px}
+.pbar2 i{display:inline-block;width:120px;height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.pbar2 i b{display:block;height:100%;background:var(--c)}
+.lt{width:100%;border-collapse:collapse;font-size:13px}
+.lt th{font-size:11px;font-weight:600;color:var(--muted);text-align:left;padding:4px 8px;border-bottom:1px solid var(--line)}
+.lt td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.lt td.n,.lt th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.lt .x{color:var(--faint);text-decoration:line-through}
+.kfilters{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.kfilters .ctl{flex:1 1 200px}
+.qlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.qlist b{font-weight:600}

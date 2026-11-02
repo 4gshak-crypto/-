@@ -267,6 +267,63 @@ main{max-width:1200px;margin:0 auto;padding:20px 16px 48px}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:40}
 .demo{background:var(--banner);color:var(--fg);font-size:12px;text-align:center;padding:6px 16px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* kr-css:start */
+/* Вкладка и страница «Капитальный ремонт» (gas/kr.js). Вставляется в Index.html между метками kr-css:start и kr-css:end. */
+.kr-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:16px}
+.kr-head h2{font-family:var(--f-display);font-weight:500;font-size:20px;margin:0}
+.kr-head .kacts-h{display:flex;gap:8px;flex-wrap:wrap}
+.stages.s4{grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,.85fr)}
+@media (max-width:900px){.stages.s4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.fkpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:10px 0 14px}
+.fkpi>div{border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+.fkpi .n{font-family:var(--f-display);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2}
+.fkpi .t{font-size:12px;color:var(--muted)}
+.fkpi .bad .n{color:var(--attn-ink)}
+@media (max-width:760px){.fkpi{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.wt tr[data-fh]{cursor:pointer}
+@media (max-width:640px){.fh-t th,.fh-t td{padding:8px 4px;font-size:12px}.fh-t th:last-child,.fh-t td:last-child{white-space:normal;text-align:right}.fh-t th{white-space:normal}}
+.pdf{border-top:1px dashed var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.pdf h4{margin:0;font-size:13px}
+.kacts li{margin:2px 0}
+.mny{display:grid;grid-template-columns:minmax(0,230px) minmax(0,1fr) 150px;gap:10px;align-items:center;padding:6px 0;font-size:13px}
+.mny .tr{height:14px;background:var(--surface-2);border-radius:7px;overflow:hidden}
+.mny .tr i{display:block;height:100%;background:var(--c);border-radius:7px;min-width:3px}
+.mny .v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mny .v small{color:var(--muted);font-size:12px}
+@media (max-width:640px){.mny{grid-template-columns:minmax(0,1fr) 110px}.mny .tr{grid-column:1/-1;order:3}}
+.krow{display:grid;grid-template-columns:150px minmax(0,1fr) 200px;gap:10px;align-items:center;padding:6px 4px;cursor:pointer;border-radius:6px;width:100%;border:0;background:none;text-align:left}
+.krow:hover{background:var(--surface-2)}
+.krow .ml{font-size:13px;display:flex;align-items:center;gap:6px;white-space:nowrap;min-width:0}
+.krow .mv{font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.krow .mv b{color:var(--fg)}
+@media (max-width:560px){.krow{grid-template-columns:104px minmax(0,1fr) 44px}.krow .mv span{display:none}}
+.stk{display:flex;gap:2px;height:16px}
+.stk span{min-width:4px;background:var(--c)}
+.stk span:first-child{border-radius:4px 0 0 4px} .stk span:last-child{border-radius:0 4px 4px 0}
+.pos{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;padding:10px 10px 10px 0;cursor:pointer}
+.pos:hover{background:var(--surface-2)}
+.pos .sev{align-self:stretch;border-radius:2px;background:var(--c)}
+.pos .a{font-weight:600}
+.pos .w{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.pos .r{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:12px;white-space:nowrap}
+.pos .fl{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.pd{padding:6px 0 16px 16px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:12px}
+.kv{display:grid;grid-template-columns:170px minmax(0,1fr);gap:4px 12px;margin:0;font-size:13px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;overflow-wrap:anywhere}
+@media (max-width:560px){.kv{grid-template-columns:120px minmax(0,1fr)}}
+.pbar2{display:inline-flex;align-items:center;gap:8px}
+.pbar2 i{display:inline-block;width:120px;height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.pbar2 i b{display:block;height:100%;background:var(--c)}
+.lt{width:100%;border-collapse:collapse;font-size:13px}
+.lt th{font-size:11px;font-weight:600;color:var(--muted);text-align:left;padding:4px 8px;border-bottom:1px solid var(--line)}
+.lt td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.lt td.n,.lt th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.lt .x{color:var(--faint);text-decoration:line-through}
+.kfilters{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.kfilters .ctl{flex:1 1 200px}
+.qlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.qlist b{font-weight:600}
+/* kr-css:end */
 </style>
 <style>#xlsd,#xlsw{display:none!important}</style>
 
@@ -427,14 +484,14 @@ function renderDemoPick(){
 
 /* ---------- загрузка ---------- */
 function load(silent){
-  return call("bootstrap",S.token).then(d=>{S.user=d.user;saveSess();S.items=d.items.map(enrich);S.ph=d.ph||{};S.src=d.sources||null;buildMonths();S.issues=d.issues;S.log=d.log;S.rev=d.rev;S.asof=d.asof;
+  return call("bootstrap",S.token).then(d=>{S.user=d.user;saveSess();S.items=d.items.map(enrich);S.ph=d.ph||{};S.src=d.sources||null;if(d.kr!==S.krStamp){S.krStamp=d.kr;S.kr=undefined;}buildMonths();S.issues=d.issues;S.log=d.log;S.rev=d.rev;S.asof=d.asof;
     if(!silent||!$("view"))renderShell();else renderView();}).catch(fail);
 }
 setInterval(()=>{if(!S.token||document.hidden)return;
   call("getRev",S.token).then(r=>{if(r!==S.rev&&!(V.drawer&&(V.drawer.dirty||V.drawer.phBusy)))load(true);}).catch(()=>{});},45000);
 
 /* ---------- каркас ---------- */
-function tabs(){const t=[["dash","Сводка"],["works","Работы"],["issues","Вопросы"],["log","Журнал"]];if(isAdmin())t.push(["users","Пользователи"]);return t;}
+function tabs(){const t=[["dash","Сводка"],["works","Работы"]];if(REAL)t.push(["kr","Капремонт"]);t.push(["issues","Вопросы"],["log","Журнал"]);if(isAdmin())t.push(["users","Пользователи"]);return t;}
 function renderShell(){
   $("root").innerHTML=(REAL?"":'<div class="demo">Демонстрация: изменения не сохраняются · <button class="linkbtn" id="demoswitch" type="button">сменить роль</button></div>')+
   '<header class="bar"><div class="bar-in"><div class="brand">Текущий ремонт</div><nav class="tabs" role="tablist">'+
@@ -447,7 +504,7 @@ function renderShell(){
 }
 function renderView(){
   document.querySelectorAll("[data-tab]").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===V.tab));
-  ({dash:renderDash,works:renderWorks,issues:renderIssues,log:renderLog,users:renderUsers}[V.tab]||renderDash)();
+  ({dash:renderDash,works:renderWorks,kr:renderKr,issues:renderIssues,log:renderLog,users:renderUsers}[V.tab]||renderDash)();
   if(V.drawer)renderDrawer();
 }
 document.addEventListener("click",ev=>{const t=ev.target.closest("[data-tab]");if(t){V.tab=t.dataset.tab;renderView();window.scrollTo(0,0);}});
@@ -637,6 +694,7 @@ function renderDrawer(){
   const D=V.drawer,host=$("dr");if(!D||!host)return;
   if(D.add)return renderAdd(host);
   if(D.imp)return renderImport(host);
+  if(D.kr)return renderKrUpload(host);
   const it=S.items.find(i=>i.key===D.key);if(!it){closeDrawer();return;}
   const ed=canEdit(it),stLocked=ed&&!isAdmin()&&ADMIN_ONLY.includes(it.status);
   if(!D.hist){D.hist=[];call("getHistory",S.token,it.key).then(h=>{if(V.drawer===D){D.hist=h;const el=$("dhist");if(el)el.outerHTML=histHtml(h);}}).catch(()=>{});}
@@ -932,6 +990,52 @@ function renderImport(host){
   }
   $("impgo").onclick=()=>{D.busy=true;$("impgo").disabled=true;$("impmsg").textContent="Записываю…";
     call("importWorks",S.token,D.text,true).then(rep=>{toast("Обновление применено: добавлено "+rep.added+", обновлено "+rep.updated+(rep.flagged?", на сверку "+rep.flagged:""));closeDrawer();load(true);}).catch(er=>impFail(D,host,er));};
+}
+
+/* ---------- вкладка «Капремонт» ---------- */
+function renderKr(){
+  const v=$("view"),head='<div class="head"><h2>Капитальный ремонт</h2>';
+  if(S.kr===undefined){
+    v.innerHTML=head+'</div><div class="empty">Загружаю…</div>';
+    call("getCapital",S.token).then(r=>{S.kr=r||null;if(V.tab==="kr")renderKr();})
+      .catch(e=>{if(V.tab==="kr")v.innerHTML=head+'</div><div class="card"><div class="empty">Не удалось загрузить данные: '+esc((e&&e.message)||String(e))+'</div></div>';fail(e);});
+    return;
+  }
+  const up=isAdmin()?'<button class="btn" id="krup" type="button">'+(S.kr?"Обновить данные":"Загрузить данные")+'</button>':"";
+  if(!S.kr)v.innerHTML=head+up+'</div><div class="card"><div class="empty">Данные по капитальному ремонту ещё не загружены. '+(isAdmin()?"Нажмите «Загрузить данные» и выберите перечень работ (.xls) и реестр подтоплений (.html), если он есть.":"Их загружает администратор.")+'</div></div>';
+  else KrView.mount(v,S.kr.data,{title:"Капитальный ремонт",today:TODAY,actions:up});
+  if($("krup"))$("krup").onclick=()=>{V.drawer={kr:true};renderDrawer();};
+}
+function renderKrUpload(host){
+  if(!isAdmin()){closeDrawer();return;}
+  const D=V.drawer,r=D.res,E=S.kr&&S.kr.data;D.files=D.files||{};
+  const mlnR=n=>(n/1e6).toLocaleString("ru-RU",{maximumFractionDigits:1})+" млн ₽";
+  const prev=r?'<div class="box"><h4>Что получится</h4><ul class="imp-info"><li>Позиций: <b>'+r.info.positions+'</b>, домов: '+r.info.houses+', сумма КР '+mlnR(r.info.kr)+(E&&r.info.fromList?' <span class="faint">(сейчас '+E.positions.length+' поз., '+mlnR(E.positions.reduce((a,p)=>a+(p.kr||0),0))+')</span>':"")+'</li>'+
+    '<li>Подтопления: '+(r.data.flood?'в реестре '+r.info.floodRegister+' домов, из них в программе <b>'+r.info.floodHouses+'</b>':"реестр не загружен")+'</li>'+
+    '<li>Перечень: '+(r.info.fromList?"новый файл":"остаётся прежний")+' · реестр подтоплений: '+(r.info.fromFlood?"новый файл":"остаётся прежний")+'</li></ul>'+r.warnings.map(w=>'<div class="imp-err" role="alert">'+esc(w)+'</div>').join("")+'</div>':"";
+  host.innerHTML='<div class="scrim" id="scrim"></div><aside class="drawer" role="dialog" aria-label="Данные капремонта"><div class="dh"><h3>Данные капремонта</h3><button class="x" id="dx" type="button" aria-label="Закрыть">×</button></div>'+
+    '<div class="db"><p class="muted" style="margin:0;font-size:13px">Нужен хотя бы один файл. Если выбрать только реестр подтоплений, перечень останется прежним, и наоборот. Файлы читаются в вашем браузере и никуда не отправляются, на сервер уходит только итог.</p>'+
+    '<label class="field">Перечень работ капремонта (.xls, .xlsx)<input type="file" id="kl" accept=".xls,.xlsx"></label>'+
+    '<label class="field">Реестр подтоплений (.html)<input type="file" id="kf" accept=".html,.htm,text/html"></label>'+
+    '<label class="field">Перечень сохранён (дата)<input type="date" id="kd" value="'+esc(D.date||"")+'"></label>'+
+    '<button class="btn" id="kgo" type="button" disabled>Прочитать и показать</button>'+(D.err?'<div class="imp-err" role="alert">'+esc(D.err)+'</div>':"")+prev+'</div>'+
+    '<div class="df"><button class="btn primary" id="ksave" type="button"'+(r&&!D.busy?"":" disabled")+'>Сохранить</button><button class="btn" id="kcancel" type="button">Закрыть</button><span class="msg" id="kmsg"></span></div></aside>';
+  $("dx").onclick=closeDrawer;$("scrim").onclick=closeDrawer;$("kcancel").onclick=closeDrawer;
+  const ready=()=>{$("kgo").disabled=D.busy||!(D.files.list||D.files.flood)||(D.files.list&&!D.date);};
+  $("kl").onchange=e=>{const f=e.target.files[0];if(!f)return;D.files.list=f;D.res=null;if(!D.date)D.date=isoLocal(f.lastModified);$("kd").value=D.date;ready();};
+  $("kf").onchange=e=>{D.files.flood=e.target.files[0]||null;D.res=null;ready();};
+  $("kd").onchange=e=>{D.date=e.target.value;ready();};
+  ready();
+  $("kgo").onclick=()=>{
+    D.busy=true;D.err="";D.res=null;$("kgo").disabled=true;$("kmsg").textContent="Читаю файлы…";
+    Promise.all([D.files.list?loadXlsx():Promise.resolve(null),D.files.list?D.files.list.arrayBuffer():null,D.files.flood?D.files.flood.text():null])
+      .then(a=>new Promise(res=>setTimeout(()=>res(a),30)))
+      .then(a=>{if(a[0])TrackerMerge.setLib(a[0]);D.res=KrImport.build({tm:TrackerMerge,list:a[1],flood:a[2],existing:E,today:TODAY,saved:D.date||(E&&E.saved)||TODAY});D.busy=false;if(V.drawer===D)renderKrUpload(host);})
+      .catch(er=>{D.busy=false;D.err=(er&&er.message)||String(er);if(V.drawer===D)renderKrUpload(host);});
+  };
+  $("ksave").onclick=()=>{D.busy=true;$("ksave").disabled=true;$("kmsg").textContent="Записываю…";
+    call("saveCapital",S.token,JSON.stringify(D.res.data)).then(r=>{toast("Данные капремонта сохранены: "+r.positions+" поз., подтопления в "+r.flood+" "+plural(r.flood,"доме","домах","домах"));S.kr=undefined;closeDrawer();if(V.tab==="kr")renderKr();})
+      .catch(er=>{D.busy=false;D.err=(er&&er.message)||String(er);if(String(D.err).indexOf("SESSION_EXPIRED")>=0){fail(er);return;}if(V.drawer===D)renderKrUpload(host);});};
 }
 
 /* ---------- вопросы, журнал, пользователи ---------- */

@@ -225,6 +225,7 @@ function bootstrap(token) {
     sources: meta.sources || SEED.sources,
     items: readWorks_(),
     ph: photoCounts_(),
+    kr: krStamp_(),
     issues: readIssues_(),
     log: readLog_(60)
   };
@@ -511,6 +512,117 @@ function deletePhoto(token, id) {
     sheet_(SHEET_LOG).appendRow([new Date(), user.name, p.key, item ? safe_(item.addr) : '', item ? safe_(item.work) : '', 'Фото «' + p.type + '»', '', 'удалено']);
     bumpRev_();
     return { counts: photoCounts_()[p.key] || [0, 0] };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/* ---------------- капитальный ремонт ---------------- */
+// Данные вкладки «Капремонт» (перечень работ, подтопления) лежат на листе «Капремонт» одной JSON-строкой, нарезанной на части:
+// ячейка таблицы вмещает 50 000 знаков. Смотреть может любой вошедший, менять — только администратор.
+
+var SHEET_KR = 'Капремонт';
+var KR_CHUNK = 30000, KR_MAX_JSON = 1500000, KR_MAX_POS = 600;
+
+function krSheet_(create) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), sh = ss.getSheetByName(SHEET_KR);
+  if (!sh && create) {
+    sh = ss.insertSheet(SHEET_KR);
+    sh.getRange('B:B').setNumberFormat('@');
+    sh.getRange(1, 1, 1, 4).setValues([['Часть', 'Данные (служебный текст, не правьте вручную)', 'Обновлено', 'Кем']]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+/** Время последнего обновления данных капремонта (мс) — страницы по нему понимают, что данные надо перечитать. */
+function krStamp_() {
+  var sh = krSheet_(false);
+  if (!sh || sh.getLastRow() < 2) return 0;
+  var v = sh.getRange(2, 3).getValue();
+  return v instanceof Date ? v.getTime() : 0;
+}
+
+/** Данные капремонта или null, если их ещё не загружали. */
+function getCapital(token) {
+  auth_(token);
+  var sh = krSheet_(false);
+  if (!sh || sh.getLastRow() < 2) return null;
+  var rows = sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues();
+  var json = rows.map(function (r) { return String(r[1]).slice(2); }).join('');   // в ячейке стоит «j:» и кусок текста
+  var data;
+  try { data = JSON.parse(json); } catch (e) { throw new Error('Данные на листе «Капремонт» повреждены. Загрузите перечень заново.'); }
+  return { data: data, at: rows[0][2] instanceof Date ? rows[0][2].getTime() : null, by: String(rows[0][3] || '') };
+}
+
+/** Проверяет присланные данные и оставляет только известные поля нужного типа и длины. */
+function krClean_(d) {
+  if (!d || typeof d !== 'object' || !Array.isArray(d.positions)) throw new Error('Это не данные капремонта.');
+  if (!d.positions.length || d.positions.length > KR_MAX_POS) throw new Error('В данных капремонта должно быть от 1 до ' + KR_MAX_POS + ' позиций.');
+  var S = function (v, n) { return String(v == null ? '' : v).slice(0, n); };
+  var N = function (v) { v = (v === null || v === undefined || v === '' || typeof v === 'object') ? NaN : Number(v); return isFinite(v) ? v : null; };
+  var N0 = function (v) { return N(v) || 0; };
+  var DT = function (v) { return /^\d{4}-\d{2}-\d{2}$/.test(String(v)) ? String(v) : null; };
+  var MAP = function (m, n) {
+    var o = {};
+    if (m && typeof m === 'object' && !Array.isArray(m)) Object.keys(m).slice(0, n).forEach(function (k) { if (typeof m[k] === 'string') o[S(k, 30)] = S(m[k], 120); else if (N(m[k]) !== null) o[S(k, 30)] = N(m[k]); });
+    return o;
+  };
+  var out = { today: DT(d.today) || '', saved: DT(d.saved) || '', total: d.total && typeof d.total === 'object' ? { kr: N(d.total.kr), bank: N(d.total.bank) } : null, flood: null, positions: [] };
+  d.positions.forEach(function (p, i) {
+    if (!p || typeof p !== 'object') throw new Error('Позиция ' + (i + 1) + ': неверный формат.');
+    var q = { id: i, row: N(p.row), addr: S(p.addr, 200), kr: N(p.kr), bank: N(p.bank), contractor: S(p.contractor, 80), executor: S(p.executor, 80), pay: N(p.pay), contract: N(p.contract),
+      pct: N(p.pct), state: S(p.state, 80), start: DT(p.start), start_txt: S(p.start_txt, 40), end: DT(p.end), end_txt: S(p.end_txt, 40), vote: !!p.vote,
+      notes: (Array.isArray(p.notes) ? p.notes : []).slice(0, 10).map(function (x) { return S(x, 200); }), fill: /^[0-9A-F]{6}$/.test(String(p.fill)) ? String(p.fill) : null,
+      hk: S(p.hk, 120), lines: [] };
+    if (!q.addr) throw new Error('Позиция ' + (i + 1) + ': нет адреса.');
+    if (q.pct !== null && (q.pct < 0 || q.pct > 100)) q.pct = null;
+    (Array.isArray(p.lines) ? p.lines : []).slice(0, 80).forEach(function (l) {
+      if (l && typeof l === 'object') q.lines.push({ row: N(l.row), work: S(l.work, 300), sum: N(l.sum), sum_txt: S(l.sum_txt, 100), contract: N(l.contract), cancelled: !!l.cancelled });
+    });
+    out.positions.push(q);
+  });
+  var f = d.flood;
+  if (f && typeof f === 'object' && f.by && typeof f.by === 'object') {
+    var by = {};
+    Object.keys(f.by).slice(0, 700).forEach(function (k) {
+      var r = f.by[k];
+      if (!r || typeof r !== 'object') return;
+      var rp = r.repeat && typeof r.repeat === 'object' ? r.repeat : null, ls = rp && rp.last_signal && typeof rp.last_signal === 'object' ? rp.last_signal : null;
+      by[S(k, 120)] = { name: S(r.name, 120), total: N0(r.total), ads: N0(r.ads), gis: N0(r.gis), gis_answered: N0(r.gis_answered), gis_pending: N0(r.gis_pending), first: S(r.first, 12), last: S(r.last, 12),
+        orgs: (Array.isArray(r.orgs) ? r.orgs : []).slice(0, 8).map(function (o) { o = o || {}; return { key: S(o.key, 20), name: S(o.name, 40), sent: N0(o.sent), answered: N0(o.answered), withdrawn: N0(o.withdrawn), pending: N0(o.pending) }; }),
+        cats: MAP(r.cats, 10),
+        repeat: rp ? { cycles: N0(rp.cycles), fix_date: S(rp.fix_date, 12), days: N0(rp.days), blame: !!rp.blame, last_signal: ls ? { date: S(ls.date, 12), kind: S(ls.kind, 12) } : null } : null,
+        actions: (Array.isArray(r.actions) ? r.actions : []).slice(0, 8).map(function (a) { a = a || {}; return { prio: N0(a.prio), group: S(a.group, 120), text: S(a.text, 300) }; }) };
+    });
+    out.flood = { updated: S(f.updated, 12), period_start: S(f.period_start, 12), period_end: S(f.period_end, 12), register_addresses: N0(f.register_addresses), register_total: N0(f.register_total),
+      register_pending: N0(f.register_pending), cats: MAP(f.cats, 10), by: by };
+  }
+  return out;
+}
+
+/** Сохраняет данные капремонта (только администратор). Возвращает краткую сводку. */
+function saveCapital(token, json) {
+  var user = requireAdmin_(token);
+  if (typeof json !== 'string' || json.length > KR_MAX_JSON) throw new Error('Данные капремонта слишком большие.');
+  var d;
+  try { d = JSON.parse(json); } catch (e) { throw new Error('Не удалось прочитать данные капремонта.'); }
+  var clean = krClean_(d), text = JSON.stringify(clean);
+  if (text.length > KR_MAX_JSON) throw new Error('Данные капремонта слишком большие.');
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var sh = krSheet_(true), now = new Date(), rows = [];
+    for (var i = 0; i * KR_CHUNK < text.length; i++) rows.push([i + 1, 'j:' + text.slice(i * KR_CHUNK, (i + 1) * KR_CHUNK), now, user.name]);
+    if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 4).clearContent();
+    sh.getRange(2, 1, rows.length, 4).setValues(rows);
+    var houses = {};
+    clean.positions.forEach(function (p) { houses[p.hk] = 1; });
+    var fl = clean.flood ? Object.keys(clean.flood.by).filter(function (k) { return houses[k]; }).length : 0;
+    sheet_(SHEET_LOG).appendRow([now, user.name, 'капремонт', '', 'Данные капремонта', 'Капремонт', '',
+      clean.positions.length + ' поз., домов ' + Object.keys(houses).length + (clean.flood ? ', с подтоплениями ' + fl : '')]);
+    bumpRev_();
+    return { positions: clean.positions.length, houses: Object.keys(houses).length, flood: fl };
   } finally {
     lock.releaseLock();
   }

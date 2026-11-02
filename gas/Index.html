@@ -265,12 +265,469 @@ main{max-width:1200px;margin:0 auto;padding:20px 16px 48px}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:40}
 .demo{background:var(--banner);color:var(--fg);font-size:12px;text-align:center;padding:6px 16px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* kr-css:start */
+/* Вкладка и страница «Капитальный ремонт» (gas/kr.js). Вставляется в Index.html между метками kr-css:start и kr-css:end. */
+.kr-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px;margin-bottom:16px}
+.kr-head h2{font-family:var(--f-display);font-weight:500;font-size:20px;margin:0}
+.kr-head .kacts-h{display:flex;gap:8px;flex-wrap:wrap}
+.stages.s4{grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,.85fr)}
+@media (max-width:900px){.stages.s4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.fkpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:10px 0 14px}
+.fkpi>div{border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+.fkpi .n{font-family:var(--f-display);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2}
+.fkpi .t{font-size:12px;color:var(--muted)}
+.fkpi .bad .n{color:var(--attn-ink)}
+@media (max-width:760px){.fkpi{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.wt tr[data-fh]{cursor:pointer}
+@media (max-width:640px){.fh-t th,.fh-t td{padding:8px 4px;font-size:12px}.fh-t th:last-child,.fh-t td:last-child{white-space:normal;text-align:right}.fh-t th{white-space:normal}}
+.pdf{border-top:1px dashed var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.pdf h4{margin:0;font-size:13px}
+.kacts li{margin:2px 0}
+.mny{display:grid;grid-template-columns:minmax(0,230px) minmax(0,1fr) 150px;gap:10px;align-items:center;padding:6px 0;font-size:13px}
+.mny .tr{height:14px;background:var(--surface-2);border-radius:7px;overflow:hidden}
+.mny .tr i{display:block;height:100%;background:var(--c);border-radius:7px;min-width:3px}
+.mny .v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mny .v small{color:var(--muted);font-size:12px}
+@media (max-width:640px){.mny{grid-template-columns:minmax(0,1fr) 110px}.mny .tr{grid-column:1/-1;order:3}}
+.krow{display:grid;grid-template-columns:150px minmax(0,1fr) 200px;gap:10px;align-items:center;padding:6px 4px;cursor:pointer;border-radius:6px;width:100%;border:0;background:none;text-align:left}
+.krow:hover{background:var(--surface-2)}
+.krow .ml{font-size:13px;display:flex;align-items:center;gap:6px;white-space:nowrap;min-width:0}
+.krow .mv{font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.krow .mv b{color:var(--fg)}
+@media (max-width:560px){.krow{grid-template-columns:104px minmax(0,1fr) 44px}.krow .mv span{display:none}}
+.stk{display:flex;gap:2px;height:16px}
+.stk span{min-width:4px;background:var(--c)}
+.stk span:first-child{border-radius:4px 0 0 4px} .stk span:last-child{border-radius:0 4px 4px 0}
+.pos{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;padding:10px 10px 10px 0;cursor:pointer}
+.pos:hover{background:var(--surface-2)}
+.pos .sev{align-self:stretch;border-radius:2px;background:var(--c)}
+.pos .a{font-weight:600}
+.pos .w{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.pos .r{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:12px;white-space:nowrap}
+.pos .fl{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.pd{padding:6px 0 16px 16px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:12px}
+.kv{display:grid;grid-template-columns:170px minmax(0,1fr);gap:4px 12px;margin:0;font-size:13px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;overflow-wrap:anywhere}
+@media (max-width:560px){.kv{grid-template-columns:120px minmax(0,1fr)}}
+.pbar2{display:inline-flex;align-items:center;gap:8px}
+.pbar2 i{display:inline-block;width:120px;height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.pbar2 i b{display:block;height:100%;background:var(--c)}
+.lt{width:100%;border-collapse:collapse;font-size:13px}
+.lt th{font-size:11px;font-weight:600;color:var(--muted);text-align:left;padding:4px 8px;border-bottom:1px solid var(--line)}
+.lt td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.lt td.n,.lt th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.lt .x{color:var(--faint);text-decoration:line-through}
+.kfilters{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.kfilters .ctl{flex:1 1 200px}
+.qlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.qlist b{font-weight:600}
+/* kr-css:end */
 </style>
 </head>
 <body>
 <div id="root"></div>
 <div class="tip" id="tip" hidden></div>
 <script>window.BOOT=<?!= BOOT ?>;</script>
+<script>
+/* kr:start */
+/* Страница «Капитальный ремонт»: KrView.mount(контейнер, данные, {today, title, actions}).
+   Данные — результат tools/kr_parse.py + flood_parse.py (или gas/kr_import.js в браузере). Правится здесь; build.py и tools/build_kr.py вставляют этот файл в страницы. */
+var KrView=(function(){
+'use strict';
+function mount(root,D,opts){
+opts=opts||{};
+const T=opts.today||D.today,P=D.positions.map(p=>Object.assign({},p));
+P.forEach(p=>{if(!p.flood&&D.flood&&D.flood.by)p.flood=D.flood.by[p.hk]||null;});
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const dmy=d=>d?d.split("-").reverse().join("."):"";
+const plural=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&&(h<12||h>14)?b:c;};
+const rub=n=>Math.round(n).toLocaleString("ru-RU")+" ₽";
+const mln=n=>(n/1e6).toLocaleString("ru-RU",{maximumFractionDigits:1})+" млн ₽";
+const gen=n=>n+" "+(n%10===1&&n%100!==11?"позиции":"позиций"),dat=n=>n+" "+(n%10===1&&n%100!==11?"позиции":"позициям");
+const sum=(l,f)=>l.reduce((s,p)=>s+(f(p)||0),0);
+const day=iso=>Date.UTC(+iso.slice(0,4),+iso.slice(5,7)-1,+iso.slice(8,10))/864e5;
+
+/* этапы по проценту выполнения: статуса в файле нет */
+const ST=[["todo","Процент не указан","нет данных о ходе работ"],["prog","В работе","процент от 1 до 99"],["done","Выполнено","процент 100"],["stop","Встали","в файле отметка «встали»"]];
+const SN=Object.fromEntries(ST.map(s=>[s[0],s[1]])),G={todo:"todo",prog:"prog",done:"done",stop:"attn"};
+const stageOf=p=>p.state?"stop":p.pct===100?"done":p.pct>0?"prog":"todo";
+P.forEach(p=>{p.g=stageOf(p);p.w=(p.kr||0)*(p.pct||0)/100;
+  p.elapsed=p.start&&p.end&&p.start<p.end?Math.max(0,Math.min(100,(day(T)-day(p.start))/(day(p.end)-day(p.start))*100)):null;});
+
+/* проблемы: что проверяется и кто решает */
+const FL=[
+ ["stop","high","Работа встала","Подрядчик и УК: причина простоя и новый срок",p=>!!p.state],
+ ["endlate","high","Срок окончания прошёл, а выполнено меньше 100%","Подрядчик: новый срок или закрыть работу",p=>p.end&&p.end<T&&(p.pct||0)<100&&!p.state],
+ ["behind","high","Выполнение отстаёт от графика (на 15 пунктов и больше)","Подрядчик: что мешает и как наверстать",p=>p.elapsed!=null&&p.end>=T&&p.pct!=null&&p.elapsed-p.pct>=15&&p.pct<100],
+ ["latenopct","high","График начала прошёл, а процента выполнения нет","Исполнитель: начата ли работа и сколько сделано",p=>p.start&&p.start<T&&p.pct==null&&!p.state],
+ ["vote","high","Нужно переголосование собственников","УК: провести переголосование",p=>p.vote],
+ ["floodrep","high","Повторные подтопления после «устранено»","УК: акт совместного обследования и эскалация в Водоканал",p=>!!(p.flood&&p.flood.repeat)],
+ ["nocontract","mid","Работа идёт или закончена, а суммы договора в файле нет","ПТО: оформить договор или внести его сумму",p=>p.pct>0&&!p.contract],
+ ["floodwait","mid","Подтопление: претензия ждёт ответа","УК: контролировать срок ответа организации",p=>!!(p.flood&&p.flood.gis_pending>0)],
+ ["flood","mid","В доме подтапливало подвал (есть в реестре подтоплений)","УК: учесть при планировании работ, контролировать ответы",p=>!!p.flood],
+ ["noend","mid","Нет срока окончания","ПТО: внести срок",p=>!p.end],
+ ["noexec","mid","Не назначен исполнитель по плану","ПТО: назначить исполнителя",p=>!p.executor],
+ ["nocontr","mid","Нет основного подрядчика","ПТО: указать подрядчика",p=>!p.contractor],
+ ["nostart","low","Нет графика начала работ","ПТО: внести дату начала",p=>!p.start],
+ ["shortc","low","Сумма договора меньше суммы КР","ПТО: сверить договор с суммой КР",p=>p.contract&&p.kr&&p.contract<p.kr*.99],
+ ["nokr","low","Нет суммы КР","ПТО: внести сумму",p=>!p.kr]];
+const SEV={high:"красное срывает сроки",mid:"жёлтое копится",low:"серое — порядок в данных"};
+P.forEach(p=>{p.fl=FL.filter(f=>f[4](p)).map(f=>f[0]);p.bad=p.fl.some(k=>!/^flood/.test(k)&&FL.find(f=>f[0]===k)[1]==="high");});
+const FLN=Object.fromEntries(FL.map(f=>[f[0],f]));
+const SHORTFL={stop:"встали",endlate:"срок прошёл",behind:"отстаёт",latenopct:"старт прошёл",vote:"переголосование",floodrep:"повторные подтопления",floodwait:"подтопление: ждёт ответа",flood:"подтопления",nocontract:"нет договора",noend:"нет срока",noexec:"нет исполнителя",nocontr:"нет подрядчика",nostart:"нет старта",shortc:"договор < КР",nokr:"нет суммы КР"};
+
+/* состояние отбора */
+let V={q:"",stage:"",flag:"",term:"",hk:"",who:"contractor",whoKey:null,open:{}};
+const list=()=>P.filter(p=>(!V.stage||p.g===V.stage)&&(!V.hk||p.hk===V.hk)&&(!V.flag||p.fl.includes(V.flag))&&(!V.term||termKey(p)===V.term)&&
+  (V.whoKey==null||whoVal(p,V.who)===V.whoKey)&&(!V.q||(p.addr+" "+p.lines.map(l=>l.work).join(" ")+" "+p.contractor+" "+p.executor).toLowerCase().includes(V.q.toLowerCase())));
+const termKey=p=>p.end?p.end_txt:"—";
+const whoVal=(p,w)=>(w==="executor"?p.executor:p.contractor)||"—";
+const stack=(l,w)=>{const t=l.length;if(!t)return'<div class="stk"></div>';
+  return'<div class="stk">'+ST.map(s=>{const n=l.filter(p=>p.g===s[0]).length;return n?'<span class="g-'+G[s[0]]+'" style="flex:'+n+'" title="'+esc(s[1])+': '+n+'"></span>':"";}).join("")+'</div>';};
+const wavg=l=>{const k=sum(l,p=>p.kr);return k?Math.round(sum(l,p=>p.w)*100/k):0;};
+
+function render(){
+  const NH=new Set(P.map(p=>p.hk)).size,N=P.length,KR=sum(P,p=>p.kr),WP=wavg(P),by=Object.fromEntries(ST.map(s=>[s[0],P.filter(p=>p.g===s[0])]));
+  const noPctLate=FL[3][4];
+  /* 1. где мы сейчас */
+  const card=(k,cls,extra)=>{const l=by[k];return'<button type="button" class="stage g-'+G[k]+' '+cls+'" data-stage="'+k+'"><span class="sh"><i></i>'+esc(SN[k])+'</span><span class="sn">'+l.length+'</span><span class="sp">'+mln(sum(l,p=>p.kr))+' · '+(KR?Math.round(sum(l,p=>p.kr)*100/KR):0)+'% суммы</span>'+extra+'</button>';};
+  const sx=(n,bad,ok)=>n?'<span class="sx">'+bad+'</span>':'<span class="sx ok">'+ok+'</span>';
+  const pipe='<div class="pipe">'+ST.map((s,i)=>{const v=sum(by[s[0]],p=>p.kr);return v?(s[0]==="stop"&&i?'<span class="gap"></span>':"")+'<span class="g-'+G[s[0]]+'" style="flex:'+v+'" data-tip="'+esc(s[1])+': '+mln(v)+'"></span>':"";}).join("")+'</div>';
+  const hero='<section class="card"><h3>Где мы сейчас <span>позиции перечня по проценту выполнения</span></h3><div class="hero-top"><div class="hero-l"><span class="hero-big">'+WP+'%</span>'+
+    '<span class="hero-txt">выполнено по сумме КР. Всего '+mln(KR)+': '+NH+' '+plural(NH,"дом","дома","домов")+', '+N+' '+plural(N,"позиция","позиции","позиций")+'. На 100% закрыто '+by.done.length+', в работе '+by.prog.length+', процент не указан у '+gen(by.todo.length)+(by.stop.length?', встали '+by.stop.length:"")+'.</span></div>'+
+    '<span class="money">Аванс из банка '+mln(sum(P,p=>p.bank))+' · по договорам '+mln(sum(P,p=>p.contract))+'</span></div>'+pipe+
+    '<div class="stages s4">'+
+      card("todo","flow arrow",sx(by.todo.filter(noPctLate).length,by.todo.filter(noPctLate).length+" — график начала прошёл","срок начала не наступил или не указан"))+
+      card("prog","flow arrow",sx(P.filter(p=>p.fl.includes("behind")||p.fl.includes("endlate")).length,P.filter(p=>p.fl.includes("behind")||p.fl.includes("endlate")).length+" — отстают от графика или срок прошёл","по графику"))+
+      card("done","flow",'<span class="sx ok">100% по файлу</span>')+
+      card("stop","side",sx(by.stop.length,"причина и срок не указаны","нет"))+
+    '</div><p class="note">Этап определён по проценту выполнения: отдельного статуса в файле нет. «Выполнено по сумме КР» — это сумма КР × процент выполнения по каждой позиции. Нажмите на карточку, чтобы открыть список.</p></section>';
+
+  /* подтопления подвалов по домам программы */
+  const HK={};P.forEach(p=>{(HK[p.hk]=HK[p.hk]||{hk:p.hk,addr:p.addr,l:[]}).l.push(p);});
+  const FH=Object.values(HK).filter(h=>h.l[0].flood).sort((a,b)=>b.l[0].flood.total-a.l[0].flood.total);
+  let floodCard="";
+  if(D.flood&&FH.length){
+    const F=D.flood,fs=FH.map(h=>h.l[0].flood),tot=sum(fs,f=>f.total),gis=sum(fs,f=>f.gis),pend=sum(fs,f=>f.gis_pending),rep=fs.filter(f=>f.repeat).length,
+      cat=c=>sum(fs,f=>f.cats[c]),ans=sum(["done","done_blame","refuse","plan","third"].map(c=>({v:cat(c)})),x=>x.v),dd=s=>s.slice(0,5);
+    const kpi=(n,t,bad)=>'<div'+(bad?' class="bad"':"")+'><div class="n">'+n+'</div><div class="t">'+t+'</div></div>';
+    floodCard='<section class="card"><h3>Подтопления подвалов <span>реестр на '+esc(F.updated)+' · с '+esc(dd(F.period_start))+' по '+esc(dd(F.period_end))+'</span></h3>'+
+      '<div class="sub">В реестре есть '+FH.length+' из '+NH+' '+plural(NH,"дома","домов","домов")+' программы: '+tot+' '+plural(tot,"заявка","заявки","заявок")+' в АДС — '+Math.round(tot*100/F.register_total)+'% всех заявок реестра ('+F.register_total+' по '+F.register_addresses+' адресам). Нажмите на дом, чтобы открыть его позиции.</div>'+
+      '<div class="fkpi">'+kpi(tot,plural(tot,"заявка","заявки","заявок")+" в АДС о подтоплении")+kpi(gis,"обращений УК в ГИС ЖКХ"+(pend?", из них "+pend+" без ответа (в "+fs.filter(f=>f.gis_pending).length+" "+plural(fs.filter(f=>f.gis_pending).length,"доме","домах","домах")+")":", все с ответом"),pend>0)+
+      kpi(rep,"дома с повторным подтоплением после «устранено»",rep>0)+kpi(ans,"ответов организаций: устранено "+cat("done")+", вина на УК или жителей "+cat("done_blame")+", отказ "+cat("refuse"))+'</div>'+
+      '<div class="tscroll"><table class="wt fh-t" style="min-width:0"><thead><tr><th>Дом</th><th>Заявок в АДС</th><th class="st">Обращений в ГИС ЖКХ</th><th>Без ответа</th><th class="st">Последнее</th><th>Повторы</th><th>Работы КР</th></tr></thead><tbody>'+
+      FH.map(h=>{const f=h.l[0].flood;return'<tr data-fh="'+esc(h.hk)+'" tabindex="0"><td>'+esc(h.addr)+'</td><td><b>'+f.total+'</b></td><td class="st">'+f.gis+'</td><td'+(f.gis_pending?' class="bad"':"")+'>'+(f.gis_pending||'<span class="z">0</span>')+'</td><td class="st">'+esc(f.last)+'</td><td'+(f.repeat?' class="bad"':"")+'>'+(f.repeat?f.repeat.cycles+" "+plural(f.repeat.cycles,"раз","раза","раз"):'<span class="z">нет</span>')+'</td><td>'+esc(h.l.map(p=>p.state?p.state:p.pct!=null?p.pct+"%":"нет %").join(" · "))+'</td></tr>';}).join("")+'</tbody></table></div>'+
+      '<p class="note">Из реестра взяты только цифры и сроки. Заявки в АДС — это обращения жителей и служб; обращения в ГИС ЖКХ направляет УК в Водоканал, Управление ЖКХ, ГЖИ и другие организации. Подробности по дому — в раскрытой позиции ниже. Дома программы, которых в таблице нет, в реестре подтоплений не значатся (или записаны по-другому).</p></section>';
+  }
+  /* 2. где проблемы */
+  const rows=FL.map(f=>{const l=P.filter(p=>p.fl.includes(f[0]));return l.length?'<li class="sev-'+f[1]+'" data-flag="'+f[0]+'" tabindex="0" role="button"><span class="sv"></span><span class="pn">'+l.length+'</span><span class="pt"><b>'+esc(f[2])+'</b><span>'+esc(f[3])+(sum(l,p=>p.kr)?' · КР '+mln(sum(l,p=>p.kr)):"")+'</span></span><span class="pa">Показать →</span></li>':"";}).join("");
+  const probs='<section class="card"><h3>Где проблемы <span>по важности</span></h3><div class="sub">'+SEV.high+', '+SEV.mid+', '+SEV.low+'. Нажмите на строку, чтобы открыть эти позиции.</div><ul class="plist">'+rows+'</ul></section>';
+
+  /* 3. по срокам окончания */
+  const gt={};P.forEach(p=>{const k=termKey(p);(gt[k]=gt[k]||{k,end:p.end,l:[]}).l.push(p);});
+  const terms=Object.values(gt).sort((a,b)=>(a.end||"9999")<(b.end||"9999")?-1:1);
+  const trows=terms.map(g=>{const badge=!g.end?'<em class="mb next">срок не указан</em>':g.end<T?(g.l.some(p=>p.pct!==100)?'<em class="mb late">срок прошёл</em>':'<em class="mb ok">закрыт</em>'):g.l.length&&/кв/.test(g.k)&&gQuarterNow(g.k)?'<em class="mb now">идёт сейчас</em>':'<em class="mb next">впереди</em>';
+    return'<button type="button" class="krow" data-term="'+esc(g.k)+'"><span class="ml">'+esc(g.k==="—"?"Без срока":g.k)+badge+'</span>'+stack(g.l)+'<span class="mv"><b>'+wavg(g.l)+'%</b><span> · '+g.l.length+' поз. · '+mln(sum(g.l,p=>p.kr))+'</span></span></button>';}).join("");
+  const legend='<div class="legend">'+ST.map(s=>'<span><i class="g-'+G[s[0]]+'" style="background:var(--c)"></i>'+esc(s[1])+'</span>').join("")+'</div>';
+  const termCard='<section class="card"><h3>По срокам окончания <span>% выполнено · позиций · сумма КР</span></h3><div class="sub">«Срок прошёл» — срок окончания позади, а выполнено меньше 100%. Процент — по сумме КР в группе.</div>'+trows+legend+'</section>';
+
+  /* 4. деньги */
+  const bars=[["Сумма КР по перечню",KR,"todo",""],["Аванс из банка",sum(P,p=>p.bank),"prog",KR?Math.round(sum(P,p=>p.bank)*100/KR)+"% суммы КР":""],
+    ["Сумма договоров с подрядчиками",sum(P,p=>p.contract),"noact",KR?Math.round(sum(P,p=>p.contract)*100/KR)+"% суммы КР":""],
+    ["Выполнено по проценту (КР × %)",sum(P,p=>p.w),"done",WP+"% суммы КР"],
+    ["Оплачено («Аванс/расчёт»)",sum(P,p=>p.pay),"winter",KR?(sum(P,p=>p.pay)*100/KR).toLocaleString("ru-RU",{maximumFractionDigits:1})+"% суммы КР":""]];
+  const money='<section class="card"><h3>Деньги <span>по данным перечня</span></h3><div class="sub">Сколько заложено, сколько под договором и сколько сделано.</div>'+
+    bars.map(b=>'<div class="mny g-'+b[2]+'"><span>'+esc(b[0])+'</span><span class="tr"><i style="width:'+(KR?Math.max(.5,b[1]*100/KR):0)+'%"></i></span><span class="v">'+mln(b[1])+(b[3]?'<br><small>'+b[3]+'</small>':"")+'</span></div>').join("")+'</section>';
+
+  /* 5. кто выполняет */
+  const gw={};P.forEach(p=>{const k=whoVal(p,V.who);(gw[k]=gw[k]||{k,l:[]}).l.push(p);});
+  const wrows=Object.values(gw).sort((a,b)=>b.l.filter(p=>p.bad).length-a.l.filter(p=>p.bad).length||sum(b.l,p=>p.kr)-sum(a.l,p=>p.kr));
+  const who='<section class="card"><div class="hrow"><h3>Кто выполняет</h3><div class="seg" role="group" aria-label="Разрез"><button type="button" data-who="contractor" aria-pressed="'+(V.who==="contractor")+'">Основной подрядчик</button><button type="button" data-who="executor" aria-pressed="'+(V.who==="executor")+'">Исполнитель по плану</button></div></div>'+
+    '<div class="sub">Сначала — у кого больше позиций с серьёзными проблемами. Нажмите на строку, чтобы открыть позиции.</div><div class="tscroll"><table class="wt" style="min-width:0"><thead><tr><th>'+(V.who==="executor"?"Исполнитель":"Подрядчик")+'</th><th>Позиций</th><th>Сумма КР</th><th>Этапы</th><th>С проблемами</th><th>% выполнено</th></tr></thead><tbody>'+
+    wrows.map(g=>{const pc=wavg(g.l),bad=g.l.filter(p=>p.bad).length;return'<tr data-whokey="'+esc(g.k)+'" tabindex="0"><td>'+esc(g.k==="—"?"Не указан":g.k)+'</td><td>'+g.l.length+'</td><td>'+mln(sum(g.l,p=>p.kr))+'</td><td style="min-width:120px">'+stack(g.l)+'</td><td'+(bad?' class="bad"':"")+'>'+(bad||'<span class="z">0</span>')+'</td><td><span class="pbar"><i><b style="width:'+pc+'%"></b></i>'+pc+'%</span></td></tr>';}).join("")+'</tbody></table></div></section>';
+
+  /* 6. позиции */
+  const L=list(),act=[V.stage&&["stage","этап: "+SN[V.stage]],V.flag&&["flag","проблема: "+FLN[V.flag][2]],V.term&&["term","срок: "+(V.term==="—"?"не указан":V.term)],V.hk&&["hk","дом: "+(P.find(p=>p.hk===V.hk)||{}).addr],V.whoKey!=null&&["whoKey",(V.who==="executor"?"исполнитель: ":"подрядчик: ")+(V.whoKey==="—"?"не указан":V.whoKey)]].filter(Boolean);
+  const chips=['<button type="button" class="chip" data-stg="" aria-pressed="'+(!V.stage)+'">Все <b>'+N+'</b></button>'].concat(ST.map(s=>'<button type="button" class="chip" data-stg="'+s[0]+'" aria-pressed="'+(V.stage===s[0])+'"><i class="g-'+G[s[0]]+'"></i>'+esc(s[1])+' <b>'+by[s[0]].length+'</b></button>')).join("");
+  const item=p=>{const o=V.open[p.id];
+    return'<div><button type="button" class="pos g-'+G[p.g]+'" data-pos="'+p.id+'" aria-expanded="'+!!o+'"><span class="sev"></span><span><span class="a">'+esc(p.addr)+'</span><span class="w" style="display:block">'+esc(p.lines.filter(l=>!l.cancelled).map(l=>l.work).join(" · ")||"—")+'</span>'+
+      (p.fl.length?'<span class="fl">'+p.fl.map(k=>'<span class="chkpill'+(FLN[k][1]==="high"?" bad":"")+'">'+(k==="flood"?"подтопления: "+p.flood.total:SHORTFL[k])+'</span>').join("")+'</span>':"")+'</span>'+
+      '<span class="r"><span class="pill dot">'+(p.state?esc(p.state):p.pct!=null?p.pct+"%":"процент не указан")+'</span><span class="num">'+(p.kr?mln(p.kr):"нет суммы")+'</span><span class="faint">'+esc(p.contractor||"—")+'</span></span></button>'+(o?detail(p):"")+'</div>';};
+  const pos='<section class="card" id="poslist"><h3>Позиции <span>'+L.length+' '+plural(L.length,"позиция","позиции","позиций")+'</span></h3>'+
+    '<div class="kfilters"><input class="ctl" id="kq" type="search" placeholder="Адрес, работа, подрядчик" value="'+esc(V.q)+'" aria-label="Поиск"></div><div class="chips" role="group" aria-label="Этап">'+chips+'</div>'+
+    (act.length?'<div class="fpills">'+act.map(a=>'<span class="fpill">'+esc(a[1])+'<button type="button" data-clr="'+a[0]+'" aria-label="Убрать отбор">×</button></span>').join("")+'</div>':"")+
+    '<div style="margin-top:8px">'+(L.length?L.map(item).join(""):'<div class="empty">Ничего не найдено</div>')+'</div></section>';
+
+  /* 7. что уточнить */
+  const cnt=a=>a.length+" "+plural(a.length,"позиция","позиции","позиций");
+  const q=[];
+  const red=P.filter(p=>p.fill==="FF0000"),green=P.filter(p=>p.fill==="008000");
+  q.push("<b>Цвета заливки в файле не расшифрованы.</b> Красная у адреса: "+cnt(red)+(red.length?" ("+red.map(p=>esc(p.addr)+(p.pct!=null?", "+p.pct+"%":", процента нет")).join("; ")+")":"")+"; зелёная: "+cnt(green)+". Если это статусы, подскажите, что означает каждый цвет, и страница это покажет.");
+  const nop=by.todo;q.push("<b>Процент выполнения не указан</b> у "+gen(nop.length)+" на "+mln(sum(nop,p=>p.kr))+". Проставьте процент (0% — тоже ответ) или дату начала работ, иначе по таким позициям нельзя понять, начаты ли они.");
+  const pay=P.filter(p=>p.pay);q.push("<b>Колонка «Аванс/расчёт»:</b> заполнена у "+gen(pay.length)+" на "+mln(sum(pay,p=>p.pay))+", тогда как аванс из банка — "+mln(sum(P,p=>p.bank))+" по "+dat(P.filter(p=>p.bank).length)+". Это выплаты подрядчикам? Остальные выплаты в файле не отражены.");
+  const odd=[];P.forEach(p=>p.lines.forEach(l=>{if(l.sum&&l.contract&&l.contract>5*l.sum)odd.push(esc(p.addr)+", «"+esc(l.work)+"»: договор "+rub(l.contract)+" при сумме раздела "+rub(l.sum));}));
+  if(odd.length)q.push("<b>Возможная опечатка в сумме договора:</b> "+odd.join("; ")+".");
+  const canc=[];P.forEach(p=>p.lines.filter(l=>l.cancelled).forEach(l=>canc.push(esc(p.addr)+", «"+esc(l.work)+"»")));
+  if(canc.length)q.push("<b>Строки с пометкой «отмена»</b> (сумма 0): "+canc.join("; ")+". Исключить из перечня?");
+  const bad=P.filter(p=>/\?/.test(p.addr));if(bad.length)q.push("<b>В адресе вопросительные знаки:</b> "+bad.map(p=>esc(p.addr)).join("; ")+". Уточнить адрес, сумму и подрядчика.");
+  const nok=P.filter(p=>!p.kr);if(nok.length)q.push("<b>Нет суммы КР:</b> "+nok.map(p=>esc(p.addr)).join("; ")+".");
+  const stp=P.filter(p=>p.state);if(stp.length)q.push("<b>Отметка «"+esc(stp[0].state)+"»:</b> "+stp.map(p=>esc(p.addr)).join("; ")+". Причина и новый срок не указаны.");
+  const vt=P.filter(p=>p.vote);if(vt.length)q.push("<b>«Переголосовывать»:</b> "+vt.map(p=>esc(p.addr)).join("; ")+". Когда и кто проводит переголосование?");
+  const quest='<section class="card"><h3>Что уточнить по файлу <span>без этого страница показывает не всё</span></h3><ol class="qlist">'+q.map(x=>"<li>"+x+"</li>").join("")+'</ol></section>';
+
+  root.innerHTML='<div class="kr-head"><h2>'+esc(opts.title||"Сводка")+'</h2>'+(opts.actions?'<span class="kacts-h">'+opts.actions+'</span>':"")+'<span class="faint" style="font-size:12px">по перечню работ, сохранённому '+esc(dmy(D.saved))+' · сроки посчитаны на '+esc(dmy(T))+'</span></div>'+hero+floodCard+'<div class="grid2">'+probs+'<div style="display:flex;flex-direction:column;gap:12px;min-width:0">'+termCard+money+'</div></div>'+who+pos+quest;
+  bind();
+}
+function gQuarterNow(k){const m=/(\d) кв\. (\d{4})/.exec(k);if(!m)return false;const q=+m[1],y=+m[2],s=y+"-"+String(q*3-2).padStart(2,"0")+"-01",e=new Date(Date.UTC(y,q*3,0)).toISOString().slice(0,10);return s<=T&&T<=e;}
+function detail(p){
+  const mon=n=>n?rub(n):"—",pc=p.pct==null?"не указан":p.pct+"%";
+  const kv=[["Основной подрядчик",p.contractor||"не указан"],["Исполнитель по плану",p.executor||"не указан"],["График начала",p.start_txt||"не указан"],["Срок окончания",p.end_txt||"не указан"],
+    ["Процент выполнения",{html:p.state?esc(p.state):'<span class="pbar2 g-'+G[p.g]+'"><i><b style="width:'+(p.pct||0)+'%"></b></i>'+pc+'</span>'+(p.elapsed!=null?' <span class="faint">· по времени прошло '+Math.round(p.elapsed)+'%</span>':"")}],
+    ["Сумма КР",mon(p.kr)],["Аванс из банка",mon(p.bank)],["Сумма договора",mon(p.contract)],["Аванс/расчёт",mon(p.pay)],["Выполнено по проценту",mon(p.w)]];
+  const lines='<table class="lt"><thead><tr><th>Работа (решение собственников)</th><th class="n">Сумма по разделу</th><th class="n">Договор по строке</th></tr></thead><tbody>'+
+    p.lines.map(l=>'<tr><td'+(l.cancelled?' class="x"':"")+'>'+esc(l.work)+(l.cancelled?" — отмена":"")+'</td><td class="n">'+(l.sum?rub(l.sum):l.sum_txt?esc(l.sum_txt):"—")+'</td><td class="n">'+(l.contract?rub(l.contract):"—")+'</td></tr>').join("")+'</tbody></table>';
+  let fb="";
+  if(p.flood&&D.flood){
+    const f=p.flood,CN=D.flood.cats||{},ct=Object.keys(f.cats).map(c=>(CN[c]||c)+": "+f.cats[c]).join("; "),
+      kv2=[["Заявок в АДС",f.total],["Обращений УК в ГИС ЖКХ",f.gis],["Период",f.first+" – "+f.last],
+        ["Претензии",f.orgs.length?f.orgs.map(o=>o.name+": "+o.sent+(o.pending?" (ждут ответа "+o.pending+")":"")+(o.withdrawn?", отозвано "+o.withdrawn:"")).join("; "):"в ГИС ЖКХ не направлялись"],
+        ["Ответы организаций",ct||"ответов пока нет"],
+        ["Повторное подтопление",f.repeat?"после «устранено» от "+f.repeat.fix_date+" (повтор через "+f.repeat.days+" дн., циклов: "+f.repeat.cycles+")"+(f.repeat.last_signal?", последний сигнал "+f.repeat.last_signal.date:""):"нет"]];
+    fb='<div class="pdf"><h4>Подтопления подвала <span class="faint" style="font-weight:400">· реестр на '+esc(D.flood.updated)+'</span></h4><dl class="kv">'+kv2.map(x=>'<dt>'+esc(x[0])+'</dt><dd>'+esc(x[1])+'</dd>').join("")+'</dl>'+
+      (f.actions.length?'<div style="font-size:13px"><b>Что предлагает реестр:</b><ul class="kacts" style="margin:4px 0 0;padding-left:18px">'+f.actions.slice(0,3).map(a=>'<li><span class="faint">'+esc(a.group)+':</span> '+esc(a.text)+'</li>').join("")+'</ul></div>':"")+'</div>';
+  }
+  return'<div class="pd"><dl class="kv">'+kv.map(x=>'<dt>'+esc(x[0])+'</dt><dd>'+(x[1]&&x[1].html!=null?x[1].html:esc(x[1]))+'</dd>').join("")+'</dl>'+lines+fb+
+    (p.fl.length?'<div style="font-size:13px"><b>Что не так:</b> '+p.fl.map(k=>esc(FLN[k][2])).join("; ")+'</div>':"")+(p.notes.length?'<div class="faint" style="font-size:12px">'+p.notes.map(esc).join("; ")+'</div>':"")+'<div class="faint" style="font-size:12px">Строка '+p.row+' в файле</div></div>';
+}
+function bind(){
+  const go=()=>{render();const el=root.querySelector("#poslist");if(el)el.scrollIntoView({behavior:"smooth",block:"start"});};
+  root.querySelectorAll("[data-stage]").forEach(b=>b.onclick=()=>{V=Object.assign(V,{stage:b.dataset.stage,flag:"",term:"",whoKey:null,q:"",hk:""});go();});
+  root.querySelectorAll("[data-flag]").forEach(b=>{const f=()=>{V=Object.assign(V,{flag:b.dataset.flag,stage:"",term:"",whoKey:null,q:"",hk:""});go();};b.onclick=f;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}};});
+  root.querySelectorAll("[data-term]").forEach(b=>b.onclick=()=>{V=Object.assign(V,{term:b.dataset.term,stage:"",flag:"",whoKey:null,q:"",hk:""});go();});
+  root.querySelectorAll("[data-fh]").forEach(b=>{const f=()=>{V=Object.assign(V,{hk:b.dataset.fh,stage:"",flag:"",term:"",whoKey:null,q:""});go();};b.onclick=f;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}};});
+  root.querySelectorAll("[data-whokey]").forEach(b=>{const f=()=>{V=Object.assign(V,{whoKey:b.dataset.whokey,stage:"",flag:"",term:"",q:"",hk:""});go();};b.onclick=f;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}};});
+  root.querySelectorAll("[data-who]").forEach(b=>b.onclick=()=>{V.who=b.dataset.who;V.whoKey=null;render();});
+  root.querySelectorAll("[data-stg]").forEach(b=>b.onclick=()=>{V.stage=b.dataset.stg;render();});
+  root.querySelectorAll("[data-clr]").forEach(b=>b.onclick=()=>{const k=b.dataset.clr;if(k==="whoKey")V.whoKey=null;else V[k]="";render();});
+  root.querySelectorAll("[data-pos]").forEach(b=>b.onclick=()=>{const id=b.dataset.pos;V.open[id]=!V.open[id];const y=window.scrollY;render();window.scrollTo(0,y);});
+  const q=root.querySelector("#kq");if(q){let t;q.oninput=()=>{clearTimeout(t);t=setTimeout(()=>{V.q=q.value.trim();render();const n=root.querySelector("#kq");n.focus();n.setSelectionRange(n.value.length,n.value.length);},200);};}
+}
+render();
+if(opts.onMount)opts.onMount(root);
+}
+return{mount:mount};
+})();
+if(typeof module!=='undefined'&&module.exports)module.exports=KrView;
+/* kr:end */
+</script>
+<script>
+/* krimport:start */
+/* Чтение перечня работ по капремонту (.xls/.xlsx) и реестра подтоплений (.html) в браузере.
+   Порт tools/kr_parse.py и tools/flood_parse.py: результат должен совпадать с Python (проверка: tools/test_kr_import.js).
+   Нужны TrackerMerge (gas/merge.js) и библиотека чтения Excel, переданная в TrackerMerge.setLib().
+   Править здесь; build.py вставляет файл в Index.html между метками krimport:start и krimport:end. */
+var KrImport = (function () {
+  'use strict';
+  var TM = null;
+  function init(tm) { TM = tm || TrackerMerge; }
+  var HEAD = [['work', 'решение'], ['kr', 'сумма кр'], ['bank', 'аванс из банка'], ['contractor', 'основной подрядчик'], ['sec', 'сумма по разделам'],
+    ['executor', 'исполнитель'], ['pay', 'аванс/'], ['start', 'график начала'], ['end', 'срок окончания'], ['contract', 'сумма договора'], ['pct', 'процент'], ['fact', 'фактическая']];
+  var PHONE = /\(?\s*(?:\+7|8)[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}\s*\)?/g;
+  var mask = function (t) { return typeof t === 'string' ? t.replace(PHONE, '(тел. скрыт)') : t; };
+  var p2 = function (n) { return (n < 10 ? '0' : '') + n; };
+  var iso = function (d) { return d.getUTCFullYear() + '-' + p2(d.getUTCMonth() + 1) + '-' + p2(d.getUTCDate()); };
+  var dmyTxt = function (d) { return p2(d.getUTCDate()) + '.' + p2(d.getUTCMonth() + 1) + '.' + d.getUTCFullYear(); };
+
+  function textSum(v) {   // «450т.р+438т.р» -> 888000
+    var s = TM.sp(v).toLowerCase().replace(/ /g, '');
+    if (!/^(\d+(?:[.,]\d+)?)т\.?р\.?(?:\+(\d+(?:[.,]\d+)?)т\.?р\.?)*$/.test(s)) return null;
+    var t = 0, m, re = /(\d+(?:[.,]\d+)?)т\.?р/g;
+    while ((m = re.exec(s))) t += parseFloat(m[1].replace(',', '.'));
+    return t * 1000;
+  }
+
+  // срок -> [дата ГГГГ-ММ-ДД | null, подпись]; «4кв 2026» — конец квартала (для начала — его начало), «2027» — конец года
+  function parseTerm(v, edge, xls) {
+    var d;
+    if (v instanceof Date) { d = v; return [iso(d), dmyTxt(d)]; }
+    if (typeof v === 'number' && v > 40000 && v < 60000) { d = new Date(Math.round((v - 25569) * 86400) * 1000); return [iso(d), dmyTxt(d)]; }
+    if (typeof v === 'number' && v >= 2000 && v <= 2100 && v === Math.floor(v)) return [(edge === 'start' ? v + '-01-01' : v + '-12-31'), v + ' г.'];
+    var s = TM.sp(v, xls);
+    if (!s) return [null, ''];
+    var m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(s);
+    if (m) return [m[3] + '-' + m[2] + '-' + m[1], s];
+    m = /^(\d)\s*кв\.?\s*(\d{4})$/i.exec(s);
+    if (m) {
+      var q = +m[1], y = +m[2], mm = q * 3;
+      return [edge === 'start' ? y + '-' + p2(mm - 2) + '-01' : iso(new Date(Date.UTC(y, mm, 0))), q + ' кв. ' + y];
+    }
+    return [null, s];
+  }
+
+  // сокращения и опечатки в адресах перечня и реестра -> одно написание (ключ дома)
+  var ALIAS = [[/^м\.?\s*шоссе/, 'московское шоссе'], [/^з\.?\s*бульвар/, 'западный бульвар'], [/^к\.?\s*либк[а-я]*/, 'карла либкнехта'],
+    [/^л\.?\s*шевцовой/, 'шевцовой'], [/^ульяны громовой/, 'громовой'], [/^улица громовой/, 'громовой']];
+  function houseKey(addr) {
+    var s = String(addr).replace(/\(.*?\)/g, ' ').split('?').join(' ');
+    s = s.replace(/\s+/g, ' ').trim().toLowerCase().split('ё').join('е');
+    ALIAS.forEach(function (a) { s = s.replace(a[0], a[1]); });
+    s = s.replace(/(\d)([а-я])к(\d)/g, '$1$2 к$3').replace(/-\d+п$/, '');
+    return TM.addrKey(s).join('|');
+  }
+
+  /* ---------- перечень работ ---------- */
+  function readList(buf) {
+    var wb = TM.open(buf), xls = wb.__xls, s = new TM.Sheet(wb.Sheets[wb.SheetNames[0]]);
+    var sp = function (v) { return TM.sp(v, xls); }, num = TM.num, hr = -1, r, c, i;
+    for (r = 0; r < s.nrows; r++) if (sp(s.val(r, 0)).toLowerCase() === 'адрес') { hr = r; break; }
+    if (hr < 0) throw new Error('В файле нет строки заголовков с «Адрес» в первой колонке: это не перечень работ капремонта.');
+    var col = { addr: 0 };
+    for (c = 0; c < s.ncols; c++) {
+      var h = sp(s.val(hr, c)).toLowerCase();
+      HEAD.forEach(function (k) { if (h.indexOf(k[1]) >= 0 && col[k[0]] === undefined) col[k[0]] = c; });
+    }
+    var miss = ['work', 'kr', 'contractor', 'executor', 'start', 'end'].filter(function (k) { return col[k] === undefined; });
+    if (miss.length) throw new Error('В перечне не найдены колонки: ' + miss.join(', ') + '. Проверьте, что выбран файл перечня капремонта.');
+    var val = function (r, k) { return col[k] === undefined ? null : s.val(r, col[k]); };
+    var pos = [], cur = null, total = null, warnings = [];
+    for (r = hr + 1; r < s.nrows; r++) {
+      var any = false;
+      for (c = 0; c < s.ncols; c++) if (sp(s.val(r, c))) { any = true; break; }
+      if (!any) continue;
+      var addr = sp(val(r, 'addr'));
+      if (!addr && !sp(val(r, 'work')) && num(val(r, 'kr')) && r === s.nrows - 1) { total = { kr: num(val(r, 'kr')), bank: num(val(r, 'bank')) }; continue; }
+      if (addr) {
+        cur = { id: pos.length, row: r + 1, addr: mask(addr), kr: null, bank: null, contractor: '', executor: '', pay: null, contract: null, pct: null, state: '',
+          start: null, start_txt: '', end: null, end_txt: '', vote: false, notes: [], fill: s.fill(r, col.addr), hk: houseKey(addr), lines: [] };
+        pos.push(cur);
+      }
+      if (!cur) continue;
+      ['kr', 'bank', 'pay', 'contract'].forEach(function (k) {
+        if (col[k] === undefined) return;
+        var v = num(val(r, k));
+        if (v !== null) cur[k] = k === 'contract' ? (cur[k] || 0) + v : (cur[k] !== null ? cur[k] : v);
+      });
+      if (col.pct !== undefined && cur.pct === null && !cur.state) {
+        var pv = val(r, 'pct');
+        if (num(pv) !== null) cur.pct = num(pv); else if (sp(pv)) cur.state = sp(pv);
+      }
+      ['contractor', 'executor'].forEach(function (k) { var t = sp(val(r, k)); if (t && !cur[k]) cur[k] = t; });
+      ['start', 'end'].forEach(function (k) {
+        if (cur[k] === null && !cur[k + '_txt']) { var t = parseTerm(val(r, k), k, xls); cur[k] = t[0]; cur[k + '_txt'] = t[1]; }
+      });
+      var work = sp(val(r, 'work')), sec = num(val(r, 'sec')), secTxt = sec === null ? sp(val(r, 'sec')) : '';
+      if (sec === null && secTxt) {
+        sec = textSum(secTxt);
+        if (sec !== null) { cur.notes.push('сумма по разделу записана текстом: «' + secTxt + '»'); secTxt = ''; }
+      }
+      var cancelled = sp(val(r, 'contractor')).toLowerCase() === 'отмена';
+      if (work || sec || secTxt) cur.lines.push({ row: r + 1, work: mask(work || '(без названия)'), sum: sec, sum_txt: secTxt, contract: num(val(r, 'contract')), cancelled: cancelled && !!work });
+      if (cancelled && !work) cur.notes.push('в колонке «Основной подрядчик» стоит «отмена»');
+    }
+    pos.forEach(function (p) {
+      var txt = [p.executor, p.contractor, p.state].concat(p.lines.map(function (l) { return l.work + ' ' + l.sum_txt; })).join(' ').toLowerCase();
+      p.vote = txt.indexOf('переголос') >= 0;
+      if (p.executor.toLowerCase().indexOf('переголос') >= 0) p.executor = '';
+      p.lines.forEach(function (l) { if (l.sum_txt.toLowerCase().indexOf('переголос') >= 0) l.sum_txt = ''; });
+    });
+    if (!total && s.nrows) {
+      var last = s.row(s.nrows - 1);
+      if (!sp(last[0]) && num(last[col.kr])) total = { kr: num(last[col.kr]), bank: col.bank !== undefined ? num(last[col.bank]) : null };
+    }
+    if (!pos.length) throw new Error('В перечне не найдено ни одной позиции.');
+    var sumKr = pos.reduce(function (a, p) { return a + (p.kr || 0); }, 0);
+    if (total && Math.abs(total.kr - sumKr) > 1) warnings.push('Сумма КР по позициям (' + Math.round(sumKr).toLocaleString('ru-RU') + ' ₽) не совпала с итоговой строкой файла (' + Math.round(total.kr).toLocaleString('ru-RU') + ' ₽): проверьте файл.');
+    if (col.pct === undefined) warnings.push('В файле нет колонки «процент выполнения»: этапы работ определить нельзя.');
+    return { positions: pos, total: total, warnings: warnings };
+  }
+
+  /* ---------- реестр подтоплений ---------- */
+  function jsonAt(text, from) {   // JSON-объект, начинающийся с первой «{» после from
+    var i = text.indexOf('{', from), depth = 0, inStr = false, esc = false, j;
+    for (j = i; j < text.length; j++) {
+      var ch = text.charAt(j);
+      if (inStr) { if (esc) esc = false; else if (ch === '\\') esc = true; else if (ch === '"') inStr = false; continue; }
+      if (ch === '"') inStr = true; else if (ch === '{') depth++; else if (ch === '}') { depth--; if (!depth) return JSON.parse(text.slice(i, j + 1)); }
+    }
+    throw new Error('Данные реестра обрываются: файл повреждён.');
+  }
+  var ORGS = [['vodokanal', 'Водоканал'], ['uzhkh', 'Управление ЖКХ'], ['gzhi', 'ГЖИ'], ['prokuratura', 'Прокуратура'], ['teplo', 'Теплосеть'], ['tplus', 'Т Плюс']];
+  var dkey = function (d) { return d.split('.').reverse().join(''); };
+
+  function readFlood(html) {
+    var m = /const DATA\s*=\s*/.exec(html);
+    if (!m) throw new Error('В файле нет данных реестра (const DATA = …): это не страница «Реестр подтоплений».');
+    var D = jsonAt(html, m.index + m[0].length);
+    if (!D.addresses || !D.summary) throw new Error('В данных реестра нет разделов summary и addresses.');
+    var recs = {}, acts = {}, by = {};
+    (D.recurrence || []).forEach(function (r) { recs[r.address] = r; });
+    (D.actions || []).forEach(function (x) { (acts[x.address] = acts[x.address] || []).push(x); });
+    D.addresses.forEach(function (a) {
+      var orgs = [], cats = {};
+      ORGS.forEach(function (o) {
+        var cl = a[o[0]] || [];
+        if (!cl.length) return;
+        orgs.push({ key: o[0], name: o[1], sent: cl.length, answered: cl.filter(function (c) { return c.answered; }).length, withdrawn: cl.filter(function (c) { return c.withdrawn; }).length,
+          pending: cl.filter(function (c) { return !c.answered && !c.withdrawn; }).length });
+        cl.forEach(function (c) { var cat = c.answer && c.answer.cat; if (cat) cats[cat] = (cats[cat] || 0) + 1; });
+      });
+      var rec = recs[a.address], repeat = null;
+      if (rec) {
+        var sig = (rec.signals || []).slice(-1)[0];
+        repeat = { cycles: rec.cycles, fix_date: rec.fix_date, days: rec.days_to_repeat, blame: !!rec.fix_blame, last_signal: sig ? { date: sig.date, kind: sig.kind } : null };
+      }
+      var r = { name: a.address, total: a.total, ads: a.ads_count, gis: a.gis_total, gis_answered: a.gis_answered, gis_pending: a.gis_pending, first: a.first_date, last: a.last_date,
+        orgs: orgs, cats: cats, repeat: repeat,
+        actions: (acts[a.address] || []).slice().sort(function (x, y) { return x.prio - y.prio; }).map(function (x) { return { prio: x.prio, group: x.group, text: String(x.text).slice(0, 260) }; }) };
+      var k = houseKey(a.address);
+      if (/\|$/.test(k)) return;   // адрес без номера дома
+      var o = by[k];
+      if (o) {   // один дом записан дважды («Полбина 14» и «Проспект Полбина 14») — складываем
+        ['total', 'ads', 'gis', 'gis_answered', 'gis_pending'].forEach(function (f) { o[f] += r[f]; });
+        if (dkey(r.first) < dkey(o.first)) o.first = r.first;
+        if (dkey(r.last) > dkey(o.last)) o.last = r.last;
+        r.orgs.forEach(function (org) {
+          var t = o.orgs.filter(function (x) { return x.key === org.key; })[0];
+          if (t) ['sent', 'answered', 'withdrawn', 'pending'].forEach(function (f) { t[f] += org[f]; }); else o.orgs.push(org);
+        });
+        Object.keys(r.cats).forEach(function (c) { o.cats[c] = (o.cats[c] || 0) + r.cats[c]; });
+        o.repeat = o.repeat || r.repeat;
+        o.actions = o.actions.concat(r.actions);
+      } else by[k] = r;
+    });
+    var s = D.summary;
+    return { meta: { updated: s.updated, period_start: s.period_start, period_end: s.period_end, register_addresses: s.total_addr, register_total: s.total_obr, register_pending: s.pending_total,
+      cats: (D.answer_quality || {}).cats || {} }, by: by };
+  }
+
+  /**
+   * opts: { list: ArrayBuffer|null, flood: string|null, existing: данные из таблицы|null, today: 'ГГГГ-ММ-ДД', saved: 'ГГГГ-ММ-ДД' }
+   * Что не передано, берётся из existing. Возвращает { data, info, warnings }.
+   */
+  function build(opts) {
+    init(opts.tm);
+    var E = opts.existing || null, warnings = [], L = null, F = null;
+    if (!opts.list && !opts.flood) throw new Error('Выберите хотя бы один файл: перечень работ или реестр подтоплений.');
+    if (opts.list) { L = readList(opts.list); warnings = warnings.concat(L.warnings); }
+    if (opts.flood) F = readFlood(opts.flood);
+    if (!L && !(E && E.positions && E.positions.length)) throw new Error('Реестр подтоплений привязывается к перечню работ: сначала загрузите перечень.');
+    var data = {
+      today: opts.today, saved: L ? opts.saved : (E && E.saved) || opts.saved, total: L ? L.total : E.total,
+      flood: F ? Object.assign({}, F.meta, { by: F.by }) : (E && E.flood) || null,
+      positions: L ? L.positions : E.positions
+    };
+    var hks = {};
+    data.positions.forEach(function (p) { hks[p.hk] = 1; });
+    var matched = data.flood ? Object.keys(data.flood.by).filter(function (k) { return hks[k]; }).length : 0;
+    return { data: data, warnings: warnings, info: { positions: data.positions.length, houses: Object.keys(hks).length, kr: data.positions.reduce(function (a, p) { return a + (p.kr || 0); }, 0),
+      floodHouses: matched, floodRegister: data.flood ? Object.keys(data.flood.by).length : 0, fromList: !!L, fromFlood: !!F } };
+  }
+
+  return { build: build, readList: readList, readFlood: readFlood, houseKey: houseKey, init: init };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = KrImport;
+/* krimport:end */
+</script>
 <script>
 /* merge:start */
 /* Сведение трёх выгрузок Excel в файл обновления трекера.
@@ -859,7 +1316,7 @@ var TrackerMerge = (function () {
     };
   }
 
-  return { setLib: setLib, merge: merge, addrKey: addrKey, workNorm: workNorm, workSim: workSim, ratio: ratio, sha1hex: sha1hex, keyOf: keyOf, catOf: catOf, normAddr: normAddr, normUk: normUk,
+  return { setLib: setLib, open: open, Sheet: Sheet, sp: sp, pstr: pstr, num: num, merge: merge, addrKey: addrKey, workNorm: workNorm, workSim: workSim, ratio: ratio, sha1hex: sha1hex, keyOf: keyOf, catOf: catOf, normAddr: normAddr, normUk: normUk,
     dateOfName: dateOfName };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = TrackerMerge;
@@ -1018,14 +1475,14 @@ function renderDemoPick(){
 
 /* ---------- загрузка ---------- */
 function load(silent){
-  return call("bootstrap",S.token).then(d=>{S.user=d.user;saveSess();S.items=d.items.map(enrich);S.ph=d.ph||{};S.src=d.sources||null;buildMonths();S.issues=d.issues;S.log=d.log;S.rev=d.rev;S.asof=d.asof;
+  return call("bootstrap",S.token).then(d=>{S.user=d.user;saveSess();S.items=d.items.map(enrich);S.ph=d.ph||{};S.src=d.sources||null;if(d.kr!==S.krStamp){S.krStamp=d.kr;S.kr=undefined;}buildMonths();S.issues=d.issues;S.log=d.log;S.rev=d.rev;S.asof=d.asof;
     if(!silent||!$("view"))renderShell();else renderView();}).catch(fail);
 }
 setInterval(()=>{if(!S.token||document.hidden)return;
   call("getRev",S.token).then(r=>{if(r!==S.rev&&!(V.drawer&&(V.drawer.dirty||V.drawer.phBusy)))load(true);}).catch(()=>{});},45000);
 
 /* ---------- каркас ---------- */
-function tabs(){const t=[["dash","Сводка"],["works","Работы"],["issues","Вопросы"],["log","Журнал"]];if(isAdmin())t.push(["users","Пользователи"]);return t;}
+function tabs(){const t=[["dash","Сводка"],["works","Работы"]];if(REAL)t.push(["kr","Капремонт"]);t.push(["issues","Вопросы"],["log","Журнал"]);if(isAdmin())t.push(["users","Пользователи"]);return t;}
 function renderShell(){
   $("root").innerHTML=(REAL?"":'<div class="demo">Демонстрация: изменения не сохраняются · <button class="linkbtn" id="demoswitch" type="button">сменить роль</button></div>')+
   '<header class="bar"><div class="bar-in"><div class="brand">Текущий ремонт</div><nav class="tabs" role="tablist">'+
@@ -1038,7 +1495,7 @@ function renderShell(){
 }
 function renderView(){
   document.querySelectorAll("[data-tab]").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===V.tab));
-  ({dash:renderDash,works:renderWorks,issues:renderIssues,log:renderLog,users:renderUsers}[V.tab]||renderDash)();
+  ({dash:renderDash,works:renderWorks,kr:renderKr,issues:renderIssues,log:renderLog,users:renderUsers}[V.tab]||renderDash)();
   if(V.drawer)renderDrawer();
 }
 document.addEventListener("click",ev=>{const t=ev.target.closest("[data-tab]");if(t){V.tab=t.dataset.tab;renderView();window.scrollTo(0,0);}});
@@ -1228,6 +1685,7 @@ function renderDrawer(){
   const D=V.drawer,host=$("dr");if(!D||!host)return;
   if(D.add)return renderAdd(host);
   if(D.imp)return renderImport(host);
+  if(D.kr)return renderKrUpload(host);
   const it=S.items.find(i=>i.key===D.key);if(!it){closeDrawer();return;}
   const ed=canEdit(it),stLocked=ed&&!isAdmin()&&ADMIN_ONLY.includes(it.status);
   if(!D.hist){D.hist=[];call("getHistory",S.token,it.key).then(h=>{if(V.drawer===D){D.hist=h;const el=$("dhist");if(el)el.outerHTML=histHtml(h);}}).catch(()=>{});}
@@ -1523,6 +1981,52 @@ function renderImport(host){
   }
   $("impgo").onclick=()=>{D.busy=true;$("impgo").disabled=true;$("impmsg").textContent="Записываю…";
     call("importWorks",S.token,D.text,true).then(rep=>{toast("Обновление применено: добавлено "+rep.added+", обновлено "+rep.updated+(rep.flagged?", на сверку "+rep.flagged:""));closeDrawer();load(true);}).catch(er=>impFail(D,host,er));};
+}
+
+/* ---------- вкладка «Капремонт» ---------- */
+function renderKr(){
+  const v=$("view"),head='<div class="head"><h2>Капитальный ремонт</h2>';
+  if(S.kr===undefined){
+    v.innerHTML=head+'</div><div class="empty">Загружаю…</div>';
+    call("getCapital",S.token).then(r=>{S.kr=r||null;if(V.tab==="kr")renderKr();})
+      .catch(e=>{if(V.tab==="kr")v.innerHTML=head+'</div><div class="card"><div class="empty">Не удалось загрузить данные: '+esc((e&&e.message)||String(e))+'</div></div>';fail(e);});
+    return;
+  }
+  const up=isAdmin()?'<button class="btn" id="krup" type="button">'+(S.kr?"Обновить данные":"Загрузить данные")+'</button>':"";
+  if(!S.kr)v.innerHTML=head+up+'</div><div class="card"><div class="empty">Данные по капитальному ремонту ещё не загружены. '+(isAdmin()?"Нажмите «Загрузить данные» и выберите перечень работ (.xls) и реестр подтоплений (.html), если он есть.":"Их загружает администратор.")+'</div></div>';
+  else KrView.mount(v,S.kr.data,{title:"Капитальный ремонт",today:TODAY,actions:up});
+  if($("krup"))$("krup").onclick=()=>{V.drawer={kr:true};renderDrawer();};
+}
+function renderKrUpload(host){
+  if(!isAdmin()){closeDrawer();return;}
+  const D=V.drawer,r=D.res,E=S.kr&&S.kr.data;D.files=D.files||{};
+  const mlnR=n=>(n/1e6).toLocaleString("ru-RU",{maximumFractionDigits:1})+" млн ₽";
+  const prev=r?'<div class="box"><h4>Что получится</h4><ul class="imp-info"><li>Позиций: <b>'+r.info.positions+'</b>, домов: '+r.info.houses+', сумма КР '+mlnR(r.info.kr)+(E&&r.info.fromList?' <span class="faint">(сейчас '+E.positions.length+' поз., '+mlnR(E.positions.reduce((a,p)=>a+(p.kr||0),0))+')</span>':"")+'</li>'+
+    '<li>Подтопления: '+(r.data.flood?'в реестре '+r.info.floodRegister+' домов, из них в программе <b>'+r.info.floodHouses+'</b>':"реестр не загружен")+'</li>'+
+    '<li>Перечень: '+(r.info.fromList?"новый файл":"остаётся прежний")+' · реестр подтоплений: '+(r.info.fromFlood?"новый файл":"остаётся прежний")+'</li></ul>'+r.warnings.map(w=>'<div class="imp-err" role="alert">'+esc(w)+'</div>').join("")+'</div>':"";
+  host.innerHTML='<div class="scrim" id="scrim"></div><aside class="drawer" role="dialog" aria-label="Данные капремонта"><div class="dh"><h3>Данные капремонта</h3><button class="x" id="dx" type="button" aria-label="Закрыть">×</button></div>'+
+    '<div class="db"><p class="muted" style="margin:0;font-size:13px">Нужен хотя бы один файл. Если выбрать только реестр подтоплений, перечень останется прежним, и наоборот. Файлы читаются в вашем браузере и никуда не отправляются, на сервер уходит только итог.</p>'+
+    '<label class="field">Перечень работ капремонта (.xls, .xlsx)<input type="file" id="kl" accept=".xls,.xlsx"></label>'+
+    '<label class="field">Реестр подтоплений (.html)<input type="file" id="kf" accept=".html,.htm,text/html"></label>'+
+    '<label class="field">Перечень сохранён (дата)<input type="date" id="kd" value="'+esc(D.date||"")+'"></label>'+
+    '<button class="btn" id="kgo" type="button" disabled>Прочитать и показать</button>'+(D.err?'<div class="imp-err" role="alert">'+esc(D.err)+'</div>':"")+prev+'</div>'+
+    '<div class="df"><button class="btn primary" id="ksave" type="button"'+(r&&!D.busy?"":" disabled")+'>Сохранить</button><button class="btn" id="kcancel" type="button">Закрыть</button><span class="msg" id="kmsg"></span></div></aside>';
+  $("dx").onclick=closeDrawer;$("scrim").onclick=closeDrawer;$("kcancel").onclick=closeDrawer;
+  const ready=()=>{$("kgo").disabled=D.busy||!(D.files.list||D.files.flood)||(D.files.list&&!D.date);};
+  $("kl").onchange=e=>{const f=e.target.files[0];if(!f)return;D.files.list=f;D.res=null;if(!D.date)D.date=isoLocal(f.lastModified);$("kd").value=D.date;ready();};
+  $("kf").onchange=e=>{D.files.flood=e.target.files[0]||null;D.res=null;ready();};
+  $("kd").onchange=e=>{D.date=e.target.value;ready();};
+  ready();
+  $("kgo").onclick=()=>{
+    D.busy=true;D.err="";D.res=null;$("kgo").disabled=true;$("kmsg").textContent="Читаю файлы…";
+    Promise.all([D.files.list?loadXlsx():Promise.resolve(null),D.files.list?D.files.list.arrayBuffer():null,D.files.flood?D.files.flood.text():null])
+      .then(a=>new Promise(res=>setTimeout(()=>res(a),30)))
+      .then(a=>{if(a[0])TrackerMerge.setLib(a[0]);D.res=KrImport.build({tm:TrackerMerge,list:a[1],flood:a[2],existing:E,today:TODAY,saved:D.date||(E&&E.saved)||TODAY});D.busy=false;if(V.drawer===D)renderKrUpload(host);})
+      .catch(er=>{D.busy=false;D.err=(er&&er.message)||String(er);if(V.drawer===D)renderKrUpload(host);});
+  };
+  $("ksave").onclick=()=>{D.busy=true;$("ksave").disabled=true;$("kmsg").textContent="Записываю…";
+    call("saveCapital",S.token,JSON.stringify(D.res.data)).then(r=>{toast("Данные капремонта сохранены: "+r.positions+" поз., подтопления в "+r.flood+" "+plural(r.flood,"доме","домах","домах"));S.kr=undefined;closeDrawer();if(V.tab==="kr")renderKr();})
+      .catch(er=>{D.busy=false;D.err=(er&&er.message)||String(er);if(String(D.err).indexOf("SESSION_EXPIRED")>=0){fail(er);return;}if(V.drawer===D)renderKrUpload(host);});};
 }
 
 /* ---------- вопросы, журнал, пользователи ---------- */

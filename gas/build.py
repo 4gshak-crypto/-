@@ -10,13 +10,14 @@ here = pathlib.Path(__file__).parent
 
 # --- модуль сведения Excel (merge.js) вставляется в Index.html между метками merge:start и merge:end
 _idx = (here / "Index.html").read_text(encoding="utf-8")
-_a, _b = _idx.index("/* merge:start */") + len("/* merge:start */"), _idx.index("/* merge:end */")
-_mj = (here / "merge.js").read_text(encoding="utf-8")
-assert "</script" not in _mj
-_new = _idx[:_a] + "\n" + _mj.strip() + "\n" + _idx[_b:]
-if _new != _idx:
-    (here / "Index.html").write_text(_new, encoding="utf-8")
-    print("Index.html: merge.js обновлён")
+for _name, _file in (("merge", "merge.js"), ("kr", "kr.js"), ("krimport", "kr_import.js"), ("kr-css", "kr.css")):   # общие модули и стили вставляются между метками
+    _a, _b = _idx.index("/* %s:start */" % _name) + len("/* %s:start */" % _name), _idx.index("/* %s:end */" % _name)
+    _src = (here / _file).read_text(encoding="utf-8")
+    assert "</script" not in _src and "</style" not in _src
+    _idx = _idx[:_a] + "\n" + _src.strip() + "\n" + _idx[_b:]
+if _idx != (here / "Index.html").read_text(encoding="utf-8"):
+    (here / "Index.html").write_text(_idx, encoding="utf-8")
+    print("Index.html: общие модули обновлены")
 T = here.parent / "tracker"
 M = json.loads((T / "merged.json").read_text(encoding="utf-8"))
 Q = json.loads((T / "questions.json").read_text(encoding="utf-8"))
@@ -43,7 +44,7 @@ for i in json.loads(blob)["items"]:
     demo_items.append(d)
 demo = dict(seed, items=demo_items)
 import re
-strip_merge = lambda t: re.sub(r"<script>\n/\* merge:start \*/.*?/\* merge:end \*/\n</script>\n", "", t, flags=re.S)   # в демо загрузка обновлений скрыта
+strip_merge = lambda t: re.sub(r"<script>\n/\* (merge|kr|krimport):start \*/.*?/\* \1:end \*/\n</script>\n", "", t, flags=re.S)   # в демо загрузка обновлений скрыта
 html = strip_merge((here / "Index.html").read_text(encoding="utf-8")).replace("<?!= BOOT ?>", "null")
 inject = "<script>window.DEMO_SEED=" + json.dumps(demo, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/") + ";</script>\n"
 (here / "demo.html").write_text(html.replace("<script>\n(function(){", inject + "<script>\n(function(){", 1), encoding="utf-8")
