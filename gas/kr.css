@@ -56,3 +56,6 @@
 .wt tr.bold td{font-weight:600;border-top:1px solid var(--line-strong)}
 .wt tr[data-fp]{cursor:pointer}
 @media (max-width:640px){.fin-t th,.fin-t td{padding:8px 3px;font-size:11.5px}.fin-t th{vertical-align:bottom}.fin-t td:first-child{max-width:120px}}
+
+.edb{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:99px;font-size:11px;background:var(--warn-bg,rgba(217,119,6,.14));color:var(--warn,#b45309)}
+.kedit{margin-top:8px}

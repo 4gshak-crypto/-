@@ -555,6 +555,47 @@ function getCapital(token) {
   return { data: data, at: rows[0][2] instanceof Date ? rows[0][2].getTime() : null, by: String(rows[0][3] || '') };
 }
 
+var KR_NOTE = 500;
+// поля позиции, которые может править администратор, и их тип
+var KR_FIELDS = { addr: 's200', kr: 'n', bank: 'n', pay: 'n', contract: 'n', pct: 'p', contractor: 's80', executor: 's80', state: 's80', start_txt: 's40', end_txt: 's40', start: 'd', end: 'd', vote: 'b', note: 's500' };
+
+/** Правки администратора: {поле: {v, was, by, at}} — только известные поля. */
+function krEd_(ed) {
+  var out = {};
+  if (!ed || typeof ed !== 'object' || Array.isArray(ed)) return out;
+  Object.keys(ed).forEach(function (k) {
+    var e = ed[k];
+    if (!KR_FIELDS[k] || !e || typeof e !== 'object') return;
+    var one = function (v) { return (typeof v === 'number' && isFinite(v)) || typeof v === 'boolean' ? v : (typeof v === 'string' ? v.slice(0, 500) : null); };
+    out[k] = { v: one(e.v), was: one(e.was), by: String(e.by == null ? '' : e.by).slice(0, 60), at: String(e.at == null ? '' : e.at).slice(0, 25) };
+  });
+  return out;
+}
+
+/** Проверяет одно присланное значение поля; бросает понятную ошибку. */
+function krVal_(k, v) {
+  var t = KR_FIELDS[k], lbl = { addr: 'Адрес', kr: 'Сумма КР', bank: 'Аванс из банка', pay: 'Оплачено', contract: 'Сумма договора', pct: 'Процент', contractor: 'Подрядчик', executor: 'Исполнитель', state: 'Отметка',
+    start_txt: 'График начала', end_txt: 'Срок окончания', start: 'Дата начала', end: 'Дата окончания', vote: 'Переголосование', note: 'Комментарий' }[k];
+  if (t === 'n' || t === 'p') {
+    if (v === null || v === '') return null;
+    var n = Number(v);
+    if (typeof v === 'object' || typeof v === 'boolean' || !isFinite(n) || n < 0) throw new Error(lbl + ': нужно число не меньше нуля.');
+    if (t === 'p' && n > 100) throw new Error(lbl + ': от 0 до 100.');
+    return Math.round(n * 100) / 100;
+  }
+  if (t === 'b') return !!v;
+  if (t === 'd') {
+    if (v === null || v === '') return null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(v))) throw new Error(lbl + ': дата в формате ГГГГ-ММ-ДД.');
+    return String(v);
+  }
+  var max = Number(t.slice(1)), s = String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+  if (k === 'note') s = String(v == null ? '' : v).trim();
+  if (s.length > max) throw new Error(lbl + ': не длиннее ' + max + ' знаков.');
+  if (k === 'addr' && !s) throw new Error('Адрес не может быть пустым.');
+  return s;
+}
+
 /** Проверяет присланные данные и оставляет только известные поля нужного типа и длины. */
 function krClean_(d) {
   if (!d || typeof d !== 'object' || !Array.isArray(d.positions)) throw new Error('Это не данные капремонта.');
@@ -574,7 +615,7 @@ function krClean_(d) {
     var q = { id: i, row: N(p.row), addr: S(p.addr, 200), kr: N(p.kr), bank: N(p.bank), contractor: S(p.contractor, 80), executor: S(p.executor, 80), pay: N(p.pay), contract: N(p.contract),
       pct: N(p.pct), state: S(p.state, 80), start: DT(p.start), start_txt: S(p.start_txt, 40), end: DT(p.end), end_txt: S(p.end_txt, 40), vote: !!p.vote,
       notes: (Array.isArray(p.notes) ? p.notes : []).slice(0, 10).map(function (x) { return S(x, 200); }), fill: /^[0-9A-F]{6}$/.test(String(p.fill)) ? String(p.fill) : null,
-      hk: S(p.hk, 120), lines: [] };
+      hk: S(p.hk, 120), pk: S(p.pk, 160) || (S(p.hk, 120) + '|' + i), manual: !!p.manual, note: S(p.note, KR_NOTE), ed: krEd_(p.ed), lines: [] };
     if (!q.addr) throw new Error('Позиция ' + (i + 1) + ': нет адреса.');
     if (q.pct !== null && (q.pct < 0 || q.pct > 100)) q.pct = null;
     (Array.isArray(p.lines) ? p.lines : []).slice(0, 80).forEach(function (l) {
@@ -612,10 +653,8 @@ function saveCapital(token, json) {
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
-    var sh = krSheet_(true), now = new Date(), rows = [];
-    for (var i = 0; i * KR_CHUNK < text.length; i++) rows.push([i + 1, 'j:' + text.slice(i * KR_CHUNK, (i + 1) * KR_CHUNK), now, user.name]);
-    if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 4).clearContent();
-    sh.getRange(2, 1, rows.length, 4).setValues(rows);
+    var now = new Date();
+    krWrite_(user, clean, now);
     var houses = {};
     clean.positions.forEach(function (p) { houses[p.hk] = 1; });
     var fl = clean.flood ? Object.keys(clean.flood.by).filter(function (k) { return houses[k]; }).length : 0;
@@ -623,6 +662,146 @@ function saveCapital(token, json) {
       clean.positions.length + ' поз., домов ' + Object.keys(houses).length + (clean.flood ? ', с подтоплениями ' + fl : '')]);
     bumpRev_();
     return { positions: clean.positions.length, houses: Object.keys(houses).length, flood: fl };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Записывает данные капремонта на лист (вызывать под замком). */
+function krWrite_(user, clean, now) {
+  var text = JSON.stringify(clean);
+  if (text.length > KR_MAX_JSON) throw new Error('Данные капремонта слишком большие.');
+  var sh = krSheet_(true), rows = [];
+  for (var i = 0; i * KR_CHUNK < text.length; i++) rows.push([i + 1, 'j:' + text.slice(i * KR_CHUNK, (i + 1) * KR_CHUNK), now, user.name]);
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 4).clearContent();
+  sh.getRange(2, 1, rows.length, 4).setValues(rows);
+}
+
+function krRead_() {
+  var cur = getCapitalRaw_();
+  if (!cur) throw new Error('Данные капремонта ещё не загружены. Сначала загрузите перечень.');
+  return krClean_(cur);
+}
+
+function getCapitalRaw_() {
+  var sh = krSheet_(false);
+  if (!sh || sh.getLastRow() < 2) return null;
+  var json = sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues().map(function (r) { return String(r[1]).slice(2); }).join('');
+  try { return JSON.parse(json); } catch (e) { throw new Error('Данные на листе «Капремонт» повреждены. Загрузите перечень заново.'); }
+}
+
+function krLog_(user, now, p, field, from, to) {
+  sheet_(SHEET_LOG).appendRow([now, user.name, 'капремонт', safe_(p.addr), safe_(p.lines[0] ? p.lines[0].work : ''), 'Капремонт: ' + field, safe_(String(from == null ? '' : from)), safe_(String(to == null ? '' : to))]);
+}
+
+var KR_LABEL = { addr: 'адрес', kr: 'сумма КР', bank: 'аванс из банка', pay: 'оплачено', contract: 'сумма договора', pct: 'процент', contractor: 'подрядчик', executor: 'исполнитель', state: 'отметка',
+  start_txt: 'график начала', end_txt: 'срок окончания', start: 'дата начала', end: 'дата окончания', vote: 'переголосование', note: 'комментарий' };
+
+/**
+ * Администратор правит позицию капремонта. patch — {поле: значение}. Для позиций из файла запоминается, что было в файле (ed.was),
+ * чтобы правка не пропала при новой загрузке перечня и можно было вернуть значение из файла. Возвращает обновлённую позицию.
+ */
+function editCapital(token, pk, patch) {
+  var user = requireAdmin_(token);
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new Error('Нет изменений.');
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var d = krRead_(), p = d.positions.filter(function (x) { return x.pk === String(pk); })[0];
+    if (!p) throw new Error('Позиция не найдена — возможно, перечень уже обновили. Обновите страницу.');
+    var now = new Date(), at = Utilities.formatDate(now, 'Europe/Moscow', "yyyy-MM-dd'T'HH:mm"), changed = 0;
+    Object.keys(patch).forEach(function (k) {
+      if (!KR_FIELDS[k]) throw new Error('Это поле править нельзя: ' + k);
+      var v = krVal_(k, patch[k]), old = p[k];
+      if (v === old || (v === '' && (old === '' || old == null)) || (v === null && old == null)) return;
+      if (!p.manual) {
+        if (!p.ed[k]) p.ed[k] = { v: v, was: old === undefined ? null : old, by: user.name, at: at };
+        else { p.ed[k].v = v; p.ed[k].by = user.name; p.ed[k].at = at; }
+        if (p.ed[k].was === v || (p.ed[k].was == null && v === '')) delete p.ed[k];     // вернули как в файле — правки нет
+      }
+      p[k] = v;
+      krLog_(user, now, p, KR_LABEL[k], old, v);
+      changed++;
+    });
+    if (!changed) return { pos: p, changed: 0 };
+    krWrite_(user, d, now);
+    bumpRev_();
+    return { pos: p, changed: changed };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Возвращает значения из файла: одно поле (field) или все правки позиции. */
+function resetCapitalEdits(token, pk, field) {
+  var user = requireAdmin_(token);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var d = krRead_(), p = d.positions.filter(function (x) { return x.pk === String(pk); })[0];
+    if (!p) throw new Error('Позиция не найдена — возможно, перечень уже обновили. Обновите страницу.');
+    var now = new Date(), n = 0;
+    Object.keys(p.ed).forEach(function (k) {
+      if (field && field !== k) return;
+      krLog_(user, now, p, KR_LABEL[k] + ' (вернули из файла)', p[k], p.ed[k].was);
+      p[k] = p.ed[k].was;
+      if (p[k] === null && KR_FIELDS[k] && KR_FIELDS[k].charAt(0) === 's') p[k] = '';
+      delete p.ed[k];
+      n++;
+    });
+    if (n) { krWrite_(user, d, now); bumpRev_(); }
+    return { pos: p, changed: n };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Добавляет позицию, которой нет в перечне (при новой загрузке файла сохраняется). */
+function addCapitalPosition(token, patch) {
+  var user = requireAdmin_(token);
+  if (!patch || typeof patch !== 'object') throw new Error('Нет данных.');
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var d = krRead_();
+    if (d.positions.length >= KR_MAX_POS) throw new Error('Слишком много позиций.');
+    var now = new Date(), work = String(patch.work == null ? '' : patch.work).replace(/\s+/g, ' ').trim().slice(0, 300);
+    if (!work) throw new Error('Напишите, что делаем (вид работ).');
+    var hk = String(patch.hk == null ? '' : patch.hk).slice(0, 120);
+    var p = { id: d.positions.length, row: null, addr: '', kr: null, bank: null, contractor: '', executor: '', pay: null, contract: null, pct: null, state: '', start: null, start_txt: '', end: null, end_txt: '',
+      vote: false, notes: [], fill: null, hk: hk, pk: 'm' + Utilities.getUuid().slice(0, 8), manual: true, note: '', ed: {}, lines: [{ row: null, work: work, sum: null, sum_txt: '', contract: null, cancelled: false }] };
+    Object.keys(patch).forEach(function (k) { if (KR_FIELDS[k]) p[k] = krVal_(k, patch[k]); });
+    if (!p.addr) throw new Error('Укажите адрес.');
+    if (p.kr !== null) p.lines[0].sum = p.kr;
+    if (!p.hk) p.hk = String(p.addr).toLowerCase().replace(/ё/g, 'е').replace(/[^а-яa-z0-9]+/g, ' ').trim();
+    d.positions.push(p);
+    krWrite_(user, d, now);
+    krLog_(user, now, p, 'новая позиция', '', work);
+    bumpRev_();
+    return { pos: p };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Удаляет позицию, добавленную вручную (позиции из файла не удаляются — их убирает новая загрузка перечня). */
+function deleteCapitalPosition(token, pk) {
+  var user = requireAdmin_(token);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var d = krRead_(), i = -1;
+    d.positions.forEach(function (x, j) { if (x.pk === String(pk)) i = j; });
+    if (i < 0) throw new Error('Позиция не найдена.');
+    var p = d.positions[i];
+    if (!p.manual) throw new Error('Удалить можно только позицию, добавленную вручную. Позиции из перечня убирает новая загрузка файла.');
+    if (d.positions.length < 2) throw new Error('Нельзя удалить последнюю позицию.');
+    d.positions.splice(i, 1);
+    var now = new Date();
+    krWrite_(user, d, now);
+    krLog_(user, now, p, 'удалена позиция', p.lines[0] ? p.lines[0].work : '', '');
+    bumpRev_();
+    return { ok: true };
   } finally {
     lock.releaseLock();
   }

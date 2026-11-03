@@ -324,6 +324,9 @@ main{max-width:1200px;margin:0 auto;padding:20px 16px 48px}
 .wt tr.bold td{font-weight:600;border-top:1px solid var(--line-strong)}
 .wt tr[data-fp]{cursor:pointer}
 @media (max-width:640px){.fin-t th,.fin-t td{padding:8px 3px;font-size:11.5px}.fin-t th{vertical-align:bottom}.fin-t td:first-child{max-width:120px}}
+
+.edb{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:99px;font-size:11px;background:var(--warn-bg,rgba(217,119,6,.14));color:var(--warn,#b45309)}
+.kedit{margin-top:8px}
 /* kr-css:end */
 </style>
 </head>
@@ -381,7 +384,8 @@ const FLN=Object.fromEntries(FL.map(f=>[f[0],f]));
 const SHORTFL={stop:"встали",endlate:"срок прошёл",behind:"отстаёт",latenopct:"старт прошёл",vote:"переголосование",floodrep:"повторные подтопления",floodwait:"подтопление: ждёт ответа",flood:"подтопления",nocontract:"нет договора",nopay:"нет оплаты",noend:"нет срока",noexec:"нет исполнителя",nocontr:"нет подрядчика",nostart:"нет старта",shortc:"договор < КР",nokr:"нет суммы КР"};
 
 /* состояние отбора */
-let V={q:"",stage:"",flag:"",term:"",hk:"",who:"contractor",whoKey:null,open:{}};
+const V0={q:"",stage:"",flag:"",term:"",hk:"",who:"contractor",whoKey:null,open:{}};
+let V=opts.state?Object.assign(opts.state,Object.assign({},V0,opts.state)):V0;   // opts.state — чтобы фильтры и раскрытые позиции переживали повторный показ после правки
 const list=()=>P.filter(p=>(!V.stage||p.g===V.stage)&&(!V.hk||p.hk===V.hk)&&(!V.flag||p.fl.includes(V.flag))&&(!V.term||termKey(p)===V.term)&&
   (V.whoKey==null||whoVal(p,V.who)===V.whoKey)&&(!V.q||(p.addr+" "+p.lines.map(l=>l.work).join(" ")+" "+p.contractor+" "+p.executor).toLowerCase().includes(V.q.toLowerCase())));
 const termKey=p=>p.end?p.end_txt:"—";
@@ -479,9 +483,9 @@ function render(){
   const chips=['<button type="button" class="chip" data-stg="" aria-pressed="'+(!V.stage)+'">Все <b>'+N+'</b></button>'].concat(ST.map(s=>'<button type="button" class="chip" data-stg="'+s[0]+'" aria-pressed="'+(V.stage===s[0])+'"><i class="g-'+G[s[0]]+'"></i>'+esc(s[1])+' <b>'+by[s[0]].length+'</b></button>')).join("");
   const item=p=>{const o=V.open[p.id];
     return'<div><button type="button" class="pos g-'+G[p.g]+'" data-pos="'+p.id+'" aria-expanded="'+!!o+'"><span class="sev"></span><span><span class="a">'+esc(p.addr)+'</span><span class="w" style="display:block">'+esc(p.lines.filter(l=>!l.cancelled).map(l=>l.work).join(" · ")||"—")+'</span>'+
-      (p.fl.length?'<span class="fl">'+p.fl.map(k=>'<span class="chkpill'+(FLN[k][1]==="high"?" bad":"")+'">'+(k==="flood"?"подтопления: "+p.flood.total:SHORTFL[k])+'</span>').join("")+'</span>':"")+'</span>'+
+      (p.fl.length||p.manual||edN(p)?'<span class="fl">'+(p.manual?'<span class="chkpill">добавлена вручную</span>':edN(p)?'<span class="chkpill">правка</span>':"")+p.fl.map(k=>'<span class="chkpill'+(FLN[k][1]==="high"?" bad":"")+'">'+(k==="flood"?"подтопления: "+p.flood.total:SHORTFL[k])+'</span>').join("")+'</span>':"")+'</span>'+
       '<span class="r"><span class="pill dot">'+(p.state?esc(p.state):p.pct!=null?p.pct+"%":"процент не указан")+'</span><span class="num">'+(p.kr?mln(p.kr):"нет суммы")+'</span><span class="faint">'+esc(p.contractor||"—")+'</span></span></button>'+(o?detail(p):"")+'</div>';};
-  const pos='<section class="card" id="poslist"><h3>Позиции <span>'+L.length+' '+plural(L.length,"позиция","позиции","позиций")+'</span></h3>'+
+  const pos='<section class="card" id="poslist"><h3>Позиции <span>'+L.length+' '+plural(L.length,"позиция","позиции","позиций")+'</span>'+(opts.onAdd?' <button type="button" class="btn" id="kadd" style="margin-left:auto">+ Добавить позицию</button>':"")+'</h3>'+
     '<div class="kfilters"><input class="ctl" id="kq" type="search" placeholder="Адрес, работа, подрядчик" value="'+esc(V.q)+'" aria-label="Поиск"></div><div class="chips" role="group" aria-label="Этап">'+chips+'</div>'+
     (act.length?'<div class="fpills">'+act.map(a=>'<span class="fpill">'+esc(a[1])+'<button type="button" data-clr="'+a[0]+'" aria-label="Убрать отбор">×</button></span>').join("")+'</div>':"")+
     '<div style="margin-top:8px">'+(L.length?L.map(item).join(""):'<div class="empty">Ничего не найдено</div>')+'</div></section>';
@@ -507,11 +511,14 @@ function render(){
   bind();
 }
 function gQuarterNow(k){const m=/(\d) кв\. (\d{4})/.exec(k);if(!m)return false;const q=+m[1],y=+m[2],s=y+"-"+String(q*3-2).padStart(2,"0")+"-01",e=new Date(Date.UTC(y,q*3,0)).toISOString().slice(0,10);return s<=T&&T<=e;}
+const edN=p=>p.ed?Object.keys(p.ed).length:0;
 function detail(p){
+  const mk=(k,f)=>{const e=p.ed&&p.ed[k];if(!e)return"";const w=e.was==null||e.was===""?"пусто":f?f(e.was):String(e.was);return' <span class="edb" title="'+esc((e.by||"")+" "+(e.at||""))+'">изменено вручную · в файле: '+esc(w)+'</span>';};
   const mon=n=>n?rub(n):"—",pc=p.pct==null?"не указан":p.pct+"%";
-  const kv=[["Основной подрядчик",p.contractor||"не указан"],["Исполнитель по плану",p.executor||"не указан"],["График начала",p.start_txt||"не указан"],["Срок окончания",p.end_txt||"не указан"],
-    ["Процент выполнения",{html:p.state?esc(p.state):'<span class="pbar2 g-'+G[p.g]+'"><i><b style="width:'+(p.pct||0)+'%"></b></i>'+pc+'</span>'+(p.elapsed!=null?' <span class="faint">· по времени прошло '+Math.round(p.elapsed)+'%</span>':"")}],
-    ["Сумма КР",mon(p.kr)],["Аванс из банка",mon(p.bank)],["Сумма договора",mon(p.contract)],["Аванс/расчёт",mon(p.pay)],["Выполнено по проценту",mon(p.w)]];
+  const kv=[["Основной подрядчик",{html:esc(p.contractor||"не указан")+mk("contractor")}],["Исполнитель по плану",{html:esc(p.executor||"не указан")+mk("executor")}],["График начала",{html:esc(p.start_txt||"не указан")+mk("start_txt")}],["Срок окончания",{html:esc(p.end_txt||"не указан")+mk("end_txt")}],
+    ["Процент выполнения",{html:p.state?esc(p.state):'<span class="pbar2 g-'+G[p.g]+'"><i><b style="width:'+(p.pct||0)+'%"></b></i>'+pc+'</span>'+(p.elapsed!=null?' <span class="faint">· по времени прошло '+Math.round(p.elapsed)+'%</span>':"")+mk("pct",v=>v+"%")+mk("state")}],
+    ["Сумма КР",{html:esc(mon(p.kr))+mk("kr",rub)}],["Аванс из банка",{html:esc(mon(p.bank))+mk("bank",rub)}],["Сумма договора",{html:esc(mon(p.contract))+mk("contract",rub)}],["Аванс/расчёт",{html:esc(mon(p.pay))+mk("pay",rub)}],["Выполнено по проценту",mon(p.w)]];
+  if(p.note||(p.ed&&p.ed.note))kv.push(["Комментарий",{html:esc(p.note||"—")+mk("note")}]);
   const lines='<table class="lt"><thead><tr><th>Работа (решение собственников)</th><th class="n">Сумма по разделу</th><th class="n">Договор по строке</th></tr></thead><tbody>'+
     p.lines.map(l=>'<tr><td'+(l.cancelled?' class="x"':"")+'>'+esc(l.work)+(l.cancelled?" — отмена":"")+'</td><td class="n">'+(l.sum?rub(l.sum):l.sum_txt?esc(l.sum_txt):"—")+'</td><td class="n">'+(l.contract?rub(l.contract):"—")+'</td></tr>').join("")+'</tbody></table>';
   let fb="";
@@ -525,7 +532,7 @@ function detail(p){
       (f.actions.length?'<div style="font-size:13px"><b>Что предлагает реестр:</b><ul class="kacts" style="margin:4px 0 0;padding-left:18px">'+f.actions.slice(0,3).map(a=>'<li><span class="faint">'+esc(a.group)+':</span> '+esc(a.text)+'</li>').join("")+'</ul></div>':"")+'</div>';
   }
   return'<div class="pd"><dl class="kv">'+kv.map(x=>'<dt>'+esc(x[0])+'</dt><dd>'+(x[1]&&x[1].html!=null?x[1].html:esc(x[1]))+'</dd>').join("")+'</dl>'+lines+fb+
-    (p.fl.length?'<div style="font-size:13px"><b>Что не так:</b> '+p.fl.map(k=>esc(FLN[k][2])).join("; ")+'</div>':"")+(p.notes.length?'<div class="faint" style="font-size:12px">'+p.notes.map(esc).join("; ")+'</div>':"")+'<div class="faint" style="font-size:12px">Строка '+p.row+' в файле</div></div>';
+    (p.fl.length?'<div style="font-size:13px"><b>Что не так:</b> '+p.fl.map(k=>esc(FLN[k][2])).join("; ")+'</div>':"")+(p.notes.length?'<div class="faint" style="font-size:12px">'+p.notes.map(esc).join("; ")+'</div>':"")+'<div class="faint" style="font-size:12px">'+(p.manual?"Добавлена вручную":"Строка "+p.row+" в файле")+'</div>'+(opts.onEdit?'<div class="kedit"><button type="button" class="btn" data-edit="'+esc(p.pk)+'">Править позицию</button></div>':"")+'</div>';
 }
 function bind(){
   const go=()=>{render();const el=root.querySelector("#poslist");if(el)el.scrollIntoView({behavior:"smooth",block:"start"});};
@@ -539,6 +546,8 @@ function bind(){
   root.querySelectorAll("[data-stg]").forEach(b=>b.onclick=()=>{V.stage=b.dataset.stg;render();});
   root.querySelectorAll("[data-clr]").forEach(b=>b.onclick=()=>{const k=b.dataset.clr;if(k==="whoKey")V.whoKey=null;else V[k]="";render();});
   root.querySelectorAll("[data-pos]").forEach(b=>b.onclick=()=>{const id=b.dataset.pos;V.open[id]=!V.open[id];const y=window.scrollY;render();window.scrollTo(0,y);});
+  root.querySelectorAll("[data-edit]").forEach(b=>b.onclick=e=>{e.stopPropagation();opts.onEdit(b.dataset.edit,P.find(x=>x.pk===b.dataset.edit));});
+  const ad=root.querySelector("#kadd");if(ad)ad.onclick=()=>opts.onAdd();
   const q=root.querySelector("#kq");if(q){let t;q.oninput=()=>{clearTimeout(t);t=setTimeout(()=>{V.q=q.value.trim();render();const n=root.querySelector("#kq");n.focus();n.setSelectionRange(n.value.length,n.value.length);},200);};}
 }
 render();
@@ -604,6 +613,16 @@ var KrImport = (function () {
     return TM.addrKey(s).join('|');
   }
 
+  // устойчивый номер позиции: дом + начало названия первой работы (одинаковые получают #2, #3), как в tools/build_kr.py
+  function assignPk(pos) {
+    var seen = {};
+    pos.forEach(function (p) {
+      var w = (p.lines[0] ? p.lines[0].work : '').toLowerCase().split('ё').join('е').replace(/[^а-яa-z0-9]+/g, ' ').trim().slice(0, 50), base = p.hk + '|' + w;
+      seen[base] = (seen[base] || 0) + 1;
+      p.pk = seen[base] === 1 ? base : base + '#' + seen[base];
+    });
+  }
+
   /* ---------- перечень работ ---------- */
   function readList(buf) {
     var wb = TM.open(buf), xls = wb.__xls, s = new TM.Sheet(wb.Sheets[wb.SheetNames[0]]);
@@ -626,7 +645,7 @@ var KrImport = (function () {
       var addr = sp(val(r, 'addr'));
       if (!addr && !sp(val(r, 'work')) && num(val(r, 'kr')) && r === s.nrows - 1) { total = { kr: num(val(r, 'kr')), bank: num(val(r, 'bank')) }; continue; }
       if (addr) {
-        cur = { id: pos.length, row: r + 1, addr: mask(addr), kr: null, bank: null, contractor: '', executor: '', pay: null, contract: null, pct: null, state: '',
+        cur = { id: pos.length, pk: null, row: r + 1, addr: mask(addr), kr: null, bank: null, contractor: '', executor: '', pay: null, contract: null, pct: null, state: '',
           start: null, start_txt: '', end: null, end_txt: '', vote: false, notes: [], fill: s.fill(r, col.addr), hk: houseKey(addr), lines: [] };
         pos.push(cur);
       }
@@ -664,6 +683,7 @@ var KrImport = (function () {
       if (!sp(last[0]) && num(last[col.kr])) total = { kr: num(last[col.kr]), bank: col.bank !== undefined ? num(last[col.bank]) : null };
     }
     if (!pos.length) throw new Error('В перечне не найдено ни одной позиции.');
+    assignPk(pos);
     var sumKr = pos.reduce(function (a, p) { return a + (p.kr || 0); }, 0);
     if (total && Math.abs(total.kr - sumKr) > 1) warnings.push('Сумма КР по позициям (' + Math.round(sumKr).toLocaleString('ru-RU') + ' ₽) не совпала с итоговой строкой файла (' + Math.round(total.kr).toLocaleString('ru-RU') + ' ₽): проверьте файл.');
     if (col.pct === undefined) warnings.push('В файле нет колонки «процент выполнения»: этапы работ определить нельзя.');
@@ -745,14 +765,47 @@ var KrImport = (function () {
       flood: F ? Object.assign({}, F.meta, { by: F.by }) : (E && E.flood) || null,
       positions: L ? L.positions : E.positions
     };
+    var kept = { edits: 0, conflicts: 0, manual: 0, lost: 0 };
+    if (L && E && E.positions) {   // ручные правки и вручную добавленные позиции переживают новую загрузку файла
+      var byPk = {};
+      E.positions.forEach(function (o) { byPk[o.pk] = o; });
+      data.positions.forEach(function (p) {
+        var o = byPk[p.pk];
+        if (!o || !o.ed) return;
+        p.ed = {};
+        Object.keys(o.ed).forEach(function (k) {
+          var fileV = p[k] === undefined ? null : p[k];
+          if (String(fileV === null ? '' : fileV) !== String(o.ed[k].was === null || o.ed[k].was === undefined ? '' : o.ed[k].was)) kept.conflicts++;   // в новом файле значение изменилось, правка остаётся
+          p.ed[k] = { v: o.ed[k].v, was: fileV, by: o.ed[k].by, at: o.ed[k].at };
+          p[k] = o.ed[k].v;
+          if (k === 'start_txt' || k === 'end_txt') { var kk = k === 'start_txt' ? 'start' : 'end'; if (o[kk] !== undefined) p[kk] = o[kk]; }
+          if (k === 'addr' && o.hk) p.hk = o.hk;
+          kept.edits++;
+        });
+      });
+      E.positions.forEach(function (o) {
+        if (o.manual) { var c = JSON.parse(JSON.stringify(o)); c.id = data.positions.length; data.positions.push(c); kept.manual++; }
+        else if (o.ed && !data.positions.some(function (p) { return p.pk === o.pk; })) kept.lost++;   // позиции с правками больше нет в файле
+      });
+    }
     var hks = {};
     data.positions.forEach(function (p) { hks[p.hk] = 1; });
     var matched = data.flood ? Object.keys(data.flood.by).filter(function (k) { return hks[k]; }).length : 0;
     return { data: data, warnings: warnings, info: { positions: data.positions.length, houses: Object.keys(hks).length, kr: data.positions.reduce(function (a, p) { return a + (p.kr || 0); }, 0),
-      floodHouses: matched, floodRegister: data.flood ? Object.keys(data.flood.by).length : 0, fromList: !!L, fromFlood: !!F } };
+      floodHouses: matched, floodRegister: data.flood ? Object.keys(data.flood.by).length : 0, fromList: !!L, fromFlood: !!F, kept: kept } };
   }
 
-  return { build: build, readList: readList, readFlood: readFlood, houseKey: houseKey, init: init };
+  // срок, введённый вручную: «01.06.2026», «4 кв. 2026», «2027» (пусто — срока нет); [дата, подпись] или ошибка
+  function parseTermText(text, edge) {
+    var s = String(text || '').trim();
+    if (!s) return [null, ''];
+    var y = /^(\d{4})$/.exec(s), r;
+    if (y) r = parseTerm(+y[1], edge, false); else r = parseTerm(s.replace(/\s+/g, ' '), edge, false);
+    if (!r[0]) throw new Error('Не понял срок «' + s + '». Напишите дату (01.06.2026), квартал (4 кв. 2026) или год (2027).');
+    return r;
+  }
+
+  return { build: build, readList: readList, readFlood: readFlood, houseKey: houseKey, init: init, parseTermText: parseTermText, parseTerm: parseTerm };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = KrImport;
 /* krimport:end */
@@ -1504,7 +1557,7 @@ function renderDemoPick(){
 
 /* ---------- загрузка ---------- */
 function load(silent){
-  return call("bootstrap",S.token).then(d=>{S.user=d.user;saveSess();S.items=d.items.map(enrich);S.ph=d.ph||{};S.src=d.sources||null;if(d.kr!==S.krStamp){S.krStamp=d.kr;S.kr=undefined;}buildMonths();S.issues=d.issues;S.log=d.log;S.rev=d.rev;S.asof=d.asof;
+  return call("bootstrap",S.token).then(d=>{S.user=d.user;saveSess();S.items=d.items.map(enrich);S.ph=d.ph||{};S.src=d.sources||null;if(d.kr!==S.krStamp){S.krStamp=d.kr;S.krOld=S.kr;S.kr=undefined;}buildMonths();S.issues=d.issues;S.log=d.log;S.rev=d.rev;S.asof=d.asof;
     if(!silent||!$("view"))renderShell();else renderView();}).catch(fail);
 }
 setInterval(()=>{if(!S.token||document.hidden)return;
@@ -1715,6 +1768,7 @@ function renderDrawer(){
   if(D.add)return renderAdd(host);
   if(D.imp)return renderImport(host);
   if(D.kr)return renderKrUpload(host);
+  if(D.kredit)return renderKrEdit(host);
   const it=S.items.find(i=>i.key===D.key);if(!it){closeDrawer();return;}
   const ed=canEdit(it),stLocked=ed&&!isAdmin()&&ADMIN_ONLY.includes(it.status);
   if(!D.hist){D.hist=[];call("getHistory",S.token,it.key).then(h=>{if(V.drawer===D){D.hist=h;const el=$("dhist");if(el)el.outerHTML=histHtml(h);}}).catch(()=>{});}
@@ -2016,15 +2070,81 @@ function renderImport(host){
 function renderKr(){
   const v=$("view"),head='<div class="head"><h2>Капитальный ремонт</h2>';
   if(S.kr===undefined){
-    v.innerHTML=head+'</div><div class="empty">Загружаю…</div>';
-    call("getCapital",S.token).then(r=>{S.kr=r||null;if(V.tab==="kr")renderKr();})
-      .catch(e=>{if(V.tab==="kr")v.innerHTML=head+'</div><div class="card"><div class="empty">Не удалось загрузить данные: '+esc((e&&e.message)||String(e))+'</div></div>';fail(e);});
+    const y=window.scrollY;
+    if(S.krOld&&S.krOld.data&&!S.krFetch)KrView.mount(v,S.krOld.data,krOpts(""));else if(!S.krOld)v.innerHTML=head+'</div><div class="empty">Загружаю…</div>';
+    if(S.krFetch)return;
+    S.krFetch=true;
+    call("getCapital",S.token).then(r=>{S.krFetch=false;S.krOld=null;S.kr=r||null;if(V.tab==="kr"){renderKr();window.scrollTo(0,y);}})
+      .catch(e=>{S.krFetch=false;S.krOld=null;if(V.tab==="kr")v.innerHTML=head+'</div><div class="card"><div class="empty">Не удалось загрузить данные: '+esc((e&&e.message)||String(e))+'</div></div>';fail(e);});
     return;
   }
   const up=isAdmin()?'<button class="btn" id="krup" type="button">'+(S.kr?"Обновить данные":"Загрузить данные")+'</button>':"";
   if(!S.kr)v.innerHTML=head+up+'</div><div class="card"><div class="empty">Данные по капитальному ремонту ещё не загружены. '+(isAdmin()?"Нажмите «Загрузить данные» и выберите перечень работ (.xls) и реестр подтоплений (.html), если он есть.":"Их загружает администратор.")+'</div></div>';
-  else KrView.mount(v,S.kr.data,{title:"Капитальный ремонт",today:TODAY,actions:up});
-  if($("krup"))$("krup").onclick=()=>{V.drawer={kr:true};renderDrawer();};
+  else KrView.mount(v,S.kr.data,krOpts(up));
+}
+document.addEventListener("click",ev=>{if(ev.target.closest&&ev.target.closest("#krup")&&isAdmin()){V.drawer={kr:true};renderDrawer();}});   // кнопка живёт в шапке, которую страница капремонта перерисовывает при фильтрах
+function krOpts(up){
+  S.krView=S.krView||{};
+  const o={title:"Капитальный ремонт",today:TODAY,actions:up,state:S.krView};
+  if(isAdmin()){o.onEdit=(pk,p)=>{V.drawer={kredit:true,pk:pk,dirty:true};renderDrawer();};o.onAdd=()=>{V.drawer={kredit:true,np:true,dirty:true};renderDrawer();};}
+  return o;
+}
+const KR_NUM=[["kr","Сумма КР, ₽"],["bank","Аванс из банка, ₽"],["pay","Аванс/расчёт (оплачено), ₽"],["contract","Сумма договора, ₽"]];
+const KR_TXT=[["contractor","Основной подрядчик"],["executor","Исполнитель по плану"],["state","Отметка вместо процента (например «встали»)"]];
+function krNum(t){t=String(t).replace(/[\s\u00a0]/g,"").replace(",",".");if(t==="")return null;const n=Number(t);if(!isFinite(n)||n<0)throw new Error("Сумма: нужно число не меньше нуля («"+t+"»).");return n;}
+/** Правка одной позиции капремонта (только администратор). */
+function renderKrEdit(host){
+  if(!isAdmin()){closeDrawer();return;}
+  KrImport.init(TrackerMerge);   // разбор сроков и ключа дома не требует библиотеки Excel
+  const D=V.drawer,p=D.np?null:S.kr&&S.kr.data.positions.find(x=>x.pk===D.pk);
+  if(!D.np&&!p){closeDrawer();return;}
+  const cur=p||{addr:"",kr:null,bank:null,pay:null,contract:null,pct:null,contractor:"",executor:"",state:"",start_txt:"",end_txt:"",vote:false,note:"",ed:{},lines:[]};
+  const was=k=>{const e=cur.ed&&cur.ed[k];return e?'<span class="edb">в файле: '+esc(e.was==null||e.was===""?"пусто":k==="pct"?e.was+"%":typeof e.was==="number"?rub(e.was):e.was)+'</span>':"";};
+  const inp=(id,lbl,val,k,ex)=>'<label class="field">'+esc(lbl)+' '+was(k)+'<input id="'+id+'" type="text" value="'+esc(val==null?"":val)+'" autocomplete="off"'+(ex||"")+'></label>';
+  const edN=cur.ed?Object.keys(cur.ed).length:0;
+  host.innerHTML='<div class="scrim" id="scrim"></div><aside class="drawer" role="dialog" aria-label="Позиция капремонта"><div class="dh"><div><div class="muted" style="font-size:12px">'+(D.np?"Новая позиция":"Правка позиции")+'</div><h3>'+esc(D.np?"Добавить позицию":cur.addr)+'</h3></div><button class="x" id="dx" type="button" aria-label="Закрыть">×</button></div>'+
+   '<div class="db">'+(D.np?inp("ke-addr","Адрес дома",cur.addr,"addr")+inp("ke-work","Что делаем (вид работ)","","work"):'<div class="muted" style="font-size:13px">'+esc(cur.lines.filter(l=>!l.cancelled).map(l=>l.work).join(" · ")||"—")+'</div>'+(cur.manual?'<div class="faint" style="font-size:12px">Добавлена вручную — при новой загрузке перечня остаётся.</div>':'<div class="faint" style="font-size:12px">Правки сохраняются и при новой загрузке перечня: если в файле значение поменяется, останется ваше, а расхождение покажем.</div>'))+
+   KR_NUM.map(f=>inp("ke-"+f[0],f[1],cur[f[0]],f[0],' inputmode="decimal"')).join("")+
+   inp("ke-pct","Процент выполнения (0–100)",cur.pct,"pct",' inputmode="decimal"')+
+   KR_TXT.map(f=>inp("ke-"+f[0],f[1],cur[f[0]],f[0])).join("")+
+   inp("ke-start_txt","График начала (01.06.2026, 4 кв. 2026 или 2027)",cur.start_txt,"start_txt")+inp("ke-end_txt","Срок окончания (01.06.2026, 4 кв. 2026 или 2027)",cur.end_txt,"end_txt")+
+   '<label class="field" style="flex-direction:row;align-items:center;gap:8px"><input id="ke-vote" type="checkbox" style="width:auto"'+(cur.vote?" checked":"")+'> Нужно переголосование</label>'+
+   '<label class="field">Комментарий '+was("note")+'<textarea id="ke-note" maxlength="500">'+esc(cur.note||"")+'</textarea></label>'+
+   (D.err?'<div class="imp-err" role="alert">'+esc(D.err)+'</div>':"")+
+   '</div><div class="df"><button class="btn primary" id="kesave" type="button" disabled>Сохранить</button><button class="btn" id="kecancel" type="button">Закрыть</button>'+
+   (edN?'<button class="btn" id="kereset" type="button" title="Вернуть значения, как в загруженном перечне">Вернуть из файла</button>':"")+(p&&p.manual?'<button class="btn" id="kedel" type="button">Удалить</button>':"")+'<span class="msg" id="kemsg"></span></div></aside>';
+  $("dx").onclick=closeDrawer;$("scrim").onclick=closeDrawer;$("kecancel").onclick=closeDrawer;
+  const val=id=>$(id).value;
+  const patch=()=>{
+    const o={},same=(a,b)=>(a==null||a==="")&&(b==null||b==="")||a===b;
+    KR_NUM.forEach(f=>{const n=krNum(val("ke-"+f[0]));if(!same(n,cur[f[0]]))o[f[0]]=n;});
+    const pt=val("ke-pct").replace(",",".").trim(),pn=pt===""?null:Number(pt);
+    if(pn!==null&&(!isFinite(pn)||pn<0||pn>100))throw new Error("Процент: от 0 до 100.");
+    if(!same(pn,cur.pct))o.pct=pn;
+    KR_TXT.forEach(f=>{const t=val("ke-"+f[0]).replace(/\s+/g," ").trim();if(!same(t,cur[f[0]]))o[f[0]]=t;});
+    [["start","start_txt"],["end","end_txt"]].forEach(f=>{const t=val("ke-"+f[1]).replace(/\s+/g," ").trim();if(!same(t,cur[f[1]])){const r=KrImport.parseTermText(t,f[0]);o[f[0]]=r[0];o[f[1]]=r[1];}});
+    if($("ke-vote").checked!==!!cur.vote)o.vote=$("ke-vote").checked;
+    const nt=val("ke-note").trim();if(!same(nt,cur.note))o.note=nt;
+    if(D.np){o.addr=val("ke-addr").replace(/\s+/g," ").trim();o.work=val("ke-work").replace(/\s+/g," ").trim();}
+    return o;
+  };
+  const check=()=>{try{const o=patch();$("kesave").disabled=D.busy||(D.np?!(o.addr&&o.work):!Object.keys(o).length);$("kemsg").textContent="";}catch(e){$("kesave").disabled=true;$("kemsg").textContent=e.message;}};
+  host.querySelectorAll("input,textarea").forEach(el=>{el.addEventListener("input",check);el.addEventListener("change",check);});
+  check();
+  const done=(r,msg)=>{
+    D.busy=false;
+    if(r.pos){const L=S.kr.data.positions,i=L.findIndex(x=>x.pk===r.pos.pk);if(i>=0)L[i]=Object.assign({},L[i],r.pos);else if(D.np)L.push(r.pos);}
+    S.krView.open=S.krView.open||{};toast(msg);V.drawer=null;$("dr").innerHTML="";renderKr();load(true);
+  };
+  const bad=er=>{D.busy=false;D.err=(er&&er.message)||String(er);if(String(D.err).indexOf("SESSION_EXPIRED")>=0){fail(er);return;}if(V.drawer===D)renderKrEdit(host);};
+  $("kesave").onclick=()=>{
+    let o;try{o=patch();}catch(e){return bad(e);}
+    D.busy=true;$("kesave").disabled=true;$("kemsg").textContent="Записываю…";
+    if(D.np){o.hk=KrImport.houseKey(o.addr);call("addCapitalPosition",S.token,o).then(r=>done(r,"Позиция добавлена")).catch(bad);}
+    else call("editCapital",S.token,cur.pk,o).then(r=>done(r,r.changed?"Сохранено":"Изменений нет")).catch(bad);
+  };
+  if($("kereset"))$("kereset").onclick=()=>{if(!confirm("Вернуть значения из загруженного перечня? Ваши правки по этой позиции пропадут."))return;D.busy=true;call("resetCapitalEdits",S.token,cur.pk).then(r=>done(r,"Значения возвращены из файла")).catch(bad);};
+  if($("kedel"))$("kedel").onclick=()=>{if(!confirm("Удалить эту позицию?"))return;D.busy=true;call("deleteCapitalPosition",S.token,cur.pk).then(()=>{const L=S.kr.data.positions,i=L.findIndex(x=>x.pk===cur.pk);if(i>=0)L.splice(i,1);D.busy=false;toast("Позиция удалена");V.drawer=null;$("dr").innerHTML="";renderKr();load(true);}).catch(bad);};
 }
 function renderKrUpload(host){
   if(!isAdmin()){closeDrawer();return;}
@@ -2032,6 +2152,7 @@ function renderKrUpload(host){
   const mlnR=n=>(n/1e6).toLocaleString("ru-RU",{maximumFractionDigits:1})+" млн ₽";
   const prev=r?'<div class="box"><h4>Что получится</h4><ul class="imp-info"><li>Позиций: <b>'+r.info.positions+'</b>, домов: '+r.info.houses+', сумма КР '+mlnR(r.info.kr)+(E&&r.info.fromList?' <span class="faint">(сейчас '+E.positions.length+' поз., '+mlnR(E.positions.reduce((a,p)=>a+(p.kr||0),0))+')</span>':"")+'</li>'+
     '<li>Подтопления: '+(r.data.flood?'в реестре '+r.info.floodRegister+' домов, из них в программе <b>'+r.info.floodHouses+'</b>':"реестр не загружен")+'</li>'+
+    (r.info.kept&&(r.info.kept.edits||r.info.kept.manual||r.info.kept.lost)?'<li>Ваши правки сохранятся: изменённых полей <b>'+r.info.kept.edits+'</b>'+(r.info.kept.conflicts?', из них в новом файле значение изменилось у '+r.info.kept.conflicts+' (останется ваше)':"")+(r.info.kept.manual?'; добавленных вручную позиций: <b>'+r.info.kept.manual+'</b>':"")+(r.info.kept.lost?'<br><b>Позиций с правками нет в новом файле: '+r.info.kept.lost+'</b> — они пропадут из списка':"")+'</li>':"")+
     '<li>Перечень: '+(r.info.fromList?"новый файл":"остаётся прежний")+' · реестр подтоплений: '+(r.info.fromFlood?"новый файл":"остаётся прежний")+'</li></ul>'+r.warnings.map(w=>'<div class="imp-err" role="alert">'+esc(w)+'</div>').join("")+'</div>':"";
   host.innerHTML='<div class="scrim" id="scrim"></div><aside class="drawer" role="dialog" aria-label="Данные капремонта"><div class="dh"><h3>Данные капремонта</h3><button class="x" id="dx" type="button" aria-label="Закрыть">×</button></div>'+
     '<div class="db"><p class="muted" style="margin:0;font-size:13px">Нужен хотя бы один файл. Если выбрать только реестр подтоплений, перечень останется прежним, и наоборот. Файлы читаются в вашем браузере и никуда не отправляются, на сервер уходит только итог.</p>'+

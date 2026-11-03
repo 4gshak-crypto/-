@@ -28,14 +28,26 @@ if not saved:
 
 mask = lambda t: re.sub(r'\(?\s*(?:\+7|8)[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}\s*\)?', '(тел. скрыт)', t) if isinstance(t, str) else t
 iso = lambda d: d.isoformat() if d else None
+
+
+def pk_of(hk, lines):
+    """Устойчивый номер позиции: дом + начало названия первой работы (одинаковые получают #2, #3). Нужен, чтобы правки администратора находили свою позицию после новой загрузки файла."""
+    w = re.sub(r'[^а-яa-z0-9]+', ' ', (lines[0]['work'] if lines else '').lower().replace('ё', 'е')).strip()[:50]
+    return hk + '|' + w
 fmeta, fby = flood_parse.read(A.flood) if A.flood else (None, {})
 data = dict(today=A.today, saved=saved, total=total, flood=dict(fmeta, by=fby) if A.flood else None, positions=[])
 for i, p in enumerate(pos):
     data['positions'].append(dict(
-        id=i, row=p['row'], addr=mask(p['addr']), kr=p['kr'], bank=p['bank'], contractor=p['contractor'], executor=p['executor'], pay=p['pay'], contract=p['contract'],
+        id=i, pk=None, row=p['row'], addr=mask(p['addr']), kr=p['kr'], bank=p['bank'], contractor=p['contractor'], executor=p['executor'], pay=p['pay'], contract=p['contract'],
         pct=p['pct'], state=p['state'], start=iso(p['start']), start_txt=p['start_txt'], end=iso(p['end']), end_txt=p['end_txt'], vote=p['vote'], notes=p['notes'],
         fill=p['fills'][0] if p['fills'] else None, hk=flood_parse.key(p['addr']),
         lines=[dict(row=l['row'], work=mask(l['work']), sum=l['sum'], sum_txt=l['sum_txt'], contract=l['contract'], cancelled=l['cancelled']) for l in p['lines']]))
+
+seen = {}
+for q in data['positions']:
+    base = pk_of(q['hk'], q['lines'])
+    seen[base] = seen.get(base, 0) + 1
+    q['pk'] = base if seen[base] == 1 else '%s#%d' % (base, seen[base])
 
 # оформление — из страницы «Текущий ремонт»
 idx = (ROOT / 'gas' / 'Index.html').read_text(encoding='utf-8')

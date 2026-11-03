@@ -51,6 +51,16 @@ var KrImport = (function () {
     return TM.addrKey(s).join('|');
   }
 
+  // устойчивый номер позиции: дом + начало названия первой работы (одинаковые получают #2, #3), как в tools/build_kr.py
+  function assignPk(pos) {
+    var seen = {};
+    pos.forEach(function (p) {
+      var w = (p.lines[0] ? p.lines[0].work : '').toLowerCase().split('ё').join('е').replace(/[^а-яa-z0-9]+/g, ' ').trim().slice(0, 50), base = p.hk + '|' + w;
+      seen[base] = (seen[base] || 0) + 1;
+      p.pk = seen[base] === 1 ? base : base + '#' + seen[base];
+    });
+  }
+
   /* ---------- перечень работ ---------- */
   function readList(buf) {
     var wb = TM.open(buf), xls = wb.__xls, s = new TM.Sheet(wb.Sheets[wb.SheetNames[0]]);
@@ -73,7 +83,7 @@ var KrImport = (function () {
       var addr = sp(val(r, 'addr'));
       if (!addr && !sp(val(r, 'work')) && num(val(r, 'kr')) && r === s.nrows - 1) { total = { kr: num(val(r, 'kr')), bank: num(val(r, 'bank')) }; continue; }
       if (addr) {
-        cur = { id: pos.length, row: r + 1, addr: mask(addr), kr: null, bank: null, contractor: '', executor: '', pay: null, contract: null, pct: null, state: '',
+        cur = { id: pos.length, pk: null, row: r + 1, addr: mask(addr), kr: null, bank: null, contractor: '', executor: '', pay: null, contract: null, pct: null, state: '',
           start: null, start_txt: '', end: null, end_txt: '', vote: false, notes: [], fill: s.fill(r, col.addr), hk: houseKey(addr), lines: [] };
         pos.push(cur);
       }
@@ -111,6 +121,7 @@ var KrImport = (function () {
       if (!sp(last[0]) && num(last[col.kr])) total = { kr: num(last[col.kr]), bank: col.bank !== undefined ? num(last[col.bank]) : null };
     }
     if (!pos.length) throw new Error('В перечне не найдено ни одной позиции.');
+    assignPk(pos);
     var sumKr = pos.reduce(function (a, p) { return a + (p.kr || 0); }, 0);
     if (total && Math.abs(total.kr - sumKr) > 1) warnings.push('Сумма КР по позициям (' + Math.round(sumKr).toLocaleString('ru-RU') + ' ₽) не совпала с итоговой строкой файла (' + Math.round(total.kr).toLocaleString('ru-RU') + ' ₽): проверьте файл.');
     if (col.pct === undefined) warnings.push('В файле нет колонки «процент выполнения»: этапы работ определить нельзя.');
@@ -192,13 +203,46 @@ var KrImport = (function () {
       flood: F ? Object.assign({}, F.meta, { by: F.by }) : (E && E.flood) || null,
       positions: L ? L.positions : E.positions
     };
+    var kept = { edits: 0, conflicts: 0, manual: 0, lost: 0 };
+    if (L && E && E.positions) {   // ручные правки и вручную добавленные позиции переживают новую загрузку файла
+      var byPk = {};
+      E.positions.forEach(function (o) { byPk[o.pk] = o; });
+      data.positions.forEach(function (p) {
+        var o = byPk[p.pk];
+        if (!o || !o.ed) return;
+        p.ed = {};
+        Object.keys(o.ed).forEach(function (k) {
+          var fileV = p[k] === undefined ? null : p[k];
+          if (String(fileV === null ? '' : fileV) !== String(o.ed[k].was === null || o.ed[k].was === undefined ? '' : o.ed[k].was)) kept.conflicts++;   // в новом файле значение изменилось, правка остаётся
+          p.ed[k] = { v: o.ed[k].v, was: fileV, by: o.ed[k].by, at: o.ed[k].at };
+          p[k] = o.ed[k].v;
+          if (k === 'start_txt' || k === 'end_txt') { var kk = k === 'start_txt' ? 'start' : 'end'; if (o[kk] !== undefined) p[kk] = o[kk]; }
+          if (k === 'addr' && o.hk) p.hk = o.hk;
+          kept.edits++;
+        });
+      });
+      E.positions.forEach(function (o) {
+        if (o.manual) { var c = JSON.parse(JSON.stringify(o)); c.id = data.positions.length; data.positions.push(c); kept.manual++; }
+        else if (o.ed && !data.positions.some(function (p) { return p.pk === o.pk; })) kept.lost++;   // позиции с правками больше нет в файле
+      });
+    }
     var hks = {};
     data.positions.forEach(function (p) { hks[p.hk] = 1; });
     var matched = data.flood ? Object.keys(data.flood.by).filter(function (k) { return hks[k]; }).length : 0;
     return { data: data, warnings: warnings, info: { positions: data.positions.length, houses: Object.keys(hks).length, kr: data.positions.reduce(function (a, p) { return a + (p.kr || 0); }, 0),
-      floodHouses: matched, floodRegister: data.flood ? Object.keys(data.flood.by).length : 0, fromList: !!L, fromFlood: !!F } };
+      floodHouses: matched, floodRegister: data.flood ? Object.keys(data.flood.by).length : 0, fromList: !!L, fromFlood: !!F, kept: kept } };
   }
 
-  return { build: build, readList: readList, readFlood: readFlood, houseKey: houseKey, init: init };
+  // срок, введённый вручную: «01.06.2026», «4 кв. 2026», «2027» (пусто — срока нет); [дата, подпись] или ошибка
+  function parseTermText(text, edge) {
+    var s = String(text || '').trim();
+    if (!s) return [null, ''];
+    var y = /^(\d{4})$/.exec(s), r;
+    if (y) r = parseTerm(+y[1], edge, false); else r = parseTerm(s.replace(/\s+/g, ' '), edge, false);
+    if (!r[0]) throw new Error('Не понял срок «' + s + '». Напишите дату (01.06.2026), квартал (4 кв. 2026) или год (2027).');
+    return r;
+  }
+
+  return { build: build, readList: readList, readFlood: readFlood, houseKey: houseKey, init: init, parseTermText: parseTermText, parseTerm: parseTerm };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = KrImport;

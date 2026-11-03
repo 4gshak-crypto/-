@@ -46,7 +46,8 @@ const FLN=Object.fromEntries(FL.map(f=>[f[0],f]));
 const SHORTFL={stop:"встали",endlate:"срок прошёл",behind:"отстаёт",latenopct:"старт прошёл",vote:"переголосование",floodrep:"повторные подтопления",floodwait:"подтопление: ждёт ответа",flood:"подтопления",nocontract:"нет договора",nopay:"нет оплаты",noend:"нет срока",noexec:"нет исполнителя",nocontr:"нет подрядчика",nostart:"нет старта",shortc:"договор < КР",nokr:"нет суммы КР"};
 
 /* состояние отбора */
-let V={q:"",stage:"",flag:"",term:"",hk:"",who:"contractor",whoKey:null,open:{}};
+const V0={q:"",stage:"",flag:"",term:"",hk:"",who:"contractor",whoKey:null,open:{}};
+let V=opts.state?Object.assign(opts.state,Object.assign({},V0,opts.state)):V0;   // opts.state — чтобы фильтры и раскрытые позиции переживали повторный показ после правки
 const list=()=>P.filter(p=>(!V.stage||p.g===V.stage)&&(!V.hk||p.hk===V.hk)&&(!V.flag||p.fl.includes(V.flag))&&(!V.term||termKey(p)===V.term)&&
   (V.whoKey==null||whoVal(p,V.who)===V.whoKey)&&(!V.q||(p.addr+" "+p.lines.map(l=>l.work).join(" ")+" "+p.contractor+" "+p.executor).toLowerCase().includes(V.q.toLowerCase())));
 const termKey=p=>p.end?p.end_txt:"—";
@@ -144,9 +145,9 @@ function render(){
   const chips=['<button type="button" class="chip" data-stg="" aria-pressed="'+(!V.stage)+'">Все <b>'+N+'</b></button>'].concat(ST.map(s=>'<button type="button" class="chip" data-stg="'+s[0]+'" aria-pressed="'+(V.stage===s[0])+'"><i class="g-'+G[s[0]]+'"></i>'+esc(s[1])+' <b>'+by[s[0]].length+'</b></button>')).join("");
   const item=p=>{const o=V.open[p.id];
     return'<div><button type="button" class="pos g-'+G[p.g]+'" data-pos="'+p.id+'" aria-expanded="'+!!o+'"><span class="sev"></span><span><span class="a">'+esc(p.addr)+'</span><span class="w" style="display:block">'+esc(p.lines.filter(l=>!l.cancelled).map(l=>l.work).join(" · ")||"—")+'</span>'+
-      (p.fl.length?'<span class="fl">'+p.fl.map(k=>'<span class="chkpill'+(FLN[k][1]==="high"?" bad":"")+'">'+(k==="flood"?"подтопления: "+p.flood.total:SHORTFL[k])+'</span>').join("")+'</span>':"")+'</span>'+
+      (p.fl.length||p.manual||edN(p)?'<span class="fl">'+(p.manual?'<span class="chkpill">добавлена вручную</span>':edN(p)?'<span class="chkpill">правка</span>':"")+p.fl.map(k=>'<span class="chkpill'+(FLN[k][1]==="high"?" bad":"")+'">'+(k==="flood"?"подтопления: "+p.flood.total:SHORTFL[k])+'</span>').join("")+'</span>':"")+'</span>'+
       '<span class="r"><span class="pill dot">'+(p.state?esc(p.state):p.pct!=null?p.pct+"%":"процент не указан")+'</span><span class="num">'+(p.kr?mln(p.kr):"нет суммы")+'</span><span class="faint">'+esc(p.contractor||"—")+'</span></span></button>'+(o?detail(p):"")+'</div>';};
-  const pos='<section class="card" id="poslist"><h3>Позиции <span>'+L.length+' '+plural(L.length,"позиция","позиции","позиций")+'</span></h3>'+
+  const pos='<section class="card" id="poslist"><h3>Позиции <span>'+L.length+' '+plural(L.length,"позиция","позиции","позиций")+'</span>'+(opts.onAdd?' <button type="button" class="btn" id="kadd" style="margin-left:auto">+ Добавить позицию</button>':"")+'</h3>'+
     '<div class="kfilters"><input class="ctl" id="kq" type="search" placeholder="Адрес, работа, подрядчик" value="'+esc(V.q)+'" aria-label="Поиск"></div><div class="chips" role="group" aria-label="Этап">'+chips+'</div>'+
     (act.length?'<div class="fpills">'+act.map(a=>'<span class="fpill">'+esc(a[1])+'<button type="button" data-clr="'+a[0]+'" aria-label="Убрать отбор">×</button></span>').join("")+'</div>':"")+
     '<div style="margin-top:8px">'+(L.length?L.map(item).join(""):'<div class="empty">Ничего не найдено</div>')+'</div></section>';
@@ -172,11 +173,14 @@ function render(){
   bind();
 }
 function gQuarterNow(k){const m=/(\d) кв\. (\d{4})/.exec(k);if(!m)return false;const q=+m[1],y=+m[2],s=y+"-"+String(q*3-2).padStart(2,"0")+"-01",e=new Date(Date.UTC(y,q*3,0)).toISOString().slice(0,10);return s<=T&&T<=e;}
+const edN=p=>p.ed?Object.keys(p.ed).length:0;
 function detail(p){
+  const mk=(k,f)=>{const e=p.ed&&p.ed[k];if(!e)return"";const w=e.was==null||e.was===""?"пусто":f?f(e.was):String(e.was);return' <span class="edb" title="'+esc((e.by||"")+" "+(e.at||""))+'">изменено вручную · в файле: '+esc(w)+'</span>';};
   const mon=n=>n?rub(n):"—",pc=p.pct==null?"не указан":p.pct+"%";
-  const kv=[["Основной подрядчик",p.contractor||"не указан"],["Исполнитель по плану",p.executor||"не указан"],["График начала",p.start_txt||"не указан"],["Срок окончания",p.end_txt||"не указан"],
-    ["Процент выполнения",{html:p.state?esc(p.state):'<span class="pbar2 g-'+G[p.g]+'"><i><b style="width:'+(p.pct||0)+'%"></b></i>'+pc+'</span>'+(p.elapsed!=null?' <span class="faint">· по времени прошло '+Math.round(p.elapsed)+'%</span>':"")}],
-    ["Сумма КР",mon(p.kr)],["Аванс из банка",mon(p.bank)],["Сумма договора",mon(p.contract)],["Аванс/расчёт",mon(p.pay)],["Выполнено по проценту",mon(p.w)]];
+  const kv=[["Основной подрядчик",{html:esc(p.contractor||"не указан")+mk("contractor")}],["Исполнитель по плану",{html:esc(p.executor||"не указан")+mk("executor")}],["График начала",{html:esc(p.start_txt||"не указан")+mk("start_txt")}],["Срок окончания",{html:esc(p.end_txt||"не указан")+mk("end_txt")}],
+    ["Процент выполнения",{html:p.state?esc(p.state):'<span class="pbar2 g-'+G[p.g]+'"><i><b style="width:'+(p.pct||0)+'%"></b></i>'+pc+'</span>'+(p.elapsed!=null?' <span class="faint">· по времени прошло '+Math.round(p.elapsed)+'%</span>':"")+mk("pct",v=>v+"%")+mk("state")}],
+    ["Сумма КР",{html:esc(mon(p.kr))+mk("kr",rub)}],["Аванс из банка",{html:esc(mon(p.bank))+mk("bank",rub)}],["Сумма договора",{html:esc(mon(p.contract))+mk("contract",rub)}],["Аванс/расчёт",{html:esc(mon(p.pay))+mk("pay",rub)}],["Выполнено по проценту",mon(p.w)]];
+  if(p.note||(p.ed&&p.ed.note))kv.push(["Комментарий",{html:esc(p.note||"—")+mk("note")}]);
   const lines='<table class="lt"><thead><tr><th>Работа (решение собственников)</th><th class="n">Сумма по разделу</th><th class="n">Договор по строке</th></tr></thead><tbody>'+
     p.lines.map(l=>'<tr><td'+(l.cancelled?' class="x"':"")+'>'+esc(l.work)+(l.cancelled?" — отмена":"")+'</td><td class="n">'+(l.sum?rub(l.sum):l.sum_txt?esc(l.sum_txt):"—")+'</td><td class="n">'+(l.contract?rub(l.contract):"—")+'</td></tr>').join("")+'</tbody></table>';
   let fb="";
@@ -190,7 +194,7 @@ function detail(p){
       (f.actions.length?'<div style="font-size:13px"><b>Что предлагает реестр:</b><ul class="kacts" style="margin:4px 0 0;padding-left:18px">'+f.actions.slice(0,3).map(a=>'<li><span class="faint">'+esc(a.group)+':</span> '+esc(a.text)+'</li>').join("")+'</ul></div>':"")+'</div>';
   }
   return'<div class="pd"><dl class="kv">'+kv.map(x=>'<dt>'+esc(x[0])+'</dt><dd>'+(x[1]&&x[1].html!=null?x[1].html:esc(x[1]))+'</dd>').join("")+'</dl>'+lines+fb+
-    (p.fl.length?'<div style="font-size:13px"><b>Что не так:</b> '+p.fl.map(k=>esc(FLN[k][2])).join("; ")+'</div>':"")+(p.notes.length?'<div class="faint" style="font-size:12px">'+p.notes.map(esc).join("; ")+'</div>':"")+'<div class="faint" style="font-size:12px">Строка '+p.row+' в файле</div></div>';
+    (p.fl.length?'<div style="font-size:13px"><b>Что не так:</b> '+p.fl.map(k=>esc(FLN[k][2])).join("; ")+'</div>':"")+(p.notes.length?'<div class="faint" style="font-size:12px">'+p.notes.map(esc).join("; ")+'</div>':"")+'<div class="faint" style="font-size:12px">'+(p.manual?"Добавлена вручную":"Строка "+p.row+" в файле")+'</div>'+(opts.onEdit?'<div class="kedit"><button type="button" class="btn" data-edit="'+esc(p.pk)+'">Править позицию</button></div>':"")+'</div>';
 }
 function bind(){
   const go=()=>{render();const el=root.querySelector("#poslist");if(el)el.scrollIntoView({behavior:"smooth",block:"start"});};
@@ -204,6 +208,8 @@ function bind(){
   root.querySelectorAll("[data-stg]").forEach(b=>b.onclick=()=>{V.stage=b.dataset.stg;render();});
   root.querySelectorAll("[data-clr]").forEach(b=>b.onclick=()=>{const k=b.dataset.clr;if(k==="whoKey")V.whoKey=null;else V[k]="";render();});
   root.querySelectorAll("[data-pos]").forEach(b=>b.onclick=()=>{const id=b.dataset.pos;V.open[id]=!V.open[id];const y=window.scrollY;render();window.scrollTo(0,y);});
+  root.querySelectorAll("[data-edit]").forEach(b=>b.onclick=e=>{e.stopPropagation();opts.onEdit(b.dataset.edit,P.find(x=>x.pk===b.dataset.edit));});
+  const ad=root.querySelector("#kadd");if(ad)ad.onclick=()=>opts.onAdd();
   const q=root.querySelector("#kq");if(q){let t;q.oninput=()=>{clearTimeout(t);t=setTimeout(()=>{V.q=q.value.trim();render();const n=root.querySelector("#kq");n.focus();n.setSelectionRange(n.value.length,n.value.length);},200);};}
 }
 render();

@@ -324,6 +324,9 @@ main{max-width:1200px;margin:0 auto;padding:20px 16px 48px}
 .wt tr.bold td{font-weight:600;border-top:1px solid var(--line-strong)}
 .wt tr[data-fp]{cursor:pointer}
 @media (max-width:640px){.fin-t th,.fin-t td{padding:8px 3px;font-size:11.5px}.fin-t th{vertical-align:bottom}.fin-t td:first-child{max-width:120px}}
+
+.edb{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:99px;font-size:11px;background:var(--warn-bg,rgba(217,119,6,.14));color:var(--warn,#b45309)}
+.kedit{margin-top:8px}
 /* kr-css:end */
 </style>
 </head>
@@ -485,7 +488,7 @@ function renderDemoPick(){
 
 /* ---------- загрузка ---------- */
 function load(silent){
-  return call("bootstrap",S.token).then(d=>{S.user=d.user;saveSess();S.items=d.items.map(enrich);S.ph=d.ph||{};S.src=d.sources||null;if(d.kr!==S.krStamp){S.krStamp=d.kr;S.kr=undefined;}buildMonths();S.issues=d.issues;S.log=d.log;S.rev=d.rev;S.asof=d.asof;
+  return call("bootstrap",S.token).then(d=>{S.user=d.user;saveSess();S.items=d.items.map(enrich);S.ph=d.ph||{};S.src=d.sources||null;if(d.kr!==S.krStamp){S.krStamp=d.kr;S.krOld=S.kr;S.kr=undefined;}buildMonths();S.issues=d.issues;S.log=d.log;S.rev=d.rev;S.asof=d.asof;
     if(!silent||!$("view"))renderShell();else renderView();}).catch(fail);
 }
 setInterval(()=>{if(!S.token||document.hidden)return;
@@ -696,6 +699,7 @@ function renderDrawer(){
   if(D.add)return renderAdd(host);
   if(D.imp)return renderImport(host);
   if(D.kr)return renderKrUpload(host);
+  if(D.kredit)return renderKrEdit(host);
   const it=S.items.find(i=>i.key===D.key);if(!it){closeDrawer();return;}
   const ed=canEdit(it),stLocked=ed&&!isAdmin()&&ADMIN_ONLY.includes(it.status);
   if(!D.hist){D.hist=[];call("getHistory",S.token,it.key).then(h=>{if(V.drawer===D){D.hist=h;const el=$("dhist");if(el)el.outerHTML=histHtml(h);}}).catch(()=>{});}
@@ -997,15 +1001,81 @@ function renderImport(host){
 function renderKr(){
   const v=$("view"),head='<div class="head"><h2>Капитальный ремонт</h2>';
   if(S.kr===undefined){
-    v.innerHTML=head+'</div><div class="empty">Загружаю…</div>';
-    call("getCapital",S.token).then(r=>{S.kr=r||null;if(V.tab==="kr")renderKr();})
-      .catch(e=>{if(V.tab==="kr")v.innerHTML=head+'</div><div class="card"><div class="empty">Не удалось загрузить данные: '+esc((e&&e.message)||String(e))+'</div></div>';fail(e);});
+    const y=window.scrollY;
+    if(S.krOld&&S.krOld.data&&!S.krFetch)KrView.mount(v,S.krOld.data,krOpts(""));else if(!S.krOld)v.innerHTML=head+'</div><div class="empty">Загружаю…</div>';
+    if(S.krFetch)return;
+    S.krFetch=true;
+    call("getCapital",S.token).then(r=>{S.krFetch=false;S.krOld=null;S.kr=r||null;if(V.tab==="kr"){renderKr();window.scrollTo(0,y);}})
+      .catch(e=>{S.krFetch=false;S.krOld=null;if(V.tab==="kr")v.innerHTML=head+'</div><div class="card"><div class="empty">Не удалось загрузить данные: '+esc((e&&e.message)||String(e))+'</div></div>';fail(e);});
     return;
   }
   const up=isAdmin()?'<button class="btn" id="krup" type="button">'+(S.kr?"Обновить данные":"Загрузить данные")+'</button>':"";
   if(!S.kr)v.innerHTML=head+up+'</div><div class="card"><div class="empty">Данные по капитальному ремонту ещё не загружены. '+(isAdmin()?"Нажмите «Загрузить данные» и выберите перечень работ (.xls) и реестр подтоплений (.html), если он есть.":"Их загружает администратор.")+'</div></div>';
-  else KrView.mount(v,S.kr.data,{title:"Капитальный ремонт",today:TODAY,actions:up});
-  if($("krup"))$("krup").onclick=()=>{V.drawer={kr:true};renderDrawer();};
+  else KrView.mount(v,S.kr.data,krOpts(up));
+}
+document.addEventListener("click",ev=>{if(ev.target.closest&&ev.target.closest("#krup")&&isAdmin()){V.drawer={kr:true};renderDrawer();}});   // кнопка живёт в шапке, которую страница капремонта перерисовывает при фильтрах
+function krOpts(up){
+  S.krView=S.krView||{};
+  const o={title:"Капитальный ремонт",today:TODAY,actions:up,state:S.krView};
+  if(isAdmin()){o.onEdit=(pk,p)=>{V.drawer={kredit:true,pk:pk,dirty:true};renderDrawer();};o.onAdd=()=>{V.drawer={kredit:true,np:true,dirty:true};renderDrawer();};}
+  return o;
+}
+const KR_NUM=[["kr","Сумма КР, ₽"],["bank","Аванс из банка, ₽"],["pay","Аванс/расчёт (оплачено), ₽"],["contract","Сумма договора, ₽"]];
+const KR_TXT=[["contractor","Основной подрядчик"],["executor","Исполнитель по плану"],["state","Отметка вместо процента (например «встали»)"]];
+function krNum(t){t=String(t).replace(/[\s\u00a0]/g,"").replace(",",".");if(t==="")return null;const n=Number(t);if(!isFinite(n)||n<0)throw new Error("Сумма: нужно число не меньше нуля («"+t+"»).");return n;}
+/** Правка одной позиции капремонта (только администратор). */
+function renderKrEdit(host){
+  if(!isAdmin()){closeDrawer();return;}
+  KrImport.init(TrackerMerge);   // разбор сроков и ключа дома не требует библиотеки Excel
+  const D=V.drawer,p=D.np?null:S.kr&&S.kr.data.positions.find(x=>x.pk===D.pk);
+  if(!D.np&&!p){closeDrawer();return;}
+  const cur=p||{addr:"",kr:null,bank:null,pay:null,contract:null,pct:null,contractor:"",executor:"",state:"",start_txt:"",end_txt:"",vote:false,note:"",ed:{},lines:[]};
+  const was=k=>{const e=cur.ed&&cur.ed[k];return e?'<span class="edb">в файле: '+esc(e.was==null||e.was===""?"пусто":k==="pct"?e.was+"%":typeof e.was==="number"?rub(e.was):e.was)+'</span>':"";};
+  const inp=(id,lbl,val,k,ex)=>'<label class="field">'+esc(lbl)+' '+was(k)+'<input id="'+id+'" type="text" value="'+esc(val==null?"":val)+'" autocomplete="off"'+(ex||"")+'></label>';
+  const edN=cur.ed?Object.keys(cur.ed).length:0;
+  host.innerHTML='<div class="scrim" id="scrim"></div><aside class="drawer" role="dialog" aria-label="Позиция капремонта"><div class="dh"><div><div class="muted" style="font-size:12px">'+(D.np?"Новая позиция":"Правка позиции")+'</div><h3>'+esc(D.np?"Добавить позицию":cur.addr)+'</h3></div><button class="x" id="dx" type="button" aria-label="Закрыть">×</button></div>'+
+   '<div class="db">'+(D.np?inp("ke-addr","Адрес дома",cur.addr,"addr")+inp("ke-work","Что делаем (вид работ)","","work"):'<div class="muted" style="font-size:13px">'+esc(cur.lines.filter(l=>!l.cancelled).map(l=>l.work).join(" · ")||"—")+'</div>'+(cur.manual?'<div class="faint" style="font-size:12px">Добавлена вручную — при новой загрузке перечня остаётся.</div>':'<div class="faint" style="font-size:12px">Правки сохраняются и при новой загрузке перечня: если в файле значение поменяется, останется ваше, а расхождение покажем.</div>'))+
+   KR_NUM.map(f=>inp("ke-"+f[0],f[1],cur[f[0]],f[0],' inputmode="decimal"')).join("")+
+   inp("ke-pct","Процент выполнения (0–100)",cur.pct,"pct",' inputmode="decimal"')+
+   KR_TXT.map(f=>inp("ke-"+f[0],f[1],cur[f[0]],f[0])).join("")+
+   inp("ke-start_txt","График начала (01.06.2026, 4 кв. 2026 или 2027)",cur.start_txt,"start_txt")+inp("ke-end_txt","Срок окончания (01.06.2026, 4 кв. 2026 или 2027)",cur.end_txt,"end_txt")+
+   '<label class="field" style="flex-direction:row;align-items:center;gap:8px"><input id="ke-vote" type="checkbox" style="width:auto"'+(cur.vote?" checked":"")+'> Нужно переголосование</label>'+
+   '<label class="field">Комментарий '+was("note")+'<textarea id="ke-note" maxlength="500">'+esc(cur.note||"")+'</textarea></label>'+
+   (D.err?'<div class="imp-err" role="alert">'+esc(D.err)+'</div>':"")+
+   '</div><div class="df"><button class="btn primary" id="kesave" type="button" disabled>Сохранить</button><button class="btn" id="kecancel" type="button">Закрыть</button>'+
+   (edN?'<button class="btn" id="kereset" type="button" title="Вернуть значения, как в загруженном перечне">Вернуть из файла</button>':"")+(p&&p.manual?'<button class="btn" id="kedel" type="button">Удалить</button>':"")+'<span class="msg" id="kemsg"></span></div></aside>';
+  $("dx").onclick=closeDrawer;$("scrim").onclick=closeDrawer;$("kecancel").onclick=closeDrawer;
+  const val=id=>$(id).value;
+  const patch=()=>{
+    const o={},same=(a,b)=>(a==null||a==="")&&(b==null||b==="")||a===b;
+    KR_NUM.forEach(f=>{const n=krNum(val("ke-"+f[0]));if(!same(n,cur[f[0]]))o[f[0]]=n;});
+    const pt=val("ke-pct").replace(",",".").trim(),pn=pt===""?null:Number(pt);
+    if(pn!==null&&(!isFinite(pn)||pn<0||pn>100))throw new Error("Процент: от 0 до 100.");
+    if(!same(pn,cur.pct))o.pct=pn;
+    KR_TXT.forEach(f=>{const t=val("ke-"+f[0]).replace(/\s+/g," ").trim();if(!same(t,cur[f[0]]))o[f[0]]=t;});
+    [["start","start_txt"],["end","end_txt"]].forEach(f=>{const t=val("ke-"+f[1]).replace(/\s+/g," ").trim();if(!same(t,cur[f[1]])){const r=KrImport.parseTermText(t,f[0]);o[f[0]]=r[0];o[f[1]]=r[1];}});
+    if($("ke-vote").checked!==!!cur.vote)o.vote=$("ke-vote").checked;
+    const nt=val("ke-note").trim();if(!same(nt,cur.note))o.note=nt;
+    if(D.np){o.addr=val("ke-addr").replace(/\s+/g," ").trim();o.work=val("ke-work").replace(/\s+/g," ").trim();}
+    return o;
+  };
+  const check=()=>{try{const o=patch();$("kesave").disabled=D.busy||(D.np?!(o.addr&&o.work):!Object.keys(o).length);$("kemsg").textContent="";}catch(e){$("kesave").disabled=true;$("kemsg").textContent=e.message;}};
+  host.querySelectorAll("input,textarea").forEach(el=>{el.addEventListener("input",check);el.addEventListener("change",check);});
+  check();
+  const done=(r,msg)=>{
+    D.busy=false;
+    if(r.pos){const L=S.kr.data.positions,i=L.findIndex(x=>x.pk===r.pos.pk);if(i>=0)L[i]=Object.assign({},L[i],r.pos);else if(D.np)L.push(r.pos);}
+    S.krView.open=S.krView.open||{};toast(msg);V.drawer=null;$("dr").innerHTML="";renderKr();load(true);
+  };
+  const bad=er=>{D.busy=false;D.err=(er&&er.message)||String(er);if(String(D.err).indexOf("SESSION_EXPIRED")>=0){fail(er);return;}if(V.drawer===D)renderKrEdit(host);};
+  $("kesave").onclick=()=>{
+    let o;try{o=patch();}catch(e){return bad(e);}
+    D.busy=true;$("kesave").disabled=true;$("kemsg").textContent="Записываю…";
+    if(D.np){o.hk=KrImport.houseKey(o.addr);call("addCapitalPosition",S.token,o).then(r=>done(r,"Позиция добавлена")).catch(bad);}
+    else call("editCapital",S.token,cur.pk,o).then(r=>done(r,r.changed?"Сохранено":"Изменений нет")).catch(bad);
+  };
+  if($("kereset"))$("kereset").onclick=()=>{if(!confirm("Вернуть значения из загруженного перечня? Ваши правки по этой позиции пропадут."))return;D.busy=true;call("resetCapitalEdits",S.token,cur.pk).then(r=>done(r,"Значения возвращены из файла")).catch(bad);};
+  if($("kedel"))$("kedel").onclick=()=>{if(!confirm("Удалить эту позицию?"))return;D.busy=true;call("deleteCapitalPosition",S.token,cur.pk).then(()=>{const L=S.kr.data.positions,i=L.findIndex(x=>x.pk===cur.pk);if(i>=0)L.splice(i,1);D.busy=false;toast("Позиция удалена");V.drawer=null;$("dr").innerHTML="";renderKr();load(true);}).catch(bad);};
 }
 function renderKrUpload(host){
   if(!isAdmin()){closeDrawer();return;}
@@ -1013,6 +1083,7 @@ function renderKrUpload(host){
   const mlnR=n=>(n/1e6).toLocaleString("ru-RU",{maximumFractionDigits:1})+" млн ₽";
   const prev=r?'<div class="box"><h4>Что получится</h4><ul class="imp-info"><li>Позиций: <b>'+r.info.positions+'</b>, домов: '+r.info.houses+', сумма КР '+mlnR(r.info.kr)+(E&&r.info.fromList?' <span class="faint">(сейчас '+E.positions.length+' поз., '+mlnR(E.positions.reduce((a,p)=>a+(p.kr||0),0))+')</span>':"")+'</li>'+
     '<li>Подтопления: '+(r.data.flood?'в реестре '+r.info.floodRegister+' домов, из них в программе <b>'+r.info.floodHouses+'</b>':"реестр не загружен")+'</li>'+
+    (r.info.kept&&(r.info.kept.edits||r.info.kept.manual||r.info.kept.lost)?'<li>Ваши правки сохранятся: изменённых полей <b>'+r.info.kept.edits+'</b>'+(r.info.kept.conflicts?', из них в новом файле значение изменилось у '+r.info.kept.conflicts+' (останется ваше)':"")+(r.info.kept.manual?'; добавленных вручную позиций: <b>'+r.info.kept.manual+'</b>':"")+(r.info.kept.lost?'<br><b>Позиций с правками нет в новом файле: '+r.info.kept.lost+'</b> — они пропадут из списка':"")+'</li>':"")+
     '<li>Перечень: '+(r.info.fromList?"новый файл":"остаётся прежний")+' · реестр подтоплений: '+(r.info.fromFlood?"новый файл":"остаётся прежний")+'</li></ul>'+r.warnings.map(w=>'<div class="imp-err" role="alert">'+esc(w)+'</div>').join("")+'</div>':"";
   host.innerHTML='<div class="scrim" id="scrim"></div><aside class="drawer" role="dialog" aria-label="Данные капремонта"><div class="dh"><h3>Данные капремонта</h3><button class="x" id="dx" type="button" aria-label="Закрыть">×</button></div>'+
     '<div class="db"><p class="muted" style="margin:0;font-size:13px">Нужен хотя бы один файл. Если выбрать только реестр подтоплений, перечень останется прежним, и наоборот. Файлы читаются в вашем браузере и никуда не отправляются, на сервер уходит только итог.</p>'+
