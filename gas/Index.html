@@ -321,6 +321,9 @@ main{max-width:1200px;margin:0 auto;padding:20px 16px 48px}
 .kfilters .ctl{flex:1 1 200px}
 .qlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13px}
 .qlist b{font-weight:600}
+.wt tr.bold td{font-weight:600;border-top:1px solid var(--line-strong)}
+.wt tr[data-fp]{cursor:pointer}
+@media (max-width:640px){.fin-t th,.fin-t td{padding:8px 3px;font-size:11.5px}.fin-t th{vertical-align:bottom}.fin-t td:first-child{max-width:120px}}
 /* kr-css:end */
 </style>
 </head>
@@ -365,6 +368,7 @@ const FL=[
  ["nocontract","mid","Работа идёт или закончена, а суммы договора в файле нет","ПТО: оформить договор или внести его сумму",p=>p.pct>0&&!p.contract],
  ["floodwait","mid","Подтопление: претензия ждёт ответа","УК: контролировать срок ответа организации",p=>!!(p.flood&&p.flood.gis_pending>0)],
  ["flood","mid","В доме подтапливало подвал (есть в реестре подтоплений)","УК: учесть при планировании работ, контролировать ответы",p=>!!p.flood],
+ ["nopay","mid","Аванс из банка есть, работа идёт, а оплаты подрядчику в файле нет","ПТО: внести оплату («Аванс/расчёт») или пояснить",p=>!!p.bank&&!p.pay&&p.pct>0],
  ["noend","mid","Нет срока окончания","ПТО: внести срок",p=>!p.end],
  ["noexec","mid","Не назначен исполнитель по плану","ПТО: назначить исполнителя",p=>!p.executor],
  ["nocontr","mid","Нет основного подрядчика","ПТО: указать подрядчика",p=>!p.contractor],
@@ -374,7 +378,7 @@ const FL=[
 const SEV={high:"красное срывает сроки",mid:"жёлтое копится",low:"серое — порядок в данных"};
 P.forEach(p=>{p.fl=FL.filter(f=>f[4](p)).map(f=>f[0]);p.bad=p.fl.some(k=>!/^flood/.test(k)&&FL.find(f=>f[0]===k)[1]==="high");});
 const FLN=Object.fromEntries(FL.map(f=>[f[0],f]));
-const SHORTFL={stop:"встали",endlate:"срок прошёл",behind:"отстаёт",latenopct:"старт прошёл",vote:"переголосование",floodrep:"повторные подтопления",floodwait:"подтопление: ждёт ответа",flood:"подтопления",nocontract:"нет договора",noend:"нет срока",noexec:"нет исполнителя",nocontr:"нет подрядчика",nostart:"нет старта",shortc:"договор < КР",nokr:"нет суммы КР"};
+const SHORTFL={stop:"встали",endlate:"срок прошёл",behind:"отстаёт",latenopct:"старт прошёл",vote:"переголосование",floodrep:"повторные подтопления",floodwait:"подтопление: ждёт ответа",flood:"подтопления",nocontract:"нет договора",nopay:"нет оплаты",noend:"нет срока",noexec:"нет исполнителя",nocontr:"нет подрядчика",nostart:"нет старта",shortc:"договор < КР",nokr:"нет суммы КР"};
 
 /* состояние отбора */
 let V={q:"",stage:"",flag:"",term:"",hk:"",who:"contractor",whoKey:null,open:{}};
@@ -387,6 +391,7 @@ const stack=(l,w)=>{const t=l.length;if(!t)return'<div class="stk"></div>';
 const wavg=l=>{const k=sum(l,p=>p.kr);return k?Math.round(sum(l,p=>p.w)*100/k):0;};
 
 function render(){
+  const kpi=(n,t,bad)=>'<div'+(bad?' class="bad"':"")+'><div class="n">'+n+'</div><div class="t">'+t+'</div></div>';
   const NH=new Set(P.map(p=>p.hk)).size,N=P.length,KR=sum(P,p=>p.kr),WP=wavg(P),by=Object.fromEntries(ST.map(s=>[s[0],P.filter(p=>p.g===s[0])]));
   const noPctLate=FL[3][4];
   /* 1. где мы сейчас */
@@ -410,7 +415,6 @@ function render(){
   if(D.flood&&FH.length){
     const F=D.flood,fs=FH.map(h=>h.l[0].flood),tot=sum(fs,f=>f.total),gis=sum(fs,f=>f.gis),pend=sum(fs,f=>f.gis_pending),rep=fs.filter(f=>f.repeat).length,
       cat=c=>sum(fs,f=>f.cats[c]),ans=sum(["done","done_blame","refuse","plan","third"].map(c=>({v:cat(c)})),x=>x.v),dd=s=>s.slice(0,5);
-    const kpi=(n,t,bad)=>'<div'+(bad?' class="bad"':"")+'><div class="n">'+n+'</div><div class="t">'+t+'</div></div>';
     floodCard='<section class="card"><h3>Подтопления подвалов <span>реестр на '+esc(F.updated)+' · с '+esc(dd(F.period_start))+' по '+esc(dd(F.period_end))+'</span></h3>'+
       '<div class="sub">В реестре есть '+FH.length+' из '+NH+' '+plural(NH,"дома","домов","домов")+' программы: '+tot+' '+plural(tot,"заявка","заявки","заявок")+' в АДС — '+Math.round(tot*100/F.register_total)+'% всех заявок реестра ('+F.register_total+' по '+F.register_addresses+' адресам). Нажмите на дом, чтобы открыть его позиции.</div>'+
       '<div class="fkpi">'+kpi(tot,plural(tot,"заявка","заявки","заявок")+" в АДС о подтоплении")+kpi(gis,"обращений УК в ГИС ЖКХ"+(pend?", из них "+pend+" без ответа (в "+fs.filter(f=>f.gis_pending).length+" "+plural(fs.filter(f=>f.gis_pending).length,"доме","домах","домах")+")":", все с ответом"),pend>0)+
@@ -419,6 +423,30 @@ function render(){
       FH.map(h=>{const f=h.l[0].flood;return'<tr data-fh="'+esc(h.hk)+'" tabindex="0"><td>'+esc(h.addr)+'</td><td><b>'+f.total+'</b></td><td class="st">'+f.gis+'</td><td'+(f.gis_pending?' class="bad"':"")+'>'+(f.gis_pending||'<span class="z">0</span>')+'</td><td class="st">'+esc(f.last)+'</td><td'+(f.repeat?' class="bad"':"")+'>'+(f.repeat?f.repeat.cycles+" "+plural(f.repeat.cycles,"раз","раза","раз"):'<span class="z">нет</span>')+'</td><td>'+esc(h.l.map(p=>p.state?p.state:p.pct!=null?p.pct+"%":"нет %").join(" · "))+'</td></tr>';}).join("")+'</tbody></table></div>'+
       '<p class="note">Из реестра взяты только цифры и сроки. Заявки в АДС — это обращения жителей и служб; обращения в ГИС ЖКХ направляет УК в Водоканал, Управление ЖКХ, ГЖИ и другие организации. Подробности по дому — в раскрытой позиции ниже. Дома программы, которых в таблице нет, в реестре подтоплений не значатся (или записаны по-другому).</p></section>';
   }
+  /* финансы года: сколько запланировано, сделано и оплачено */
+  const Y=+T.slice(0,4),yr=p=>p.end?+p.end.slice(0,4):null,live=p=>(p.pct||0)>0||(p.start&&+p.start.slice(0,4)===Y);
+  const FG=[["a","Срок окончания в "+Y+" году",p=>!!p.end&&yr(p)<=Y],["b","Без срока окончания, но идёт в "+Y+" году",p=>!p.end&&!!live(p)],
+    ["c","Без срока и без данных о ходе",p=>!p.end&&!live(p)],["d","Срок окончания позже "+Y+" года",p=>!!p.end&&yr(p)>Y]];
+  const fg=FG.map(g=>{const l=P.filter(g[2]);return{t:g[1],n:l.length,kr:sum(l,p=>p.kr),w:sum(l,p=>p.w),bank:sum(l,p=>p.bank),pay:sum(l,p=>p.pay),contract:sum(l,p=>p.contract)};});
+  const pl=P.filter(p=>FG[0][2](p)||FG[1][2](p)),pk=sum(pl,p=>p.kr),pw=sum(pl,p=>p.w),pbank=sum(pl,p=>p.bank),ppay=sum(pl,p=>p.pay);
+  const prc=(a,b)=>b?Math.round(a*100/b):0,m1=n=>(n/1e6).toLocaleString("ru-RU",{maximumFractionDigits:1});
+  const frow=(t,g,cls)=>'<tr'+(cls?' class="'+cls+'"':"")+'><td>'+esc(t)+'</td><td class="st">'+g.n+'</td><td>'+m1(g.kr)+'</td><td>'+m1(g.w)+'</td><td><b>'+prc(g.w,g.kr)+'%</b></td><td class="st">'+m1(g.bank)+'</td><td>'+(g.pay?m1(g.pay):'<span class="z">0</span>')+'</td></tr>';
+  const sumG=gs=>gs.reduce((a,g)=>({n:a.n+g.n,kr:a.kr+g.kr,w:a.w+g.w,bank:a.bank+g.bank,pay:a.pay+g.pay}),{n:0,kr:0,w:0,bank:0,pay:0});
+  const adv=P.filter(p=>p.bank).sort((a,b)=>b.bank-a.bank);
+  const finCard='<section class="card" id="fincard"><h3>Финансы '+Y+' года <span>план, выполнено и аванс по перечню</span></h3>'+
+    '<div class="sub">«Запланировано» — позиции со сроком окончания в '+Y+' году и позиции без срока окончания, которые уже идут (есть процент выполнения или график начала в '+Y+' году). «Сделано» — сумма КР × процент выполнения по каждой позиции.</div>'+
+    '<div class="fkpi">'+kpi(mln(pk),"запланировано на "+Y+" год: "+pl.length+" "+plural(pl.length,"позиция","позиции","позиций"))+kpi(mln(pw),"сделано: "+prc(pw,pk)+"% от плана")+kpi(mln(pk-pw),"осталось сделать")+
+      kpi(mln(ppay),"аванс оплачен подрядчикам («Аванс/расчёт»); аванс из банка по плану "+mln(pbank)+(pbank?", оплачено "+prc(ppay,pbank)+"%":""),pbank>0&&ppay<pbank*.5)+'</div>'+
+    '<div class="pipe" title="сделано и осталось"><span class="g-done" style="flex:'+Math.max(pw,1)+'" data-tip="Сделано: '+mln(pw)+'"></span><span class="g-todo" style="flex:'+Math.max(pk-pw,1)+'" data-tip="Осталось: '+mln(pk-pw)+'"></span></div>'+
+    '<div class="legend"><span><i class="g-done" style="background:var(--c)"></i>Сделано '+mln(pw)+'</span><span><i class="g-todo" style="background:var(--c)"></i>Осталось '+mln(pk-pw)+'</span></div>'+
+    '<div class="tscroll" style="margin-top:12px"><table class="wt fh-t fin-t" style="min-width:0"><thead><tr><th>Позиции по сроку</th><th class="st">Позиций</th><th>Сумма КР, млн ₽</th><th>Сделано, млн ₽</th><th>%</th><th class="st">Аванс из банка, млн ₽</th><th>Оплачено, млн ₽</th></tr></thead><tbody>'+
+    frow(fg[0].t,fg[0])+frow(fg[1].t,fg[1])+frow("Итого запланировано на "+Y+" год",sumG([fg[0],fg[1]]),"bold")+frow(fg[2].t,fg[2])+frow(fg[3].t,fg[3])+frow("Вся программа",sumG(fg),"bold")+'</tbody></table></div>'+
+    (adv.length?'<h4 style="margin:16px 0 4px;font-size:13px">Аванс по домам</h4><div class="sub" style="margin-bottom:8px">Аванс из банка по перечню и то, что отражено как оплаченное подрядчику. Красным — работа идёт, а оплаты в файле нет.</div>'+
+      '<div class="tscroll"><table class="wt fh-t fin-t" style="min-width:0"><thead><tr><th>Позиция</th><th>Аванс из банка, млн ₽</th><th>Оплачено, млн ₽</th><th>Выполнено</th></tr></thead><tbody>'+
+      adv.map(p=>{const bad=!p.pay&&p.pct>0;return'<tr data-fp="'+p.id+'" tabindex="0"><td>'+esc(p.addr)+'</td><td>'+m1(p.bank)+'</td><td'+(bad?' class="bad"':"")+'>'+(p.pay?m1(p.pay):'<span class="z">0</span>')+'</td><td>'+esc(p.state?p.state:p.pct!=null?p.pct+"%":"нет %")+'</td></tr>';}).join("")+
+      '<tr class="bold"><td>Итого</td><td>'+m1(sum(adv,p=>p.bank))+'</td><td>'+m1(sum(adv,p=>p.pay))+'</td><td></td></tr></tbody></table></div>':"")+
+    '<p class="note">Данные из перечня работ; оплата — только то, что внесено в колонку «Аванс/расчёт». Если оплата проведена, но в файле её нет, цифры занижены. Позиции без срока и без данных о ходе ('+fg[2].n+') и со сроком позже '+Y+' года ('+fg[3].n+') в план '+Y+' года не входят.</p></section>';
+
   /* 2. где проблемы */
   const rows=FL.map(f=>{const l=P.filter(p=>p.fl.includes(f[0]));return l.length?'<li class="sev-'+f[1]+'" data-flag="'+f[0]+'" tabindex="0" role="button"><span class="sv"></span><span class="pn">'+l.length+'</span><span class="pt"><b>'+esc(f[2])+'</b><span>'+esc(f[3])+(sum(l,p=>p.kr)?' · КР '+mln(sum(l,p=>p.kr)):"")+'</span></span><span class="pa">Показать →</span></li>':"";}).join("");
   const probs='<section class="card"><h3>Где проблемы <span>по важности</span></h3><div class="sub">'+SEV.high+', '+SEV.mid+', '+SEV.low+'. Нажмите на строку, чтобы открыть эти позиции.</div><ul class="plist">'+rows+'</ul></section>';
@@ -436,7 +464,7 @@ function render(){
     ["Сумма договоров с подрядчиками",sum(P,p=>p.contract),"noact",KR?Math.round(sum(P,p=>p.contract)*100/KR)+"% суммы КР":""],
     ["Выполнено по проценту (КР × %)",sum(P,p=>p.w),"done",WP+"% суммы КР"],
     ["Оплачено («Аванс/расчёт»)",sum(P,p=>p.pay),"winter",KR?(sum(P,p=>p.pay)*100/KR).toLocaleString("ru-RU",{maximumFractionDigits:1})+"% суммы КР":""]];
-  const money='<section class="card"><h3>Деньги <span>по данным перечня</span></h3><div class="sub">Сколько заложено, сколько под договором и сколько сделано.</div>'+
+  const money='<section class="card"><h3>Деньги <span>вся программа, все годы</span></h3><div class="sub">Сколько заложено, сколько под договором и сколько сделано.</div>'+
     bars.map(b=>'<div class="mny g-'+b[2]+'"><span>'+esc(b[0])+'</span><span class="tr"><i style="width:'+(KR?Math.max(.5,b[1]*100/KR):0)+'%"></i></span><span class="v">'+mln(b[1])+(b[3]?'<br><small>'+b[3]+'</small>':"")+'</span></div>').join("")+'</section>';
 
   /* 5. кто выполняет */
@@ -475,7 +503,7 @@ function render(){
   const vt=P.filter(p=>p.vote);if(vt.length)q.push("<b>«Переголосовывать»:</b> "+vt.map(p=>esc(p.addr)).join("; ")+". Когда и кто проводит переголосование?");
   const quest='<section class="card"><h3>Что уточнить по файлу <span>без этого страница показывает не всё</span></h3><ol class="qlist">'+q.map(x=>"<li>"+x+"</li>").join("")+'</ol></section>';
 
-  root.innerHTML='<div class="kr-head"><h2>'+esc(opts.title||"Сводка")+'</h2>'+(opts.actions?'<span class="kacts-h">'+opts.actions+'</span>':"")+'<span class="faint" style="font-size:12px">по перечню работ, сохранённому '+esc(dmy(D.saved))+' · сроки посчитаны на '+esc(dmy(T))+'</span></div>'+hero+floodCard+'<div class="grid2">'+probs+'<div style="display:flex;flex-direction:column;gap:12px;min-width:0">'+termCard+money+'</div></div>'+who+pos+quest;
+  root.innerHTML='<div class="kr-head"><h2>'+esc(opts.title||"Сводка")+'</h2>'+(opts.actions?'<span class="kacts-h">'+opts.actions+'</span>':"")+'<span class="faint" style="font-size:12px">по перечню работ, сохранённому '+esc(dmy(D.saved))+' · сроки посчитаны на '+esc(dmy(T))+'</span></div>'+hero+finCard+floodCard+'<div class="grid2">'+probs+'<div style="display:flex;flex-direction:column;gap:12px;min-width:0">'+termCard+money+'</div></div>'+who+pos+quest;
   bind();
 }
 function gQuarterNow(k){const m=/(\d) кв\. (\d{4})/.exec(k);if(!m)return false;const q=+m[1],y=+m[2],s=y+"-"+String(q*3-2).padStart(2,"0")+"-01",e=new Date(Date.UTC(y,q*3,0)).toISOString().slice(0,10);return s<=T&&T<=e;}
@@ -505,6 +533,7 @@ function bind(){
   root.querySelectorAll("[data-flag]").forEach(b=>{const f=()=>{V=Object.assign(V,{flag:b.dataset.flag,stage:"",term:"",whoKey:null,q:"",hk:""});go();};b.onclick=f;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}};});
   root.querySelectorAll("[data-term]").forEach(b=>b.onclick=()=>{V=Object.assign(V,{term:b.dataset.term,stage:"",flag:"",whoKey:null,q:"",hk:""});go();});
   root.querySelectorAll("[data-fh]").forEach(b=>{const f=()=>{V=Object.assign(V,{hk:b.dataset.fh,stage:"",flag:"",term:"",whoKey:null,q:""});go();};b.onclick=f;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}};});
+  root.querySelectorAll("[data-fp]").forEach(b=>{const f=()=>{const id=+b.dataset.fp,p=P.find(x=>x.id===id);if(!p)return;V=Object.assign(V,{hk:p.hk,stage:"",flag:"",term:"",whoKey:null,q:""});V.open[id]=true;go();};b.onclick=f;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}};});
   root.querySelectorAll("[data-whokey]").forEach(b=>{const f=()=>{V=Object.assign(V,{whoKey:b.dataset.whokey,stage:"",flag:"",term:"",q:"",hk:""});go();};b.onclick=f;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}};});
   root.querySelectorAll("[data-who]").forEach(b=>b.onclick=()=>{V.who=b.dataset.who;V.whoKey=null;render();});
   root.querySelectorAll("[data-stg]").forEach(b=>b.onclick=()=>{V.stage=b.dataset.stg;render();});
